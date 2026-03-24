@@ -1,0 +1,20 @@
+#ifndef CONFIG_H_IN
+#define CONFIG_H_IN
+
+// Data
+#define APP_NAME "@APP_NAME@"
+#define APP_CREATOR "@APP_CREATOR@"
+
+// Version
+#define VERSION_MAJOR "@VERSION_MAJOR@"
+#define VERSION_MINOR "@VERSION_MINOR@"
+#define VERSION_PATCH "@VERSION_PATCH@"
+#define VERSION_FULL "@VERSION_FULL@"
+
+// Directories
+#define INPUT_DIR "@INPUT_DIR@"
+#define OUTPUT_DIR "@OUTPUT_DIR@"
+#define RESOURCES_DIR "@RESOURCES_DIR@"
+#define TRANSLATIONS_DIR "@TRANSLATIONS_DIR@"
+
+#endif // CONFIG_H_IN

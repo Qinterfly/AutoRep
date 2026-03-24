@@ -1,0 +1,6 @@
+{
+	"name": "autorep",
+	"dependencies": [
+		"magic-enum"
+	]
+}

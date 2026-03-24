@@ -1,0 +1,10 @@
+.qtcreator
+archive
+build
+input
+lib/testlab/Debug
+lib/testlab/Release
+output
+resources
+releases
+install
