@@ -10,8 +10,8 @@ namespace Frontend
 {
 
 class CustomStatusBar;
-class ViewManager;
-class ProjectEditor;
+class SessionEditor;
+class ReportEditor;
 
 class MainWindow : public QMainWindow
 {
@@ -20,6 +20,8 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget* pParent = nullptr, bool isRestore = true);
     virtual ~MainWindow();
+
+    SessionEditor* sessionEditor();
 
 public:
     static QString language;
@@ -53,6 +55,10 @@ private:
 
 private:
     QSettings mSettings;
+
+    // Ui
+    SessionEditor* mpSessionEditor;
+    ReportEditor* mpReportEditor;
 
     // Translations
     QTranslator mTranslatorApplication;

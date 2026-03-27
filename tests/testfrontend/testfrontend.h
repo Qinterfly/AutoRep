@@ -5,11 +5,6 @@
 
 #include "mainwindow.h"
 
-namespace Frontend
-{
-class MainWindow;
-}
-
 namespace Tests
 {
 
@@ -22,9 +17,11 @@ public:
     virtual ~TestFrontend();
 
 private slots:
+    void openProject();
 
 private:
     Frontend::MainWindow* mpMainWindow;
+    Frontend::SessionEditor* mpSessionEditor;
 };
 
 }

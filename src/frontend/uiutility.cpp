@@ -1,5 +1,7 @@
+#include <QSettings>
 #include <QTableWidgetItem>
 
+#include "uiconstants.h"
 #include "uiutility.h"
 
 namespace Frontend::Utility
@@ -27,6 +29,35 @@ QFont getMonospaceFont()
     fontSize = 14;
 #endif
     return QFont(fontName, fontSize);
+}
+
+//! Substitute a file suffix to the expected one, if necessary
+void modifyFileSuffix(QString& pathFile, QString const& expectedSuffix)
+{
+    QFileInfo info(pathFile);
+    QString currentSuffix = info.suffix();
+    if (currentSuffix.isEmpty())
+        pathFile.append(QString(".%1").arg(expectedSuffix));
+    else if (currentSuffix != expectedSuffix)
+        pathFile.replace(currentSuffix, expectedSuffix);
+}
+
+//! Retrieve last used directory
+QDir getLastDirectory(QSettings const& settings)
+{
+    return QFileInfo(getLastPathFile(settings)).dir();
+}
+
+//! Retrieve last used path file
+QString getLastPathFile(QSettings const& settings)
+{
+    return settings.value(Constants::Settings::skLastPathFile, QString()).toString();
+}
+
+//! Set last used path file
+void setLastPathFile(QSettings& settings, QString const& pathFile)
+{
+    settings.setValue(Constants::Settings::skLastPathFile, pathFile);
 }
 
 //! Create table widget item associated with a double value

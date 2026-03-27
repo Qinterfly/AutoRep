@@ -2,6 +2,7 @@
 archive
 build
 input
+info
 lib/testlab/Debug
 lib/testlab/Release
 output

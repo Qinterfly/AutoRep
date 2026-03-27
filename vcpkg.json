@@ -1,6 +1,7 @@
 {
 	"name": "autorep",
 	"dependencies": [
-		"magic-enum"
+		"magic-enum",
+		"eigen3"
 	]
 }

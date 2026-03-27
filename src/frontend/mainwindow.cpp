@@ -5,10 +5,13 @@
 #include <QHBoxLayout>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QSplitter>
 
 #include "config.h"
 #include "customstatusbar.h"
 #include "mainwindow.h"
+#include "reporteditor.h"
+#include "sessioneditor.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
@@ -35,6 +38,11 @@ MainWindow::~MainWindow()
 {
 }
 
+SessionEditor* MainWindow::sessionEditor()
+{
+    return mpSessionEditor;
+}
+
 //! Set a state and geometry of the main window
 void MainWindow::initializeWindow()
 {
@@ -50,6 +58,15 @@ void MainWindow::createContent()
     // Top widgets
     createLanguageActions();
     createHelpActions();
+
+    // Create the widgets
+    mpSessionEditor = new SessionEditor(mSettings);
+    mpReportEditor = new ReportEditor(mSettings);
+    QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
+    pSplitter->addWidget(mpSessionEditor);
+    pSplitter->addWidget(mpReportEditor);
+    pSplitter->setHandleWidth(5);
+    setCentralWidget(pSplitter);
 
     // Create the status bar
     MainWindow::pStatusBar = new CustomStatusBar(this);

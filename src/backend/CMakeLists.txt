@@ -1,0 +1,31 @@
+
+find_package(Qt6 REQUIRED COMPONENTS Core LinguistTools)
+find_package(magic_enum CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+
+set(BACKEND_HEADERS
+    fileutility.h
+    session.h
+)
+
+set(BACKEND_SOURCES
+    fileutility.cpp
+    session.cpp
+)
+
+qt_add_library(backend STATIC
+    ${BACKEND_HEADERS}
+    ${BACKEND_SOURCES}
+)
+
+target_include_directories(backend PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/lib
+)
+
+target_link_libraries(backend PUBLIC
+    Qt::Core
+    magic_enum::magic_enum
+    Eigen3::Eigen
+    ${TESTLAB_LIB}
+)

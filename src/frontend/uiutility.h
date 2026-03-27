@@ -2,9 +2,11 @@
 #ifndef UIUTILITY_H
 #define UIUTILITY_H
 
+#include <QDir>
 #include <QFont>
 
 QT_FORWARD_DECLARE_CLASS(QTableWidgetItem);
+QT_FORWARD_DECLARE_CLASS(QSettings)
 
 namespace Frontend::Utility
 {
@@ -12,6 +14,12 @@ namespace Frontend::Utility
 // Text
 QFont getFont();
 QFont getMonospaceFont();
+
+// File
+void modifyFileSuffix(QString& pathFile, QString const& expectedSuffix);
+QDir getLastDirectory(QSettings const& settings);
+QString getLastPathFile(QSettings const& settings);
+void setLastPathFile(QSettings& settings, QString const& pathFile);
 
 // Widgets
 QTableWidgetItem* createTableItem(double value, Qt::AlignmentFlag alignment = Qt::AlignCenter);
