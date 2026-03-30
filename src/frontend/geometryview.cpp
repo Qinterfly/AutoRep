@@ -114,6 +114,16 @@ void GeometryView::refresh()
     mRenderWindow->Render();
 }
 
+void GeometryView::setSelections(QList<GeometrySelection> const& selections)
+{
+    mStyle->select(selections);
+}
+
+QList<GeometrySelection> GeometryView::selections() const
+{
+    return mStyle->selections();
+}
+
 //! Replace the geometry
 void GeometryView::setGeometry(Testlab::Geometry geometry)
 {
@@ -681,7 +691,7 @@ void GeometryInteractorStyle::OnLeftButtonDown()
         vtkInformation* info = actor->GetProperty()->GetInformation();
         const char* text = vtkNameKey->Get(info);
         QString name(text);
-        QString label = QString("%1 = (%2, %3, %4)").arg(name).arg(toString(center[0]), toString(center[1]), toString(center[2]));
+        QString label = QString("%1 = (%2, %3, %4)").arg(name, toString(center[0]), toString(center[1]), toString(center[2]));
         qInfo() << label;
 
         // Perform the selection
@@ -709,6 +719,38 @@ void GeometryInteractorStyle::OnKeyPress()
     {
         deselectAll();
         interactor->Render();
+    }
+}
+
+//! Retrieve the current selection
+QList<GeometrySelection> GeometryInteractorStyle::selections() const
+{
+    QList<GeometrySelection> result;
+    QList<vtkActor*> selectedActors = mSelection.keys();
+    int numSelected = selectedActors.size();
+    result.reserve(numSelected);
+    for (int i = 0; i != numSelected; ++i)
+    {
+        GeometrySelection key = find(selectedActors[i]);
+        if (key.isValid())
+            result.push_back(key);
+    }
+    return result;
+}
+
+//! Select the actors associated with the requested keys
+void GeometryInteractorStyle::select(QList<GeometrySelection> const& keys)
+{
+    // Drop the previous selection
+    deselectAll();
+
+    // Process all the keys
+    int numKeys = keys.size();
+    for (int i = 0; i != numKeys; ++i)
+    {
+        GeometrySelection key = keys[i];
+        if (mActors.contains(key))
+            select(mActors[key]);
     }
 }
 
@@ -787,7 +829,7 @@ void GeometryInteractorStyle::registerActor(GeometrySelection const& key, vtkAct
 }
 
 //! Find a selection by actor
-GeometrySelection GeometryInteractorStyle::find(vtkActor* actor)
+GeometrySelection GeometryInteractorStyle::find(vtkActor* actor) const
 {
     for (auto const [key, value] : mActors.asKeyValueRange())
     {

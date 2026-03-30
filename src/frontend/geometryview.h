@@ -56,12 +56,15 @@ public:
     void OnLeftButtonDown() override;
     void OnKeyPress() override;
 
+    QList<GeometrySelection> selections() const;
+
 public:
     double pickTolerance;
     double pickFactor;
 
 private:
     // Selection
+    void select(QList<GeometrySelection> const& keys);
     void select(vtkActor* actor);
 
     // Deselection
@@ -72,7 +75,7 @@ private:
 
     // Acquisition
     void registerActor(GeometrySelection const& key, vtkActor* value);
-    GeometrySelection find(vtkActor* actor);
+    GeometrySelection find(vtkActor* actor) const;
 
 private:
     QMap<vtkActor*, vtkSmartPointer<vtkProperty>> mSelection;
@@ -153,6 +156,9 @@ public:
     void clear();
     void plot();
     void refresh();
+
+    void setSelections(QList<GeometrySelection> const& selections);
+    QList<GeometrySelection> selections() const;
 
     void setGeometry(Testlab::Geometry geometry);
     void setIsometricView();
