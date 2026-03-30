@@ -1,6 +1,8 @@
-#include <vtkColor.h>
 #include <QSettings>
 #include <QTableWidgetItem>
+#include <QToolBar>
+
+#include <vtkColor.h>
 
 #include "uiconstants.h"
 #include "uiutility.h"
@@ -42,6 +44,21 @@ QColor getColor(vtkColor3d color)
 vtkColor3d getColor(QColor color)
 {
     return vtkColor3d(color.redF(), color.greenF(), color.blueF());
+}
+
+//! Add shortcurt hints to all items contained in a tool bar
+void setShortcutHints(QToolBar* pToolBar)
+{
+    QList<QAction*> actions = pToolBar->actions();
+    int numActions = actions.size();
+    for (int i = 0; i != numActions; ++i)
+    {
+        QAction* pAction = actions[i];
+        QKeySequence shortcut = pAction->shortcut();
+        if (shortcut.isEmpty())
+            continue;
+        pAction->setToolTip(QString("%1 (%2)").arg(pAction->toolTip(), shortcut.toString()));
+    }
 }
 
 //! Get circular index

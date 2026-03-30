@@ -9,6 +9,7 @@ class vtkColor3d;
 
 QT_FORWARD_DECLARE_CLASS(QTableWidgetItem);
 QT_FORWARD_DECLARE_CLASS(QSettings)
+QT_FORWARD_DECLARE_CLASS(QToolBar)
 
 namespace Frontend::Utility
 {
@@ -20,6 +21,7 @@ QFont getMonospaceFont();
 // Ui
 QColor getColor(vtkColor3d color);
 vtkColor3d getColor(QColor color);
+void setShortcutHints(QToolBar* pToolBar);
 int getRepeatedIndex(int index, int size);
 
 // File
