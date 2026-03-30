@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#include <Eigen/Core>
+
 #include <vtkColor.h>
 #include <vtkPolyDataMapper.h>
 
@@ -10,6 +12,8 @@
 
 class QVTKOpenGLNativeWidget;
 class vtkCameraOrientationWidget;
+class vtkPoints;
+class vtkCellArray;
 
 namespace Frontend
 {
@@ -23,6 +27,26 @@ struct GeometryViewOptions
     // Color scheme
     vtkColor3d sceneColor;
     vtkColor3d sceneColor2;
+    vtkColor3d edgeColor;
+    QList<vtkColor3d> componentColors;
+
+    // Opacity
+    double edgeOpacity;
+
+    // Flags
+    bool showEdges;
+    bool showWireframe;
+    bool showVertices;
+    bool showLines;
+    bool showTrias;
+    bool showQuads;
+
+    // Scales
+    Eigen::Vector3d sceneScale;
+
+    // Dimensions
+    double lineWidth;
+    double pointScale;
 };
 
 class GeometryView : public QWidget
@@ -38,12 +62,21 @@ public:
     void refresh();
 
     void setGeometry(Testlab::Geometry geometry);
+    void setIsometricView();
 
 private:
     void initialize();
 
     // Content
     void createContent();
+
+    // Drawing
+    void drawGeometry();
+    void drawComponent(Testlab::Component const& component, vtkColor3d color);
+    void drawVertices(vtkSmartPointer<vtkPoints> points, vtkColor3d color, double opacity = 1.0);
+    void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, vtkColor3d color, double opacity = 1.0);
+    vtkSmartPointer<vtkPoints> createPoints(std::vector<Testlab::Node> const& nodes);
+    vtkSmartPointer<vtkCellArray> createPolygons(std::vector<std::vector<int>> const& indices);
 
 private:
     Testlab::Geometry mGeometry;
@@ -52,6 +85,7 @@ private:
     vtkSmartPointer<vtkRenderWindow> mRenderWindow;
     vtkSmartPointer<vtkRenderer> mRenderer;
     vtkSmartPointer<vtkCameraOrientationWidget> mOrientationWidget;
+    double mMaximumDimension;
 };
 
 }

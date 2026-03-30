@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QFont>
 
+class vtkColor3d;
+
 QT_FORWARD_DECLARE_CLASS(QTableWidgetItem);
 QT_FORWARD_DECLARE_CLASS(QSettings)
 
@@ -14,6 +16,11 @@ namespace Frontend::Utility
 // Text
 QFont getFont();
 QFont getMonospaceFont();
+
+// Ui
+QColor getColor(vtkColor3d color);
+vtkColor3d getColor(QColor color);
+int getRepeatedIndex(int index, int size);
 
 // File
 void modifyFileSuffix(QString& pathFile, QString const& expectedSuffix);

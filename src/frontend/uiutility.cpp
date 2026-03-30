@@ -1,3 +1,4 @@
+#include <vtkColor.h>
 #include <QSettings>
 #include <QTableWidgetItem>
 
@@ -29,6 +30,26 @@ QFont getMonospaceFont()
     fontSize = 14;
 #endif
     return QFont(fontName, fontSize);
+}
+
+//! Convert a VTK color to Qt one
+QColor getColor(vtkColor3d color)
+{
+    return QColor::fromRgbF(color[0], color[1], color[2]);
+}
+
+//! Convert a Qt color to Vtk one
+vtkColor3d getColor(QColor color)
+{
+    return vtkColor3d(color.redF(), color.greenF(), color.blueF());
+}
+
+//! Get circular index
+int getRepeatedIndex(int index, int size)
+{
+    if (index >= size)
+        return index % size;
+    return index;
 }
 
 //! Substitute a file suffix to the expected one, if necessary
