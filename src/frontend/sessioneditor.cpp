@@ -46,6 +46,7 @@ bool SessionEditor::openProject(QString const& pathFile)
     if (isValid)
     {
         mpGeometryView->setGeometry(mSession.getGeometry());
+        mpResponseEditor->removeAllBundles();
         mpProjectPath->setText(pathFile);
         Utility::setLastPathFile(mSettings, pathFile);
         qInfo() << tr("Testlab project is successfully opened");
@@ -112,28 +113,43 @@ ResponseCollection const& ResponseEditor::collection() const
     return mCollection;
 }
 
-//! Add the response bundle to the current collection
-bool ResponseEditor::addBundle(QStringList const& paths)
+//! Add the response bundle
+bool ResponseEditor::addBundle(Backend::Core::Responses const& responses)
 {
-    auto responses = mSession.getResponses(paths);
     if (responses.empty())
         return false;
-    mCollection.add(responses);
+
+    // Construct the default name
+    QString path = QString::fromStdWString(responses.front().header.path);
+    QString name;
+    if (!path.isEmpty())
+    {
+        QStringList tokens = path.split('/', Qt::SkipEmptyParts);
+        int numTokens = tokens.size();
+        if (numTokens > 2)
+            name = tokens[numTokens - 3];
+    }
+
+    // Add to the collection
+    mCollection.add(responses, name);
     refresh();
     emit edited();
+    qInfo() << tr("New response bundle is successfuly created. The number of responses is %1").arg(responses.size());
     return true;
 }
 
-//! Add the selected response bundle to the current collection
+//! Add the response bundle
+bool ResponseEditor::addBundle(QStringList const& paths)
+{
+    auto responses = mSession.getResponses(paths);
+    return addBundle(responses);
+}
+
+//! Add the selected response bundle
 bool ResponseEditor::addSelectedBundle()
 {
     auto responses = mSession.getSelectedResponses();
-    if (responses.empty())
-        return false;
-    mCollection.add(responses);
-    refresh();
-    emit edited();
-    return true;
+    return addBundle(responses);
 }
 
 //! Merge the currently selected bundle with the selected responses
@@ -148,6 +164,7 @@ bool ResponseEditor::mergeSelectedBundle()
     mCollection.merge(iBundle, responses);
     refresh();
     emit edited();
+    qInfo() << tr("The selected responses are added to the selected bundle");
     return true;
 }
 
@@ -159,6 +176,7 @@ void ResponseEditor::removeBundle()
     {
         refresh();
         emit edited();
+        qInfo() << tr("Response bundle is deleted");
     }
 }
 
@@ -168,6 +186,7 @@ void ResponseEditor::removeAllBundles()
     mCollection.clear();
     refresh();
     emit edited();
+    qInfo() << tr("All the response bundles are removed");
 }
 
 //! Update the widgets content
@@ -249,7 +268,7 @@ QLayout* ResponseEditor::createResponseLayout()
     // Create the list
     mpResponseList = new QListWidget;
     mpResponseList->setFont(font());
-    mpResponseList->setSelectionMode(QAbstractItemView::NoSelection);
+    mpResponseList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     // Combine the widgets
     QVBoxLayout* pLayout = new QVBoxLayout;

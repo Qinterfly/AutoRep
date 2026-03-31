@@ -38,6 +38,8 @@ set(FRONTEND_HEADERS
     sessioneditor.h
     reporteditor.h
     geometryview.h
+    reportdocument.h
+    reportelement.h
 )
 
 set(FRONTEND_SOURCES
@@ -51,6 +53,8 @@ set(FRONTEND_SOURCES
     sessioneditor.cpp
     reporteditor.cpp
     geometryview.cpp
+    reportdocument.cpp
+    reportelement.cpp
 )
 
 qt_add_library(frontend STATIC

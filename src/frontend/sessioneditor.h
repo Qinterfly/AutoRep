@@ -59,7 +59,7 @@ public:
     virtual ~ResponseEditor() = default;
 
     Backend::Core::ResponseCollection const& collection() const;
-    void addBundle();
+    bool addBundle(Backend::Core::Responses const& responses);
     bool addBundle(QStringList const& paths);
     bool addSelectedBundle();
     bool mergeSelectedBundle();
