@@ -18,6 +18,7 @@ public:
 
 private slots:
     void openProject();
+    void addResponseBundles();
 
 private:
     Frontend::MainWindow* mpMainWindow;
