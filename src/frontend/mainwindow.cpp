@@ -65,7 +65,9 @@ void MainWindow::createContent()
     QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
     pSplitter->addWidget(mpSessionEditor);
     pSplitter->addWidget(mpReportEditor);
-    pSplitter->setHandleWidth(5);
+    pSplitter->setHandleWidth(3);
+    pSplitter->setStretchFactor(0, 4);
+    pSplitter->setStretchFactor(1, 5);
     setCentralWidget(pSplitter);
 
     // Create the status bar

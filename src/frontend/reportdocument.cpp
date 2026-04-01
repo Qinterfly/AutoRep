@@ -1,122 +1,90 @@
 #include "reportdocument.h"
-#include "reportelement.h"
+#include "reportitem.h"
 
 using namespace Frontend;
 
-ReportDocument::ReportDocument()
+ReportPage::ReportPage(QPageSize const& uSize)
+    : size(uSize)
 {
 }
 
-ReportDocument::ReportDocument(QString const& name)
-    : mName(name)
+ReportPage::ReportPage(ReportPage const& another)
 {
+    *this = another;
 }
 
-ReportDocument::~ReportDocument()
+ReportPage::~ReportPage()
 {
     clear();
 }
 
-QString const& ReportDocument::name() const
+ReportPage& ReportPage::operator=(ReportPage const& another)
 {
-    return mName;
+    if (this == &another)
+        return *this;
+    clear();
+    size = another.size;
+    name = another.name;
+    int numItems = another.mItems.size();
+    mItems.resize(numItems);
+    for (int i = 0; i != numItems; ++i)
+        mItems[i] = another.mItems[i]->clone();
+    return *this;
 }
 
-void ReportDocument::setName(QString const& name)
+int ReportPage::count() const
 {
-    mName = name;
+    return mItems.size();
 }
 
-void ReportDocument::addElement(IReportElement* pElement, ReportPosition const& position)
+ReportItem* ReportPage::get(int index)
 {
-    mContent[position] = pElement;
+    if (index >= 0 && index < mItems.size())
+        return mItems[index];
+    return nullptr;
 }
 
-bool ReportDocument::removeElement(IReportElement* pElement)
+void ReportPage::add(ReportItem* pItem)
 {
-    ReportPosition position = findElement(pElement);
-    if (!position.isValid())
+    mItems.push_back(pItem);
+}
+
+bool ReportPage::remove(ReportItem* pItem)
+{
+    int index = find(pItem);
+    if (index < 0)
         return false;
-    delete mContent[position];
-    mContent.remove(position);
+    delete mItems[index];
+    mItems.remove(index);
     return true;
 }
 
-ReportPosition ReportDocument::findElement(IReportElement* pElement)
+int ReportPage::find(ReportItem* pItem)
 {
-    for (auto [key, value] : mContent.asKeyValueRange())
+    int numItems = mItems.size();
+    for (int i = 0; i != numItems; ++i)
     {
-        if (value == pElement)
-            return key;
+        if (mItems[i] == pItem)
+            return i;
     }
-    return ReportPosition();
+    return -1;
 }
 
-IReportElement* ReportDocument::takeElement(ReportPosition const& position)
+ReportItem* ReportPage::take(int index)
 {
-    if (!mContent.contains(position))
-        return nullptr;
-    IReportElement* result = mContent[position];
-    mContent.remove(position);
-    return result;
+    if (index >= 0 && index < mItems.size())
+        return mItems[index];
+    return nullptr;
 }
 
-void ReportDocument::clear()
+void ReportPage::clear()
 {
-    QList<IReportElement*> elements = mContent.values();
-    int numElements = elements.size();
-    for (int i = 0; i != numElements; ++i)
-        delete elements[i];
-    mContent.clear();
+    int numItems = mItems.size();
+    for (int i = 0; i != numItems; ++i)
+        delete mItems[i];
+    mItems.clear();
 }
 
-ReportPosition::ReportPosition()
-    : iRow(-1)
-    , iCol(-1)
-    , rowSpan(1)
-    , colSpan(1)
+ReportDocument::ReportDocument()
 {
-}
-
-ReportPosition::ReportPosition(int uiRow, int uiCol, int uRowSpan, int uColSpan)
-    : iRow(uiRow)
-    , iCol(uiCol)
-    , rowSpan(uRowSpan)
-    , colSpan(uColSpan)
-{
-}
-
-bool ReportPosition::isValid() const
-{
-    return iRow >= 0 && iCol >= 0;
-}
-
-bool ReportPosition::operator==(ReportPosition const& another) const
-{
-    return std::tie(iRow, iCol) == std::tie(another.iRow, another.iCol);
-}
-
-bool ReportPosition::operator!=(ReportPosition const& another) const
-{
-    return !(*this == another);
-}
-
-bool ReportPosition::operator<(ReportPosition const& another) const
-{
-    return std::tie(iRow, iCol) < std::tie(another.iRow, another.iCol);
-}
-
-bool ReportPosition::operator>(ReportPosition const& another) const
-{
-    return !(*this < another);
-}
-
-bool ReportPosition::operator<=(ReportPosition const& another) const
-{
-    return *this < another || *this == another;
-}
-
-bool ReportPosition::operator>=(ReportPosition const& another) const
-{
-    return *this > another || *this == another;
 }

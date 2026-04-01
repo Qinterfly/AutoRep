@@ -3,55 +3,49 @@
 
 #include <QList>
 #include <QMap>
+#include <QPageSize>
+
+#include "reportitem.h"
 
 namespace Frontend
 {
 
-class IReportElement;
-struct ReportPosition;
+class ReportPage
+{
+public:
+    ReportPage(QPageSize const& uSize = QPageSize::A4);
+    ReportPage(ReportPage const& another);
+    ~ReportPage();
+
+    ReportPage& operator=(ReportPage const& another);
+
+    int count() const;
+    ReportItem* get(int index);
+    void add(ReportItem* pItem);
+    bool remove(ReportItem* pItem);
+    int find(ReportItem* pItem);
+    ReportItem* take(int index);
+    void clear();
+
+public:
+    QPageSize size;
+    QString name;
+
+private:
+    QList<ReportItem*> mItems;
+};
 
 class ReportDocument
 {
 public:
     ReportDocument();
-    ReportDocument(QString const& name);
-    ~ReportDocument();
+    ~ReportDocument() = default;
 
-    QString const& name() const;
-    void setName(QString const& name);
-
-    // Elements
-    void addElement(IReportElement* pElement, ReportPosition const& position);
-    bool removeElement(IReportElement* pElement);
-    ReportPosition findElement(IReportElement* pElement);
-    IReportElement* takeElement(ReportPosition const& position);
-    void clear();
-
-private:
-    QString mName;
-    QMap<ReportPosition, IReportElement*> mContent;
+public:
+    QString name;
+    QList<ReportPage> pages;
 };
 
-struct ReportPosition
-{
-    ReportPosition();
-    ReportPosition(int uiRow, int uiCol, int uRowSpan = 1, int uColSpan = 1);
-    ~ReportPosition() = default;
-
-    bool isValid() const;
-
-    bool operator==(ReportPosition const& another) const;
-    bool operator!=(ReportPosition const& another) const;
-    bool operator<(ReportPosition const& another) const;
-    bool operator>(ReportPosition const& another) const;
-    bool operator<=(ReportPosition const& another) const;
-    bool operator>=(ReportPosition const& another) const;
-
-    int iRow;
-    int iCol;
-    int rowSpan;
-    int colSpan;
-};
 }
 
 #endif // REPORTDOCUMENT_H
