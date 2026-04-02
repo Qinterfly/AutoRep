@@ -22,7 +22,7 @@ public:
 
     QSize sizeHint() const;
 
-    bool exportReport(QString const& pathFile);
+    bool writeReport(QString const& pathFile);
 
 private:
     void createContent();
@@ -31,7 +31,7 @@ private:
 
 private:
     QSettings& mSettings;
-    ReportDocument mDocument;
+    Backend::Core::ReportDocument mDocument;
     CustomTabWidget* mpTabWidget;
 };
 

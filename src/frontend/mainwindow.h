@@ -22,6 +22,7 @@ public:
     virtual ~MainWindow();
 
     SessionEditor* sessionEditor();
+    ReportEditor* reportEditor();
 
 public:
     static QString language;

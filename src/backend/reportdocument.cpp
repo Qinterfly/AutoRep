@@ -1,35 +1,33 @@
 #include "reportdocument.h"
-#include "reportitem.h"
 
-using namespace Frontend;
+using namespace Backend::Core;
 
-ReportPage::ReportPage(QPageSize const& uSize)
+ReportPage::ReportPage(QPageSize const& uSize, QString const& uName)
     : size(uSize)
+    , name(uName)
 {
 }
 
-ReportPage::ReportPage(ReportPage const& another)
+ReportPage::ReportPage(ReportPage&& another)
 {
-    *this = another;
+    *this = std::move(another);
+}
+
+ReportPage& ReportPage::operator=(ReportPage&& another)
+{
+    if (this == &another)
+        return *this;
+    clear();
+    size = std::move(another.size);
+    name = std::move(another.name);
+    mItems = std::move(another.mItems);
+    another.mItems.clear();
+    return *this;
 }
 
 ReportPage::~ReportPage()
 {
     clear();
-}
-
-ReportPage& ReportPage::operator=(ReportPage const& another)
-{
-    if (this == &another)
-        return *this;
-    clear();
-    size = another.size;
-    name = another.name;
-    int numItems = another.mItems.size();
-    mItems.resize(numItems);
-    for (int i = 0; i != numItems; ++i)
-        mItems[i] = another.mItems[i]->clone();
-    return *this;
 }
 
 int ReportPage::count() const
@@ -87,4 +85,29 @@ void ReportPage::clear()
 
 ReportDocument::ReportDocument()
 {
+}
+
+ReportItem::ReportItem()
+    : rect(0, 0, 0, 0)
+    , font("Times New Roman", 12)
+{
+}
+
+TextReportItem::TextReportItem()
+{
+    alignment = Qt::AlignHCenter | Qt::AlignVCenter;
+}
+
+ReportItem::Type TextReportItem::type() const
+{
+    return ReportItem::kText;
+}
+
+GraphReportItem::GraphReportItem()
+{
+}
+
+ReportItem::Type GraphReportItem::type() const
+{
+    return ReportItem::kGraph;
 }

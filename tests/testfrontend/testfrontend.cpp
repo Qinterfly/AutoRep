@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include "fileutility.h"
+#include "reporteditor.h"
 #include "sessioneditor.h"
 #include "testfrontend.h"
 
@@ -12,6 +13,7 @@ TestFrontend::TestFrontend()
 {
     mpMainWindow = new MainWindow;
     mpSessionEditor = mpMainWindow->sessionEditor();
+    mpReportEditor = mpMainWindow->reportEditor();
 }
 
 //! Open a project
@@ -19,6 +21,7 @@ void TestFrontend::openProject()
 {
     QString pathFile = Utility::combineFilePath(INPUT_DIR, "MC-21PoslePV.lms");
     QVERIFY(mpSessionEditor->openProject(pathFile));
+    mpMainWindow->show();
 }
 
 //! Add the response bundles
@@ -59,10 +62,15 @@ void TestFrontend::addResponseBundles()
     QVERIFY(pResponseEditor->collection().count() == numBundles);
 }
 
+void TestFrontend::writeReport()
+{
+    QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
+    mpReportEditor->writeReport(pathFile);
+}
+
 TestFrontend::~TestFrontend()
 {
-    mpMainWindow->show();
-    QTest::qWait(30000);
+    QTest::qWait(50000);
     mpMainWindow->deleteLater();
 }
 

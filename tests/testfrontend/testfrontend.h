@@ -19,10 +19,12 @@ public:
 private slots:
     void openProject();
     void addResponseBundles();
+    void writeReport();
 
 private:
     Frontend::MainWindow* mpMainWindow;
     Frontend::SessionEditor* mpSessionEditor;
+    Frontend::ReportEditor* mpReportEditor;
 };
 
 }

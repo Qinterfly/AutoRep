@@ -2,7 +2,7 @@
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Svg PrintSupport)
 find_package(VTK REQUIRED COMPONENTS
     CommonColor
     CommonCore
@@ -38,8 +38,6 @@ set(FRONTEND_HEADERS
     sessioneditor.h
     reporteditor.h
     geometryview.h
-    reportdocument.h
-    reportitem.h
 )
 
 set(FRONTEND_SOURCES
@@ -53,21 +51,21 @@ set(FRONTEND_SOURCES
     sessioneditor.cpp
     reporteditor.cpp
     geometryview.cpp
-    reportdocument.cpp
-    reportitem.cpp
 )
 
 qt_add_library(frontend STATIC
     ${FRONTEND_HEADERS}
     ${FRONTEND_SOURCES}
     ${RESOURCES_FILE}
-    reportpageview.h reportpageview.cpp
+    reportpageeditor.h reportpageeditor.cpp
 )
 
 target_link_libraries(frontend PRIVATE
     Qt::Core
     Qt::Gui
     Qt::Widgets
+    Qt::Svg
+    Qt::PrintSupport
     backend
     ${VTK_LIBRARIES}
     qtpropertybrowser

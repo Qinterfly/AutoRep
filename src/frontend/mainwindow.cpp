@@ -43,6 +43,11 @@ SessionEditor* MainWindow::sessionEditor()
     return mpSessionEditor;
 }
 
+ReportEditor* MainWindow::reportEditor()
+{
+    return mpReportEditor;
+}
+
 //! Set a state and geometry of the main window
 void MainWindow::initializeWindow()
 {

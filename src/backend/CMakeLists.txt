@@ -1,16 +1,20 @@
 
-find_package(Qt6 REQUIRED COMPONENTS Core LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui LinguistTools)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(Eigen3 CONFIG REQUIRED)
 
 set(BACKEND_HEADERS
     fileutility.h
     session.h
+
+    reportdocument.h
 )
 
 set(BACKEND_SOURCES
     fileutility.cpp
     session.cpp
+
+    reportdocument.cpp
 )
 
 qt_add_library(backend STATIC
@@ -25,6 +29,7 @@ target_include_directories(backend PUBLIC
 
 target_link_libraries(backend PUBLIC
     Qt::Core
+    Qt::Gui
     magic_enum::magic_enum
     Eigen3::Eigen
     ${TESTLAB_LIB}
