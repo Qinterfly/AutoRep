@@ -16,12 +16,10 @@ class ReportPage
 {
 public:
     ReportPage(QPageSize const& uSize = QPageSize::A4, QString const& uName = QString());
-    ReportPage(ReportPage const& another) = delete;
-    ReportPage(ReportPage&& another);
+    ReportPage(ReportPage const& another);
     ~ReportPage();
 
-    ReportPage& operator=(ReportPage const& another) = delete;
-    ReportPage& operator=(ReportPage&& another);
+    ReportPage& operator=(ReportPage const& another);
 
     int count() const;
     ReportItem* get(int index);
@@ -47,7 +45,7 @@ public:
 
 public:
     QString name;
-    std::vector<ReportPage> pages;
+    QList<ReportPage> pages;
 };
 
 //! Base class for items
@@ -60,11 +58,14 @@ public:
         kGraph
     };
     ReportItem();
+    ReportItem(ReportItem const* pAnother);
     virtual ~ReportItem() = default;
 
     virtual Type type() const = 0;
+    virtual ReportItem* clone() const = 0;
 
 public:
+    QString name;
     QRect rect;
     QFont font;
 };
@@ -73,9 +74,11 @@ class TextReportItem : public ReportItem
 {
 public:
     TextReportItem();
+    TextReportItem(ReportItem const* pAnother);
     virtual ~TextReportItem() = default;
 
     Type type() const override;
+    ReportItem* clone() const override;
 
 public:
     QFlags<Qt::AlignmentFlag> alignment;
@@ -86,9 +89,11 @@ class GraphReportItem : public ReportItem
 {
 public:
     GraphReportItem();
+    GraphReportItem(ReportItem const* pAnother);
     virtual ~GraphReportItem() = default;
 
     Type type() const override;
+    ReportItem* clone() const override;
 
 public:
     QString xLabel;

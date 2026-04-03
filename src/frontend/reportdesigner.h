@@ -27,7 +27,8 @@ public:
     ReportDesigner(Backend::Core::ReportPage& page, QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
-    void paint();
+    void fit();
+    void refresh();
     bool print(QPrinter& printer);
 
 private:
@@ -37,7 +38,11 @@ private:
     QGroupBox* createPropertyGroupBox();
 
     // Draw
+    void drawScene();
     void drawBorder();
+
+    // Refresh
+    void refreshItems();
 
 private:
     Backend::Core::ReportPage& mPage;

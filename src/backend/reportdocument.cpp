@@ -8,20 +8,22 @@ ReportPage::ReportPage(QPageSize const& uSize, QString const& uName)
 {
 }
 
-ReportPage::ReportPage(ReportPage&& another)
+ReportPage::ReportPage(ReportPage const& another)
 {
-    *this = std::move(another);
+    *this = another;
 }
 
-ReportPage& ReportPage::operator=(ReportPage&& another)
+ReportPage& ReportPage::operator=(ReportPage const& another)
 {
     if (this == &another)
         return *this;
     clear();
-    size = std::move(another.size);
-    name = std::move(another.name);
-    mItems = std::move(another.mItems);
-    another.mItems.clear();
+    size = another.size;
+    name = another.name;
+    int numItems = another.mItems.size();
+    mItems.resize(numItems);
+    for (int i = 0; i != numItems; ++i)
+        mItems[i] = another.mItems[i]->clone();
     return *this;
 }
 
@@ -88,9 +90,17 @@ ReportDocument::ReportDocument()
 }
 
 ReportItem::ReportItem()
-    : rect(0, 0, 0, 0)
+    : name(QString())
+    , rect(0, 0, 0, 0)
     , font("Times New Roman", 12)
 {
+}
+
+ReportItem::ReportItem(ReportItem const* pAnother)
+{
+    name = pAnother->name;
+    rect = pAnother->rect;
+    font = pAnother->font;
 }
 
 TextReportItem::TextReportItem()
@@ -98,16 +108,42 @@ TextReportItem::TextReportItem()
     alignment = Qt::AlignHCenter | Qt::AlignVCenter;
 }
 
+TextReportItem::TextReportItem(ReportItem const* pAnother)
+    : ReportItem(pAnother)
+{
+}
+
 ReportItem::Type TextReportItem::type() const
 {
     return ReportItem::kText;
+}
+
+ReportItem* TextReportItem::clone() const
+{
+    TextReportItem* pResult = new TextReportItem(this);
+    pResult->alignment = alignment;
+    pResult->text = text;
+    return pResult;
 }
 
 GraphReportItem::GraphReportItem()
 {
 }
 
+GraphReportItem::GraphReportItem(ReportItem const* pAnother)
+    : ReportItem(pAnother)
+{
+}
+
 ReportItem::Type GraphReportItem::type() const
 {
     return ReportItem::kGraph;
+}
+
+ReportItem* GraphReportItem::clone() const
+{
+    GraphReportItem* pResult = new GraphReportItem(this);
+    pResult->xLabel = xLabel;
+    pResult->yLabel = yLabel;
+    return pResult;
 }

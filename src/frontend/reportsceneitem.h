@@ -19,13 +19,55 @@ class CustomPlot;
 class ReportSceneItem : public QGraphicsItem
 {
 public:
-    ReportSceneItem(QGraphicsItem* pParent = nullptr);
+    ReportSceneItem(Backend::Core::ReportItem* pItem, QGraphicsItem* pParent = nullptr);
     virtual ~ReportSceneItem() = default;
 
+    QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
+    void hoverMoveEvent(QGraphicsSceneHoverEvent* pEvent) override;
+    void mousePressEvent(QGraphicsSceneMouseEvent* pEvent) override;
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* pEvent) override;
+    void mouseMoveEvent(QGraphicsSceneMouseEvent* pEvent) override;
+    QVariant itemChange(GraphicsItemChange change, QVariant const& value) override;
+
+signals:
+    void geometryChanged(QRectF rect);
 
 private:
+    enum class Mode
+    {
+        kNone,
+        kMove,
+        kResize
+    };
+    enum class Handle
+    {
+        kNone,
+
+        // Corners
+        kTopLeft,
+        kTopRight,
+        kBottomLeft,
+        kBottomRight,
+
+        // Edges
+        kTop,
+        kBottom,
+        kLeft,
+        kRight
+    };
     void drawBorder(QPainter* pPainter);
+    void drawHandles(QPainter* pPainter);
+    QMap<Handle, QRectF> handles() const;
+    Handle detectHandle(QPointF const& pos) const;
+
+protected:
+    Backend::Core::ReportItem* mpItem;
+
+private:
+    Mode mMode;
+    Handle mHandle;
+    QPointF mLastPos;
 };
 
 //! Class to render and manipulate text objects
@@ -36,15 +78,10 @@ public:
     virtual ~TextReportSceneItem() = default;
 
 protected:
-    QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
-    QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
 
 private:
     void drawText(QPainter* pPainter);
-
-private:
-    Backend::Core::TextReportItem* mpItem;
 };
 
 //! Class to render graphs
@@ -54,18 +91,15 @@ public:
     GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
-    void refresh();
+    void setState();
 
 protected:
-    QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
-    QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
 
 private:
     void drawPlot(QPainter* pPainter);
 
 private:
-    Backend::Core::GraphReportItem* mpItem;
     CustomPlot* mpPlot;
 };
 

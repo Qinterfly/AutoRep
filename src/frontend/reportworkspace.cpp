@@ -36,19 +36,19 @@ ReportDesigner* ReportWorkspace::designer(int iPage)
     return nullptr;
 }
 
-//! Write all the specified to the pdf file
-bool ReportWorkspace::writePage(QString const& pathFile, int iPage)
+//! Print the specified page to a pdf file
+bool ReportWorkspace::print(QString const& pathFile, int iPage)
 {
     QPrinter printer;
     printer.setOutputFileName(pathFile);
     ReportDesigner* pDesigner = designer(iPage);
-    if (!pDesigner || pDesigner->print(printer))
+    if (!pDesigner)
         return false;
-    return true;
+    return pDesigner->print(printer);
 }
 
-//! Write all the pages to the pdf file
-bool ReportWorkspace::writeAll(QString const& pathFile)
+//! Print all the pages to a pdf file
+bool ReportWorkspace::print(QString const& pathFile)
 {
     QPrinter printer;
     printer.setOutputFileName(pathFile);
@@ -56,7 +56,9 @@ bool ReportWorkspace::writeAll(QString const& pathFile)
     for (int iPage = 0; iPage != numPages; ++iPage)
     {
         ReportDesigner* pDesigner = designer(iPage);
-        if (!pDesigner || !pDesigner->print(printer))
+        if (!pDesigner)
+            continue;
+        if (!pDesigner->print(printer))
             return false;
     }
     return true;
@@ -85,7 +87,8 @@ void ReportWorkspace::initialize()
 //! Update the widgets content
 void ReportWorkspace::refresh()
 {
-    QSignalBlocker blockerTabWidget(mpDesignerTabs);
+    // Set design tabs
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mpDesignerTabs->removeAllPages();
     int numPages = mDocument.pages.size();
     for (int i = 0; i != numPages; ++i)
@@ -106,28 +109,33 @@ ReportPage createImagRealPage()
 
     // Create title
     TextReportItem* pTitle = new TextReportItem;
+    pTitle->name = QObject::tr("Title");
     pTitle->rect = QRect(40, 20, 125, 20);
     pTitle->text = "Test";
 
     // Create an imaginary graph
     GraphReportItem* pImag = new GraphReportItem;
+    pImag->name = QObject::tr("Imaginary");
     pImag->rect = QRect(30, 40, 150, 95);
     pImag->xLabel = QObject::tr("Frequency, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create a real graph
     GraphReportItem* pReal = new GraphReportItem;
+    pReal->name = QObject::tr("Real");
     pReal->rect = QRect(30, 145, 150, 95);
     pReal->xLabel = QObject::tr("Frequency, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create the caption
     TextReportItem* pCaption = new TextReportItem;
+    pCaption->name = QObject::tr("Caption");
     pCaption->rect = QRect(65, 245, 80, 10);
     pCaption->text = QObject::tr("Figure X.YY");
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
+    pNumber->name = QObject::tr("Page number");
     pNumber->rect = QRect(100, 265, 10, 10);
     pNumber->text = QObject::tr("Z");
 

@@ -24,8 +24,8 @@ public:
     QSize sizeHint() const;
     ReportDesigner* designer(int iPage);
 
-    bool writePage(QString const& pathFile, int iPage);
-    bool writeAll(QString const& pathFile);
+    bool print(QString const& pathFile, int iPage);
+    bool print(QString const& pathFile);
 
 private:
     void createContent();
