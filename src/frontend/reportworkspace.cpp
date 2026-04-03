@@ -1,11 +1,10 @@
-#include <QPdfWriter>
 #include <QPrinter>
 #include <QSettings>
 #include <QVBoxLayout>
 
 #include "customtabwidget.h"
-#include "reporteditor.h"
-#include "reportpageeditor.h"
+#include "reportdesigner.h"
+#include "reportworkspace.h"
 #include "uiutility.h"
 
 using namespace Frontend;
@@ -14,7 +13,7 @@ using namespace Backend::Core;
 // Helper function
 ReportPage createImagRealPage();
 
-ReportEditor::ReportEditor(QSettings& settings, QWidget* pParent)
+ReportWorkspace::ReportWorkspace(QSettings& settings, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
 {
@@ -24,59 +23,79 @@ ReportEditor::ReportEditor(QSettings& settings, QWidget* pParent)
     refresh();
 }
 
-QSize ReportEditor::sizeHint() const
+QSize ReportWorkspace::sizeHint() const
 {
     return QSize(500, 1000);
 }
 
-bool ReportEditor::writeReport(QString const& pathFile)
+//! Retrieve the designer associated with the page index
+ReportDesigner* ReportWorkspace::designer(int iPage)
+{
+    if (iPage >= 0 && iPage < mpDesignerTabs->count())
+        return (ReportDesigner*) mpDesignerTabs->widget(iPage);
+    return nullptr;
+}
+
+//! Write all the specified to the pdf file
+bool ReportWorkspace::writePage(QString const& pathFile, int iPage)
+{
+    QPrinter printer;
+    printer.setOutputFileName(pathFile);
+    ReportDesigner* pDesigner = designer(iPage);
+    if (!pDesigner || pDesigner->print(printer))
+        return false;
+    return true;
+}
+
+//! Write all the pages to the pdf file
+bool ReportWorkspace::writeAll(QString const& pathFile)
 {
     QPrinter printer;
     printer.setOutputFileName(pathFile);
     int numPages = mDocument.pages.size();
-    for (int i = 0; i != numPages; ++i)
+    for (int iPage = 0; iPage != numPages; ++iPage)
     {
-        ReportPageEditor* pEditor = (ReportPageEditor*) mpTabWidget->widget(i);
-        if (!pEditor->print(printer))
+        ReportDesigner* pDesigner = designer(iPage);
+        if (!pDesigner || !pDesigner->print(printer))
             return false;
     }
     return true;
 }
 
 //! Create all the widgets
-void ReportEditor::createContent()
+void ReportWorkspace::createContent()
 {
     // Create the tab widget
-    mpTabWidget = new CustomTabWidget;
-    mpTabWidget->setTabsRenamable(false);
-    mpTabWidget->setTabsClosable(false);
+    mpDesignerTabs = new CustomTabWidget;
+    mpDesignerTabs->setTabsRenamable(false);
+    mpDesignerTabs->setTabsClosable(false);
 
     // Create the layout
     QVBoxLayout* pLayout = new QVBoxLayout;
-    pLayout->addWidget(mpTabWidget);
+    pLayout->addWidget(mpDesignerTabs);
     setLayout(pLayout);
 }
 
 //! Initialize the editor
-void ReportEditor::initialize()
+void ReportWorkspace::initialize()
 {
     mDocument.pages.push_back(createImagRealPage());
 }
 
 //! Update the widgets content
-void ReportEditor::refresh()
+void ReportWorkspace::refresh()
 {
-    QSignalBlocker blockerTabWidget(mpTabWidget);
-    mpTabWidget->removeAllPages();
+    QSignalBlocker blockerTabWidget(mpDesignerTabs);
+    mpDesignerTabs->removeAllPages();
     int numPages = mDocument.pages.size();
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportPageEditor* pEditor = new ReportPageEditor(page);
+        ReportDesigner* pDesigner = new ReportDesigner(page);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);
-        mpTabWidget->addTab(pEditor, name);
+        mpDesignerTabs->addTab(pDesigner, name);
     }
 }
 

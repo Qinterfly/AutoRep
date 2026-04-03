@@ -24,7 +24,7 @@ private slots:
 private:
     Frontend::MainWindow* mpMainWindow;
     Frontend::SessionEditor* mpSessionEditor;
-    Frontend::ReportEditor* mpReportEditor;
+    Frontend::ReportWorkspace* mpReportWorkspace;
 };
 
 }

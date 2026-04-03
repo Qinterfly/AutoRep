@@ -11,7 +11,7 @@ namespace Frontend
 
 class CustomStatusBar;
 class SessionEditor;
-class ReportEditor;
+class ReportWorkspace;
 
 class MainWindow : public QMainWindow
 {
@@ -22,7 +22,7 @@ public:
     virtual ~MainWindow();
 
     SessionEditor* sessionEditor();
-    ReportEditor* reportEditor();
+    ReportWorkspace* reportWorkspace();
 
 public:
     static QString language;
@@ -59,7 +59,7 @@ private:
 
     // Ui
     SessionEditor* mpSessionEditor;
-    ReportEditor* mpReportEditor;
+    ReportWorkspace* mpReportWorkspace;
 
     // Translations
     QTranslator mTranslatorApplication;

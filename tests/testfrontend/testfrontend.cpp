@@ -1,7 +1,7 @@
 #include <config.h>
 
 #include "fileutility.h"
-#include "reporteditor.h"
+#include "reportworkspace.h"
 #include "sessioneditor.h"
 #include "testfrontend.h"
 
@@ -13,7 +13,7 @@ TestFrontend::TestFrontend()
 {
     mpMainWindow = new MainWindow;
     mpSessionEditor = mpMainWindow->sessionEditor();
-    mpReportEditor = mpMainWindow->reportEditor();
+    mpReportWorkspace = mpMainWindow->reportWorkspace();
 }
 
 //! Open a project
@@ -24,7 +24,7 @@ void TestFrontend::openProject()
     mpMainWindow->show();
 }
 
-//! Add the response bundles
+//! Add response bundles from the project
 void TestFrontend::addResponseBundles()
 {
     QString pathFile = Utility::combineFilePath(INPUT_DIR, "MC-21Bundle.txt");
@@ -62,10 +62,11 @@ void TestFrontend::addResponseBundles()
     QVERIFY(pResponseEditor->collection().count() == numBundles);
 }
 
+//! Write the report to a file
 void TestFrontend::writeReport()
 {
     QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
-    mpReportEditor->writeReport(pathFile);
+    mpReportWorkspace->writeAll(pathFile);
 }
 
 TestFrontend::~TestFrontend()

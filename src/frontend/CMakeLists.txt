@@ -36,7 +36,8 @@ set(FRONTEND_HEADERS
     customlineedit.h
     customplot.h
     sessioneditor.h
-    reporteditor.h
+    reportworkspace.h
+    reportdesigner.h
     geometryview.h
 )
 
@@ -49,7 +50,8 @@ set(FRONTEND_SOURCES
     customlineedit.cpp
     customplot.cpp
     sessioneditor.cpp
-    reporteditor.cpp
+    reportworkspace.cpp
+    reportdesigner.cpp
     geometryview.cpp
 )
 
@@ -57,7 +59,7 @@ qt_add_library(frontend STATIC
     ${FRONTEND_HEADERS}
     ${FRONTEND_SOURCES}
     ${RESOURCES_FILE}
-    reportpageeditor.h reportpageeditor.cpp
+    reportsceneitem.h reportsceneitem.cpp
 )
 
 target_link_libraries(frontend PRIVATE

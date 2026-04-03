@@ -10,7 +10,7 @@
 #include "config.h"
 #include "customstatusbar.h"
 #include "mainwindow.h"
-#include "reporteditor.h"
+#include "reportworkspace.h"
 #include "sessioneditor.h"
 #include "uiconstants.h"
 #include "uiutility.h"
@@ -43,9 +43,9 @@ SessionEditor* MainWindow::sessionEditor()
     return mpSessionEditor;
 }
 
-ReportEditor* MainWindow::reportEditor()
+ReportWorkspace* MainWindow::reportWorkspace()
 {
-    return mpReportEditor;
+    return mpReportWorkspace;
 }
 
 //! Set a state and geometry of the main window
@@ -66,10 +66,10 @@ void MainWindow::createContent()
 
     // Create the widgets
     mpSessionEditor = new SessionEditor(mSettings);
-    mpReportEditor = new ReportEditor(mSettings);
+    mpReportWorkspace = new ReportWorkspace(mSettings);
     QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
     pSplitter->addWidget(mpSessionEditor);
-    pSplitter->addWidget(mpReportEditor);
+    pSplitter->addWidget(mpReportWorkspace);
     pSplitter->setHandleWidth(3);
     pSplitter->setStretchFactor(0, 4);
     pSplitter->setStretchFactor(1, 5);
