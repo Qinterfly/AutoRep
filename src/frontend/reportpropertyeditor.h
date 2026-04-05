@@ -23,7 +23,6 @@ class ReportPropertyEditor : public QWidget
 public:
     enum Type
     {
-        kName,
         kRect,
         kAngle,
         kFont,

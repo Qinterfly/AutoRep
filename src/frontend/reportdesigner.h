@@ -4,15 +4,13 @@
 #include <QGraphicsView>
 #include <QWidget>
 
+#include "reportdocument.h"
+
 QT_FORWARD_DECLARE_CLASS(QListWidget)
 QT_FORWARD_DECLARE_CLASS(QGroupBox)
 QT_FORWARD_DECLARE_CLASS(QPrinter)
-
-namespace Backend::Core
-{
-class ReportPage;
-class ReportItem;
-}
+QT_FORWARD_DECLARE_CLASS(QListWidgetItem)
+QT_FORWARD_DECLARE_CLASS(QComboBox)
 
 namespace Frontend
 {
@@ -50,13 +48,19 @@ private:
     void refreshEditor();
 
     // Slots
+    void addItem(Backend::Core::ReportItem::Type type);
+    void removeSelectedItems();
+    void moveSelectedItems(int iShift);
     void selectByList();
     void selectByScene();
+    void changeItemByList(QListWidgetItem* pListItem);
+    void setScaleBySelector();
 
 private:
     Backend::Core::ReportPage& mPage;
     QGraphicsScene* mpScene;
     ReportSceneView* mpView;
+    QComboBox* mpScaleSelector;
     QListWidget* mpItemList;
     ReportPropertyEditor* mpItemEditor;
     QList<Backend::Core::ReportItem*> mSelectedItems;

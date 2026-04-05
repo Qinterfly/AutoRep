@@ -16,6 +16,7 @@ ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
 {
     setAcceptHoverEvents(true);
     setFlag(QGraphicsItem::ItemIsSelectable);
+    setFlag(QGraphicsItem::ItemIsMovable);
 }
 
 ReportItem* ReportSceneItem::item()
@@ -75,7 +76,7 @@ void ReportSceneItem::mousePressEvent(QGraphicsSceneMouseEvent* pEvent)
     {
         mMode = Mode::kResize;
     }
-    else
+    else if (flags().testFlag(QGraphicsItem::ItemIsMovable))
     {
         mMode = Mode::kMove;
         setCursor(Qt::ClosedHandCursor);

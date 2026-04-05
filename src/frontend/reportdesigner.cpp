@@ -1,21 +1,26 @@
+#include <QComboBox>
 #include <QGroupBox>
+#include <QLabel>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPrinter>
 #include <QSplitter>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
+#include "customlineedit.h"
 #include "reportdesigner.h"
-#include "reportdocument.h"
 #include "reportpropertyeditor.h"
 #include "reportsceneitem.h"
+#include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
 
 // Helper functions
-QListWidgetItem* createListItem(ReportItem const* pItem, int index);
+QListWidgetItem* createListItem(ReportPage const& page, int index);
 
 ReportDesigner::ReportDesigner(ReportPage& page, QWidget* pParent)
     : QWidget(pParent)
@@ -124,7 +129,7 @@ void ReportDesigner::refreshList()
     for (int i = 0; i != numItems; ++i)
     {
         ReportItem* pReportItem = mPage.get(i);
-        QListWidgetItem* pListItem = createListItem(pReportItem, i);
+        QListWidgetItem* pListItem = createListItem(mPage, i);
         mpItemList->addItem(pListItem);
         if (mSelectedItems.contains(pReportItem))
             pListItem->setSelected(true);
@@ -138,6 +143,81 @@ void ReportDesigner::refreshEditor()
     if (mSelectedItems.size() == 1)
         pItem = mSelectedItems.first();
     mpItemEditor->setItem(pItem);
+}
+
+//! Add a report item of the specified type
+void ReportDesigner::addItem(ReportItem::Type type)
+{
+    // Create the item and initialize it
+    ReportItem* pItem = nullptr;
+    switch (type)
+    {
+    case ReportItem::kText:
+        pItem = new TextReportItem;
+        pItem->rect = QRect(80, 30, 50, 50);
+        break;
+    case ReportItem::kGraph:
+        pItem = new GraphReportItem;
+        pItem->rect = QRect(50, 80, 100, 100);
+        break;
+    default:
+        break;
+    }
+    if (!pItem)
+        return;
+
+    // Add it to the page
+    mPage.add(pItem);
+
+    // Select it
+    mSelectedItems = {pItem};
+
+    // Update the content of the widgets
+    refresh();
+    qInfo() << tr("The item is added to the report");
+}
+
+//! Remove the currently selected items
+void ReportDesigner::removeSelectedItems()
+{
+    // Check if there are any selected items
+    if (mSelectedItems.isEmpty())
+        return;
+
+    // Show the dialog
+    auto answer = QMessageBox::question(this, tr("Remove selected items"), tr("Are you sure you want to remove selected items?"));
+    if (answer != QMessageBox::Yes)
+        return;
+
+    // Remove the selected items
+    int numSelected = mSelectedItems.size();
+    for (int i = 0; i != numSelected; ++i)
+        mPage.remove(mSelectedItems[i]);
+    mSelectedItems.clear();
+
+    // Update the designer
+    refresh();
+    qInfo() << tr("Items are removed from the report");
+}
+
+//! Move selected items using the specified shift
+void ReportDesigner::moveSelectedItems(int iShift)
+{
+    // Move the selected items
+    QList<QListWidgetItem*> items = mpItemList->selectedItems();
+    int numItems = items.size();
+    for (int i = 0; i != numItems; ++i)
+    {
+        int iRow = mpItemList->row(items[i]);
+        mPage.swap(iRow, iRow + iShift);
+    }
+
+    // Update the scene
+    drawAll();
+
+    // Update the list of items
+    refreshList();
+    qInfo() << tr("The report items are shifted");
 }
 
 //! Process selecting item through list
@@ -177,6 +257,31 @@ void ReportDesigner::selectByScene()
     refreshEditor();
 }
 
+//! Rename the item by its list counterpart
+void ReportDesigner::changeItemByList(QListWidgetItem* pListItem)
+{
+    int index = mpItemList->row(pListItem);
+    ReportItem* pReportItem = mPage.get(index);
+    QString oldName = pReportItem->name;
+    pReportItem->name = pListItem->text();
+    qInfo() << tr("Item is successfully renamed: %1 -> %2").arg(oldName, pReportItem->name);
+}
+
+//! Select the scale from the list of predefined options
+void ReportDesigner::setScaleBySelector()
+{
+    int percentScale = mpScaleSelector->currentData().toInt();
+
+    // Fit the page
+    mpView->fitToPage();
+    if (percentScale <= 0)
+        return;
+
+    // Apply the scale factor to the fitted view
+    double scale = percentScale / 100.0;
+    mpView->scale(scale, scale);
+}
+
 //! Create all the widgets
 void ReportDesigner::createContent()
 {
@@ -184,7 +289,6 @@ void ReportDesigner::createContent()
     QVBoxLayout* pControlLayout = new QVBoxLayout;
     pControlLayout->addWidget(createListGroupBox());
     pControlLayout->addWidget(createEditorGroupBox());
-    pControlLayout->setStretch(1, 1);
     QWidget* pControlWidget = new QWidget;
     pControlWidget->setLayout(pControlLayout);
 
@@ -205,15 +309,25 @@ void ReportDesigner::createContent()
 //! Set the connections between the widgets
 void ReportDesigner::createConnections()
 {
+    // List
     connect(mpItemList, &QListWidget::itemSelectionChanged, this, &ReportDesigner::selectByList);
+    connect(mpItemList, &QListWidget::itemChanged, this, &ReportDesigner::changeItemByList);
+
+    // Scene
+    connect(mpScaleSelector, &QComboBox::currentIndexChanged, this, &ReportDesigner::setScaleBySelector);
     connect(mpScene, &QGraphicsScene::selectionChanged, this, &ReportDesigner::selectByScene);
+
+    // Editor
     connect(mpItemEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
 }
 
 //! Create the group of scene widgets
 QGroupBox* ReportDesigner::createSceneGroupBox()
 {
-    // Create the widgets
+    // Constants
+    QList<int> const kScales = {10, 25, 50, 75, 100, 125, 150, 200, 400, 800, 1600};
+
+    // Create the scene and the view
     mpScene = new QGraphicsScene;
     mpView = new ReportSceneView;
 
@@ -224,10 +338,28 @@ QGroupBox* ReportDesigner::createSceneGroupBox()
     mpView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     mpView->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
 
+    // Create the scale combobox
+    mpScaleSelector = new QComboBox;
+    mpScaleSelector->setFont(font());
+    mpScaleSelector->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    for (int s : kScales)
+        mpScaleSelector->addItem(QString("%1 %").arg(QString::number(s)), s);
+    mpScaleSelector->addItem(tr("Fit Page"), -1);
+    mpScaleSelector->setCurrentIndex(mpScaleSelector->count() - 1);
+
+    // Create the toolbar
+    QToolBar* pToolBar = new QToolBar;
+    pToolBar->addWidget(new QLabel(tr("Scale: ")));
+    pToolBar->addWidget(mpScaleSelector);
+    pToolBar->addSeparator();
+    pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+    Utility::setShortcutHints(pToolBar);
+
     // Construct the group box
     QGroupBox* pGroupBox = new QGroupBox(tr("Layout"));
     QVBoxLayout* pLayout = new QVBoxLayout;
     pLayout->setContentsMargins(0, 0, 0, 0);
+    pLayout->addWidget(pToolBar);
     pLayout->addWidget(mpView);
     pGroupBox->setLayout(pLayout);
     return pGroupBox;
@@ -243,10 +375,23 @@ QGroupBox* ReportDesigner::createListGroupBox()
     mpItemList->setResizeMode(QListWidget::Adjust);
     mpItemList->setSizeAdjustPolicy(QListWidget::AdjustToContents);
 
+    // Create the toolbar
+    QToolBar* pToolBar = new QToolBar;
+    pToolBar->addAction(QIcon(":/icons/item-text.svg"), tr("Add text"), this, [this]() { addItem(ReportItem::kText); });
+    pToolBar->addAction(QIcon(":/icons/item-graph.svg"), tr("Add graph"), this, [this]() { addItem(ReportItem::kGraph); });
+    pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
+    pToolBar->addSeparator();
+    pToolBar->addAction(QIcon(":/icons/arrow-up.svg"), tr("Move up"), this, [this]() { moveSelectedItems(-1); });
+    pToolBar->addAction(QIcon(":/icons/arrow-down.svg"), tr("Move down"), this, [this]() { moveSelectedItems(+1); });
+
+    pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+    Utility::setShortcutHints(pToolBar);
+
     // Construct the group box
     QGroupBox* pGroupBox = new QGroupBox(tr("Items"));
     QVBoxLayout* pLayout = new QVBoxLayout;
     pLayout->setContentsMargins(0, 0, 0, 0);
+    pLayout->addWidget(pToolBar);
     pLayout->addWidget(mpItemList);
     pGroupBox->setLayout(pLayout);
     return pGroupBox;
@@ -292,8 +437,11 @@ void ReportSceneView::wheelEvent(QWheelEvent* pEvent)
 }
 
 //! Helper function to create a list item
-QListWidgetItem* createListItem(ReportItem const* pItem, int index)
+QListWidgetItem* createListItem(ReportPage const& page, int index)
 {
+    ReportItem const* pItem = page.get(index);
+
+    // Get the visual attributes of the item
     QString prefix;
     QIcon icon;
     switch (pItem->type())
@@ -309,9 +457,26 @@ QListWidgetItem* createListItem(ReportItem const* pItem, int index)
     default:
         break;
     }
+
+    // Count the number of items of the same type
+    int numItems = page.count();
+    int numType = 0;
+    for (int i = 0; i != numItems; ++i)
+    {
+        ReportItem const* pCurrent = page.get(i);
+        if (pCurrent == pItem)
+            break;
+        if (pCurrent->type() == pItem->type())
+            ++numType;
+    }
+
+    // Define the name, if empty
     QString name = pItem->name;
-    if (name.isEmpty())
-        name = QObject::tr("%1 %2").arg(prefix).arg(1 + index);
+    if (pItem->name.isEmpty())
+        name = QObject::tr("%1 %2").arg(prefix).arg(1 + numType);
+
+    // Create the list item
     QListWidgetItem* pResult = new QListWidgetItem(icon, name);
+    pResult->setFlags(pResult->flags() | Qt::ItemIsEditable);
     return pResult;
 }

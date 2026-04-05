@@ -83,19 +83,15 @@ void ReportPropertyEditor::refresh()
 //! Create the properties which are common for all item types
 void ReportPropertyEditor::addBaseProperties()
 {
-    QtVariantProperty* pNameProperty = mpManager->addProperty(kName, QVariant::String, tr("Name"));
-    pNameProperty->setValue(mpItem->name);
-    mpEditor->addProperty(pNameProperty);
-
-    QtVariantProperty* pRectProperty = mpManager->addProperty(kRect, QVariant::Rect, tr("Position"));
+    QtVariantProperty* pRectProperty = mpManager->addProperty(kRect, QMetaType::QRect, tr("Position"));
     pRectProperty->setValue(mpItem->rect);
     mpEditor->addProperty(pRectProperty);
 
-    QtVariantProperty* pAngleProperty = mpManager->addProperty(kAngle, QVariant::Double, tr("Rotation"));
+    QtVariantProperty* pAngleProperty = mpManager->addProperty(kAngle, QMetaType::Double, tr("Rotation, %1").arg(QChar(0x00b0)));
     pAngleProperty->setValue(mpItem->angle);
     mpEditor->addProperty(pAngleProperty);
 
-    QtVariantProperty* pFontProperty = mpManager->addProperty(kFont, QVariant::Font, tr("Font"));
+    QtVariantProperty* pFontProperty = mpManager->addProperty(kFont, QMetaType::QFont, tr("Font"));
     pFontProperty->setValue(mpItem->font);
     QtBrowserItem* pFontItem = mpEditor->addProperty(pFontProperty);
     mpEditor->setExpanded(pFontItem, false);
@@ -106,7 +102,7 @@ void ReportPropertyEditor::addTextProperties()
 {
     TextReportItem* pItem = (TextReportItem*) mpItem;
 
-    QtVariantProperty* pTextProperty = mpManager->addProperty(kText, QVariant::String, tr("Text"));
+    QtVariantProperty* pTextProperty = mpManager->addProperty(kText, QMetaType::QString, tr("Text"));
     pTextProperty->setValue(pItem->text);
     mpEditor->addProperty(pTextProperty);
 }
@@ -116,11 +112,11 @@ void ReportPropertyEditor::addGraphProperties()
 {
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
-    QtVariantProperty* pXLabelProperty = mpManager->addProperty(kXLabel, QVariant::String, tr("X label"));
+    QtVariantProperty* pXLabelProperty = mpManager->addProperty(kXLabel, QMetaType::QString, tr("X label"));
     pXLabelProperty->setValue(pItem->xLabel);
     mpEditor->addProperty(pXLabelProperty);
 
-    QtVariantProperty* pYLabelProperty = mpManager->addProperty(kYLabel, QVariant::String, tr("Y label"));
+    QtVariantProperty* pYLabelProperty = mpManager->addProperty(kYLabel, QMetaType::QString, tr("Y label"));
     pYLabelProperty->setValue(pItem->yLabel);
     mpEditor->addProperty(pYLabelProperty);
 }
@@ -133,9 +129,6 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     int id = mpManager->id(pProperty);
     switch (id)
     {
-    case kName:
-        mpItem->name = value.toString();
-        break;
     case kRect:
         mpItem->rect = value.toRect();
         break;
@@ -154,6 +147,8 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kYLabel:
         static_cast<GraphReportItem*>(mpItem)->yLabel = value.toString();
         break;
+    default:
+        return;
     }
     emit edited();
 }

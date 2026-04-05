@@ -23,9 +23,11 @@ public:
 
     int count() const;
     ReportItem* get(int index);
+    ReportItem const* get(int index) const;
     void add(ReportItem* pItem);
     bool remove(ReportItem* pItem);
-    int find(ReportItem* pItem);
+    void swap(int iFirst, int iSecond);
+    int find(ReportItem* pItem) const;
     ReportItem* take(int index);
     void clear();
 
@@ -100,7 +102,6 @@ public:
     QString xLabel;
     QString yLabel;
 };
-
 }
 
 #endif // REPORTDOCUMENT_H
