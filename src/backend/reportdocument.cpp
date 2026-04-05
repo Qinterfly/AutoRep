@@ -92,6 +92,7 @@ ReportDocument::ReportDocument()
 ReportItem::ReportItem()
     : name(QString())
     , rect(0, 0, 0, 0)
+    , angle(0)
     , font("Times New Roman", 12)
 {
 }
@@ -100,6 +101,7 @@ ReportItem::ReportItem(ReportItem const* pAnother)
 {
     name = pAnother->name;
     rect = pAnother->rect;
+    angle = pAnother->angle;
     font = pAnother->font;
 }
 

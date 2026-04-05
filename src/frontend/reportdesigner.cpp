@@ -7,6 +7,7 @@
 
 #include "reportdesigner.h"
 #include "reportdocument.h"
+#include "reportpropertyeditor.h"
 #include "reportsceneitem.h"
 #include "uiutility.h"
 
@@ -22,6 +23,7 @@ ReportDesigner::ReportDesigner(ReportPage& page, QWidget* pParent)
 {
     setFont(Utility::getFont());
     createContent();
+    createConnections();
     refresh();
 }
 
@@ -35,9 +37,9 @@ void ReportDesigner::fit()
 //! Render the page content
 void ReportDesigner::refresh()
 {
-    drawScene();
-    drawBorder();
-    refreshItems();
+    drawAll();
+    refreshList();
+    refreshEditor();
 }
 
 //! Print the page content to a pdf file
@@ -61,32 +63,45 @@ bool ReportDesigner::print(QPrinter& printer)
     return true;
 }
 
-//! Draw the scene
-void ReportDesigner::drawScene()
+//! Draw all the graphic objects
+void ReportDesigner::drawAll()
 {
-    // Set the scene
+    // Set up the scene
+    QSignalBlocker blockerScene(mpScene);
+    QSignalBlocker blockerView(mpView);
     mpScene->clear();
     mpScene->setSceneRect(mPage.size.rect(QPageSize::Millimeter));
 
-    // Draw all the items
+    // Draw all the objects
+    drawItems();
+    drawBorder();
+}
+
+//! Draw the report items
+void ReportDesigner::drawItems()
+{
     int numItems = mPage.count();
     for (int i = 0; i != numItems; ++i)
     {
-        ReportItem* pItem = mPage.get(i);
-        QGraphicsItem* pSceneItem = nullptr;
-        switch (pItem->type())
+        ReportItem* pReportItem = mPage.get(i);
+        ReportSceneItem* pSceneItem = nullptr;
+        switch (pReportItem->type())
         {
         case ReportItem::kText:
-            pSceneItem = new TextReportSceneItem((TextReportItem*) pItem);
+            pSceneItem = new TextReportSceneItem((TextReportItem*) pReportItem);
             break;
         case ReportItem::kGraph:
-            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pItem);
+            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem);
             break;
         default:
             break;
         }
-        if (pSceneItem)
-            mpScene->addItem(pSceneItem);
+        if (!pSceneItem)
+            continue;
+        connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
+        if (mSelectedItems.contains(pSceneItem->item()))
+            pSceneItem->setSelected(true);
+        mpScene->addItem(pSceneItem);
     }
 }
 
@@ -101,10 +116,9 @@ void ReportDesigner::drawBorder()
 }
 
 //! Update the list of page items
-void ReportDesigner::refreshItems()
+void ReportDesigner::refreshList()
 {
     QSignalBlocker blocker(mpItemList);
-    int iSelected = mpItemList->currentRow();
     mpItemList->clear();
     int numItems = mPage.count();
     for (int i = 0; i != numItems; ++i)
@@ -112,10 +126,55 @@ void ReportDesigner::refreshItems()
         ReportItem* pReportItem = mPage.get(i);
         QListWidgetItem* pListItem = createListItem(pReportItem, i);
         mpItemList->addItem(pListItem);
+        if (mSelectedItems.contains(pReportItem))
+            pListItem->setSelected(true);
     }
-    if (iSelected < 0 || iSelected >= numItems)
-        iSelected = numItems - 1;
-    mpItemList->setCurrentRow(iSelected);
+}
+
+//! Update the item editor
+void ReportDesigner::refreshEditor()
+{
+    ReportItem* pItem = nullptr;
+    if (mSelectedItems.size() == 1)
+        pItem = mSelectedItems.first();
+    mpItemEditor->setItem(pItem);
+}
+
+//! Process selecting item through list
+void ReportDesigner::selectByList()
+{
+    // Store the selected items
+    QList<QListWidgetItem*> items = mpItemList->selectedItems();
+    int numItems = items.size();
+    mSelectedItems.resize(numItems);
+    for (int i = 0; i != numItems; ++i)
+        mSelectedItems[i] = mPage.get(mpItemList->row(items[i]));
+
+    // Update the scene
+    drawAll();
+
+    // Update the property editor
+    refreshEditor();
+}
+
+//! Process selecting item through scene
+void ReportDesigner::selectByScene()
+{
+    // Store the selected items
+    QList<QGraphicsItem*> items = mpScene->selectedItems();
+    int numItems = items.size();
+    mSelectedItems.resize(numItems);
+    for (int i = 0; i != numItems; ++i)
+    {
+        ReportSceneItem* pSceneItem = (ReportSceneItem*) items[i];
+        mSelectedItems[i] = pSceneItem->item();
+    }
+
+    // Update the item list
+    refreshList();
+
+    // Update the property editor
+    refreshEditor();
 }
 
 //! Create all the widgets
@@ -123,8 +182,8 @@ void ReportDesigner::createContent()
 {
     // Create the control layout
     QVBoxLayout* pControlLayout = new QVBoxLayout;
-    pControlLayout->addWidget(createItemGroupBox());
-    pControlLayout->addWidget(createPropertyGroupBox());
+    pControlLayout->addWidget(createListGroupBox());
+    pControlLayout->addWidget(createEditorGroupBox());
     pControlLayout->setStretch(1, 1);
     QWidget* pControlWidget = new QWidget;
     pControlWidget->setLayout(pControlLayout);
@@ -141,6 +200,14 @@ void ReportDesigner::createContent()
     QVBoxLayout* pMainLayout = new QVBoxLayout;
     pMainLayout->addWidget(pSplitter);
     setLayout(pMainLayout);
+}
+
+//! Set the connections between the widgets
+void ReportDesigner::createConnections()
+{
+    connect(mpItemList, &QListWidget::itemSelectionChanged, this, &ReportDesigner::selectByList);
+    connect(mpScene, &QGraphicsScene::selectionChanged, this, &ReportDesigner::selectByScene);
+    connect(mpItemEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
 }
 
 //! Create the group of scene widgets
@@ -167,12 +234,12 @@ QGroupBox* ReportDesigner::createSceneGroupBox()
 }
 
 //! Create the group of item widgets
-QGroupBox* ReportDesigner::createItemGroupBox()
+QGroupBox* ReportDesigner::createListGroupBox()
 {
     // Create the widgets
     mpItemList = new QListWidget;
     mpItemList->setFont(font());
-    mpItemList->setSelectionMode(QAbstractItemView::SingleSelection);
+    mpItemList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     mpItemList->setResizeMode(QListWidget::Adjust);
     mpItemList->setSizeAdjustPolicy(QListWidget::AdjustToContents);
 
@@ -186,14 +253,16 @@ QGroupBox* ReportDesigner::createItemGroupBox()
 }
 
 //! Create the group of properties
-QGroupBox* ReportDesigner::createPropertyGroupBox()
+QGroupBox* ReportDesigner::createEditorGroupBox()
 {
-    // TODO
+    // Create the wwidgets
+    mpItemEditor = new ReportPropertyEditor;
+
     // Construct the group box
     QGroupBox* pGroupBox = new QGroupBox(tr("Properties"));
     QVBoxLayout* pLayout = new QVBoxLayout;
     pLayout->setContentsMargins(0, 0, 0, 0);
-    pLayout->addWidget(new QWidget);
+    pLayout->addWidget(mpItemEditor);
     pGroupBox->setLayout(pLayout);
     return pGroupBox;
 }

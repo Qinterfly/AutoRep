@@ -12,7 +12,7 @@ set(QTPROPERTYBROWSER_HEADERS
     qttreepropertybrowser.h
     qtvariantproperty.h
     customdoublespinbox.h
-    custompropertyeditor.h
+    customvariantpropertymanager.h
 )
 
 set(QTPROPERTYBROWSER_SOURCES
@@ -25,7 +25,7 @@ set(QTPROPERTYBROWSER_SOURCES
     qttreepropertybrowser.cpp
     qtvariantproperty.cpp
     customdoublespinbox.cpp
-    custompropertyeditor.cpp
+    customvariantpropertymanager.cpp
 )
 
 qt_add_library(qtpropertybrowser STATIC

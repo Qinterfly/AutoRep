@@ -11,12 +11,14 @@ QT_FORWARD_DECLARE_CLASS(QPrinter)
 namespace Backend::Core
 {
 class ReportPage;
+class ReportItem;
 }
 
 namespace Frontend
 {
 
 class ReportSceneView;
+class ReportPropertyEditor;
 
 //! Class to design page content
 class ReportDesigner : public QWidget
@@ -33,22 +35,31 @@ public:
 
 private:
     void createContent();
+    void createConnections();
     QGroupBox* createSceneGroupBox();
-    QGroupBox* createItemGroupBox();
-    QGroupBox* createPropertyGroupBox();
+    QGroupBox* createListGroupBox();
+    QGroupBox* createEditorGroupBox();
 
     // Draw
-    void drawScene();
+    void drawAll();
+    void drawItems();
     void drawBorder();
 
     // Refresh
-    void refreshItems();
+    void refreshList();
+    void refreshEditor();
+
+    // Slots
+    void selectByList();
+    void selectByScene();
 
 private:
     Backend::Core::ReportPage& mPage;
     QGraphicsScene* mpScene;
     ReportSceneView* mpView;
     QListWidget* mpItemList;
+    ReportPropertyEditor* mpItemEditor;
+    QList<Backend::Core::ReportItem*> mSelectedItems;
 };
 
 //! Class to view scene

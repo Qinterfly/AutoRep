@@ -5,6 +5,9 @@
 using namespace Backend::Core;
 using namespace Frontend;
 
+// Helper function
+QRectF rotatedRect(QRectF const& rect, qreal angle);
+
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
     , mpItem(pItem)
@@ -12,14 +15,19 @@ ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     , mHandle(Handle::kNone)
 {
     setAcceptHoverEvents(true);
-    setFlag(QGraphicsItem::ItemIsMovable);
     setFlag(QGraphicsItem::ItemIsSelectable);
+}
+
+ReportItem* ReportSceneItem::item()
+{
+    return mpItem;
 }
 
 QRectF ReportSceneItem::boundingRect() const
 {
     qreal const m = 2;
-    return mpItem->rect.adjusted(-m, -m, m, m);
+    QRectF rect = rotatedRect(mpItem->rect, mpItem->angle);
+    return rect.adjusted(-m, -m, m, m);
 }
 
 void ReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
@@ -62,10 +70,10 @@ void ReportSceneItem::hoverMoveEvent(QGraphicsSceneHoverEvent* pEvent)
 void ReportSceneItem::mousePressEvent(QGraphicsSceneMouseEvent* pEvent)
 {
     mHandle = detectHandle(pEvent->pos());
+    mLastPos = pEvent->pos();
     if (mHandle != Handle::kNone)
     {
         mMode = Mode::kResize;
-        mLastPos = pEvent->pos();
     }
     else
     {
@@ -77,6 +85,8 @@ void ReportSceneItem::mousePressEvent(QGraphicsSceneMouseEvent* pEvent)
 
 void ReportSceneItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* pEvent)
 {
+    if (mMode != Mode::kNone)
+        emit changed();
     mMode = Mode::kNone;
     setCursor(Qt::ArrowCursor);
     QGraphicsItem::mouseReleaseEvent(pEvent);
@@ -88,7 +98,7 @@ void ReportSceneItem::mouseMoveEvent(QGraphicsSceneMouseEvent* pEvent)
     {
         QPointF delta = pEvent->pos() - mLastPos;
         prepareGeometryChange();
-        QRectF rect = mpItem->rect;
+        QRectF rect = rotatedRect(mpItem->rect, mpItem->angle);
         switch (mHandle)
         {
         case Handle::kBottomRight:
@@ -118,38 +128,33 @@ void ReportSceneItem::mouseMoveEvent(QGraphicsSceneMouseEvent* pEvent)
         default:
             break;
         }
-        mLastPos = pEvent->pos();
-        mpItem->rect = rect.toRect();
+        mpItem->rect = rotatedRect(rect, -mpItem->angle).toRect();
     }
     else if (mMode == Mode::kMove)
     {
         setCursor(Qt::ClosedHandCursor);
-        QGraphicsItem::mouseMoveEvent(pEvent);
+        QPointF delta = pEvent->pos() - mLastPos;
+        prepareGeometryChange();
+        mpItem->rect.translate(delta.toPoint());
     }
-    update();
-}
-
-//! Save changes after item change
-QVariant ReportSceneItem::itemChange(GraphicsItemChange change, QVariant const& value)
-{
-    if (change == ItemPositionChange)
+    if (mMode != Mode::kNone)
     {
-        QPoint newPos = value.toPoint();
-        mpItem->rect.moveTo(newPos);
+        mLastPos = pEvent->pos();
+        update();
     }
-    return QGraphicsItem::itemChange(change, value);
 }
 
 //! Draw the border around the content
 void ReportSceneItem::drawBorder(QPainter* pPainter)
 {
+    QRectF rect = rotatedRect(mpItem->rect, mpItem->angle);
     QPen pen(Qt::SolidLine);
     pen.setWidthF(0.5);
     pen.setColor(QColor(38, 128, 235));
     pPainter->save();
     pPainter->setPen(pen);
     pPainter->setBrush(Qt::NoBrush);
-    pPainter->drawRect(mpItem->rect);
+    pPainter->drawRect(rect);
     pPainter->restore();
 }
 
@@ -174,7 +179,7 @@ QMap<ReportSceneItem::Handle, QRectF> ReportSceneItem::handles() const
     const qreal r = s / 2.0;
 
     QMap<Handle, QRectF> result;
-    QRectF rect = mpItem->rect;
+    QRectF rect = rotatedRect(mpItem->rect, mpItem->angle);
 
     // Corners
     result[Handle::kTopLeft] = QRectF(rect.topLeft() - QPointF(r, r), QSizeF(s, s));
@@ -224,6 +229,9 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     QFont f = pItem->font;
     f.setPointSizeF(f.pointSize() / kPointFactor);
     pPainter->setFont(f);
+    pPainter->translate(pItem->rect.center());
+    pPainter->rotate(pItem->angle);
+    pPainter->translate(-pItem->rect.center());
     pPainter->drawText(pItem->rect, pItem->alignment, pItem->text);
     pPainter->restore();
 }
@@ -243,12 +251,27 @@ GraphReportSceneItem::~GraphReportSceneItem()
 void GraphReportSceneItem::setState()
 {
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
+    mpPlot->clear();
     mpPlot->xAxis->setTickLabelFont(pItem->font);
     mpPlot->yAxis->setTickLabelFont(pItem->font);
     mpPlot->xAxis->setLabelFont(pItem->font);
     mpPlot->yAxis->setLabelFont(pItem->font);
     mpPlot->xAxis->setLabel(pItem->xLabel);
     mpPlot->yAxis->setLabel(pItem->yLabel);
+
+    // -- DEBUG --------------------------------
+    QCPGraph* pGraph = mpPlot->addGraph();
+    pGraph->setPen(QPen(Qt::red));
+    QVector<double> x(251), y(251);
+    for (int i = 0; i < 251; ++i)
+    {
+        x[i] = i;
+        y[i] = qExp(-i / 150.0) * qCos(i / 10.0);
+    }
+    pGraph->setData(x, y);
+    pGraph->rescaleAxes();
+    // -- DEBUG --------------------------------
+
     mpPlot->replot();
 }
 
@@ -280,10 +303,24 @@ void GraphReportSceneItem::drawPlot(QPainter* pPainter)
     finalSize.scale(QSize(mpItem->rect.width(), mpItem->rect.height()), Qt::KeepAspectRatio);
     double scaleFactor = finalSize.width() / (double) pic.boundingRect().size().width();
     QPoint pos(mmToPx(mpItem->rect.x()), mmToPx(mpItem->rect.y()));
+    pos -= QPoint(mmToPx(mpItem->rect.center().x()), mmToPx(mpItem->rect.center().y()));
 
     // Render the picture
     pPainter->save();
+    pPainter->translate(mpItem->rect.center());
+    pPainter->rotate(mpItem->angle);
     pPainter->scale(scaleFactor, scaleFactor);
     pPainter->drawPicture(pos, pic);
     pPainter->restore();
+}
+
+//! Helper function to compute rotated rectangle
+QRectF rotatedRect(QRectF const& rect, qreal angle)
+{
+    QTransform t;
+    QPointF c = rect.center();
+    t.translate(c.x(), c.y());
+    t.rotate(angle);
+    t.translate(-c.x(), -c.y());
+    return t.mapRect(rect);
 }

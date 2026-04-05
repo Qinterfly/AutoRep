@@ -4,9 +4,11 @@
 
 #include <qcustomplot.h>
 
-#include "custompropertyeditor.h"
-
 class QCPAbstractPlottable;
+class QtTreePropertyBrowser;
+class CustomVariantPropertyManager;
+class QtVariantEditorFactory;
+class QtProperty;
 
 namespace Frontend
 {
@@ -124,13 +126,13 @@ private:
     void createProperties();
     void createConnections();
 
-    void setIntValue(QtProperty* pProperty, int value);
-    void setDoubleValue(QtProperty* pProperty, double value);
-    void setColorValue(QtProperty* pProperty, QColor const& value);
+    void setValue(QtProperty* pProperty, QVariant value);
 
 private:
     QCPAbstractPlottable* mpPlottable;
-    CustomPropertyEditor* mpEditor;
+    CustomVariantPropertyManager* mpManager;
+    QtVariantEditorFactory* mpFactory;
+    QtTreePropertyBrowser* mpEditor;
 };
 }
 

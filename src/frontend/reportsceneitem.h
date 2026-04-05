@@ -16,11 +16,15 @@ namespace Frontend
 class CustomPlot;
 
 //! Class to provide base interactions for report scene items
-class ReportSceneItem : public QGraphicsItem
+class ReportSceneItem : public QObject, public QGraphicsItem
 {
+    Q_OBJECT
+
 public:
     ReportSceneItem(Backend::Core::ReportItem* pItem, QGraphicsItem* pParent = nullptr);
     virtual ~ReportSceneItem() = default;
+
+    Backend::Core::ReportItem* item();
 
     QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
@@ -28,10 +32,9 @@ public:
     void mousePressEvent(QGraphicsSceneMouseEvent* pEvent) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* pEvent) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* pEvent) override;
-    QVariant itemChange(GraphicsItemChange change, QVariant const& value) override;
 
 signals:
-    void geometryChanged(QRectF rect);
+    void changed();
 
 private:
     enum class Mode

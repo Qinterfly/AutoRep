@@ -67,6 +67,7 @@ public:
 public:
     QString name;
     QRect rect;
+    double angle;
     QFont font;
 };
 

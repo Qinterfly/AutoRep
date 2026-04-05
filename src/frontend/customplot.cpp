@@ -1,6 +1,10 @@
 #include <QSizePolicy>
 #include <set>
 
+#include <customvariantpropertymanager.h>
+#include <qttreepropertybrowser.h>
+#include <qtvariantproperty.h>
+
 #include "customplot.h"
 #include "uiconstants.h"
 #include "uiutility.h"
@@ -713,12 +717,23 @@ QSize PlottablePropertyEditor::sizeHint() const
 //! Create all the widgets
 void PlottablePropertyEditor::createContent()
 {
+    // Create the widgets
+    mpManager = new CustomVariantPropertyManager;
+    mpFactory = new QtVariantEditorFactory;
+    mpEditor = new QtTreePropertyBrowser;
+
+    // Initialize the widgets
+    mpEditor->setFactoryForManager((QtVariantPropertyManager*) mpManager, mpFactory);
+    mpEditor->setFont(font());
+    mpEditor->setTreeWidgetFont(font());
+
+    // Combine the widgets
     QVBoxLayout* pLayout = new QVBoxLayout;
-    mpEditor = new CustomPropertyEditor;
     pLayout->addWidget(mpEditor);
     setLayout(pLayout);
 }
 
+//! Create the plottable properties
 void PlottablePropertyEditor::createProperties()
 {
     QStringList kMarkerShapeNames = {QString(),
@@ -746,73 +761,63 @@ void PlottablePropertyEditor::createProperties()
     int lineStyle = mpPlottable->property(skLineStyle).toInt();
     QCPScatterStyle scatterStyle = mpPlottable->property(skScatterStyle).value<QCPScatterStyle>();
 
+    // Remove the previous properties
+    QSignalBlocker blockerEditor(mpEditor);
+    QSignalBlocker blockerManager(mpManager);
+    mpEditor->clear();
+    mpManager->clear();
+
     // Create the properties
-    mpEditor->createEnumProperty(kLineStyle, tr("Style"), lineStyle, kLineStyleNames);
-    mpEditor->createColorProperty(kLineColor, tr("Line color"), mpPlottable->pen().color());
-    mpEditor->createEnumProperty(kMarkerShape, tr("Marker shape"), scatterStyle.shape(), kMarkerShapeNames);
-    mpEditor->createIntProperty(kMarkerSize, tr("Marker size"), scatterStyle.size());
-    mpEditor->createColorProperty(kLineColor, tr("Marker color"), scatterStyle.pen().color());
+    QtVariantProperty* pLineStyleProperty = mpManager->addProperty(kLineStyle, QVariant::List, tr("Style"));
+    pLineStyleProperty->setAttribute("enumNames", kLineStyleNames);
+    pLineStyleProperty->setValue(lineStyle);
+
+    QtVariantProperty* pLineColorProperty = mpManager->addProperty(kLineColor, QVariant::Color, tr("Line color"));
+    pLineColorProperty->setValue(mpPlottable->pen().color());
+
+    QtVariantProperty* pMarkerShapeProperty = mpManager->addProperty(kMarkerShape, QVariant::List, tr("Marker shape"));
+    pMarkerShapeProperty->setAttribute("enumNames", kMarkerShapeNames);
+    pMarkerShapeProperty->setValue(scatterStyle.shape());
+
+    QtVariantProperty* pMarkerSizeProperty = mpManager->addProperty(kMarkerSize, QVariant::Int, tr("Marker size"));
+    pMarkerSizeProperty->setValue(scatterStyle.size());
+
+    QtVariantProperty* pMarkerColorProperty = mpManager->addProperty(kMarkerColor, QVariant::Color, tr("Marker color"));
+    pMarkerColorProperty->setValue(scatterStyle.pen().color());
 }
 
 //! Specify connections
 void PlottablePropertyEditor::createConnections()
 {
-    connect(mpEditor, &CustomPropertyEditor::intValueChanged, this, &PlottablePropertyEditor::setIntValue);
-    connect(mpEditor, &CustomPropertyEditor::doubleValueChanged, this, &PlottablePropertyEditor::setDoubleValue);
-    connect(mpEditor, &CustomPropertyEditor::colorValueChanged, this, &PlottablePropertyEditor::setColorValue);
+    connect(mpManager, &CustomVariantPropertyManager::valueChanged, this, &PlottablePropertyEditor::setValue);
 }
 
-//! Process changing of an integer value
-void PlottablePropertyEditor::setIntValue(QtProperty* pProperty, int value)
+//! Change the plottable property value
+void PlottablePropertyEditor::setValue(QtProperty* pProperty, QVariant value)
 {
-    if (!mpEditor->contains(pProperty))
+    if (!mpManager->contains(pProperty))
         return;
-
+    int id = mpManager->id(pProperty);
     QCPScatterStyle scatterStyle = mpPlottable->property(skScatterStyle).value<QCPScatterStyle>();
-    int id = mpEditor->id(pProperty);
     switch (id)
     {
     case kLineStyle:
         mpPlottable->setProperty(skLineStyle, value);
         break;
-    case kMarkerShape:
-        scatterStyle.setShape((QCPScatterStyle::ScatterShape) value);
-        break;
-    }
-    mpPlottable->setProperty(skScatterStyle, QVariant::fromValue(scatterStyle));
-}
-
-//! Process changing of a color
-void PlottablePropertyEditor::setColorValue(QtProperty* pProperty, QColor const& value)
-{
-    if (!mpEditor->contains(pProperty))
-        return;
-
-    QCPScatterStyle scatterStyle = mpPlottable->property(skScatterStyle).value<QCPScatterStyle>();
-    int id = mpEditor->id(pProperty);
-    switch (id)
-    {
     case kLineColor:
-        mpPlottable->setPen(QPen(value));
+        mpPlottable->setPen(QPen(value.value<QColor>()));
         break;
     case kMarkerColor:
-        scatterStyle.setPen(QPen(value));
+        scatterStyle.setPen(QPen(value.value<QColor>()));
+        break;
+    case kMarkerSize:
+        scatterStyle.setSize(value.toDouble());
+        break;
+    case kMarkerShape:
+        scatterStyle.setShape((QCPScatterStyle::ScatterShape) value.toInt());
         break;
     }
-    mpPlottable->setProperty(skScatterStyle, QVariant::fromValue(scatterStyle));
-}
-
-//! Process changing of a double value
-void PlottablePropertyEditor::setDoubleValue(QtProperty* pProperty, double value)
-{
-    if (!mpEditor->contains(pProperty))
-        return;
-
-    QCPScatterStyle scatterStyle = mpPlottable->property(skScatterStyle).value<QCPScatterStyle>();
-    int id = mpEditor->id(pProperty);
-    if (id == kMarkerSize)
-        scatterStyle.setSize(value);
-    mpPlottable->setProperty(skScatterStyle, QVariant::fromValue(scatterStyle));
+    mpPlottable->setProperty(skScatterStyle, value);
 }
 
 //! Helper function to retrieve plottable data

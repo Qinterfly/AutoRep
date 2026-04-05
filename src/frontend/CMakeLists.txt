@@ -39,6 +39,8 @@ set(FRONTEND_HEADERS
     reportworkspace.h
     reportdesigner.h
     geometryview.h
+    reportsceneitem.h
+    reportpropertyeditor.h
 )
 
 set(FRONTEND_SOURCES
@@ -53,13 +55,14 @@ set(FRONTEND_SOURCES
     reportworkspace.cpp
     reportdesigner.cpp
     geometryview.cpp
+    reportsceneitem.cpp
+    reportpropertyeditor.cpp
 )
 
 qt_add_library(frontend STATIC
     ${FRONTEND_HEADERS}
     ${FRONTEND_SOURCES}
     ${RESOURCES_FILE}
-    reportsceneitem.h reportsceneitem.cpp
 )
 
 target_link_libraries(frontend PRIVATE

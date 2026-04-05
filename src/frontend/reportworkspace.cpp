@@ -107,42 +107,42 @@ ReportPage createImagRealPage()
 {
     ReportPage page(QPageSize::A4, QObject::tr("Im/Re"));
 
-    // Create title
-    TextReportItem* pTitle = new TextReportItem;
-    pTitle->name = QObject::tr("Title");
-    pTitle->rect = QRect(40, 20, 125, 20);
-    pTitle->text = "Test";
-
     // Create an imaginary graph
     GraphReportItem* pImag = new GraphReportItem;
     pImag->name = QObject::tr("Imaginary");
-    pImag->rect = QRect(30, 40, 150, 95);
+    pImag->rect = QRect(25, 35, 150, 110);
     pImag->xLabel = QObject::tr("Frequency, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create a real graph
     GraphReportItem* pReal = new GraphReportItem;
     pReal->name = QObject::tr("Real");
-    pReal->rect = QRect(30, 145, 150, 95);
+    pReal->rect = QRect(25, 145, 150, 110);
     pReal->xLabel = QObject::tr("Frequency, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
+
+    // Create title
+    TextReportItem* pTitle = new TextReportItem;
+    pTitle->name = QObject::tr("Title");
+    pTitle->rect = QRect(25, 10, 150, 20);
+    pTitle->text = QObject::tr("Mode name\nf = 1 Hz\nExcitation");
 
     // Create the caption
     TextReportItem* pCaption = new TextReportItem;
     pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(65, 245, 80, 10);
+    pCaption->rect = QRect(65, 255, 80, 10);
     pCaption->text = QObject::tr("Figure X.YY");
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
     pNumber->name = QObject::tr("Page number");
-    pNumber->rect = QRect(100, 265, 10, 10);
+    pNumber->rect = QRect(100, 280, 10, 10);
     pNumber->text = QObject::tr("Z");
 
     // Combine
-    page.add(pTitle);
     page.add(pImag);
     page.add(pReal);
+    page.add(pTitle);
     page.add(pCaption);
     page.add(pNumber);
 
