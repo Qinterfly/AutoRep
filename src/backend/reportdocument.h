@@ -12,6 +12,7 @@ namespace Backend::Core
 
 class ReportItem;
 
+//! Class to define report page layout
 class ReportPage
 {
 public:
@@ -39,6 +40,7 @@ private:
     QList<ReportItem*> mItems;
 };
 
+//! Collection of report pages
 class ReportDocument
 {
 public:
@@ -73,6 +75,7 @@ public:
     QFont font;
 };
 
+//! Class to define a layout of a text element
 class TextReportItem : public ReportItem
 {
 public:
@@ -88,9 +91,55 @@ public:
     QString text;
 };
 
+enum Direction
+{
+    kNone,
+    kX,
+    kY,
+    kZ
+};
+
+//! Class to a define a layout of a graph point
+class GraphReportPoint
+{
+public:
+    GraphReportPoint();
+    GraphReportPoint(QString const& uComponent, QString const& uNode, QString const& uName = QString());
+    ~GraphReportPoint() = default;
+
+public:
+    QString name;
+    QString component;
+    QString node;
+};
+
+//! Class to define a layout of a graph curve
+class GraphReportCurve
+{
+public:
+    GraphReportCurve();
+    ~GraphReportCurve() = default;
+
+public:
+    QString name;
+    QList<GraphReportPoint> points;
+};
+
+//! Class to define a layout of a graph element
 class GraphReportItem : public ReportItem
 {
 public:
+    enum SubType
+    {
+        kNone,
+        kReal,
+        kImag,
+        kMultiReal,
+        kMultiImag,
+        kFreqReal,
+        kFreqImag,
+        kModeshape
+    };
     GraphReportItem();
     GraphReportItem(ReportItem const* pAnother);
     virtual ~GraphReportItem() = default;
@@ -99,6 +148,10 @@ public:
     ReportItem* clone() const override;
 
 public:
+    SubType subType;
+    Direction coordDir;
+    Direction responseDir;
+    QList<GraphReportCurve> curves;
     QString xLabel;
     QString yLabel;
 };

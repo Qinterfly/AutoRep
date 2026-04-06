@@ -111,6 +111,8 @@ ReportPage createImagRealPage()
     GraphReportItem* pImag = new GraphReportItem;
     pImag->name = QObject::tr("Imaginary");
     pImag->rect = QRect(25, 35, 150, 110);
+    pImag->subType = GraphReportItem::kImag;
+    pImag->responseDir = Direction::kY;
     pImag->xLabel = QObject::tr("Frequency, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
@@ -118,6 +120,8 @@ ReportPage createImagRealPage()
     GraphReportItem* pReal = new GraphReportItem;
     pReal->name = QObject::tr("Real");
     pReal->rect = QRect(25, 145, 150, 110);
+    pImag->subType = GraphReportItem::kReal;
+    pImag->responseDir = Direction::kY;
     pReal->xLabel = QObject::tr("Frequency, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 

@@ -144,7 +144,23 @@ ReportItem* TextReportItem::clone() const
     return pResult;
 }
 
+GraphReportPoint::GraphReportPoint()
+{
+}
+
+GraphReportPoint::GraphReportPoint(QString const& uComponent, QString const& uNode, QString const& uName)
+    : component(uComponent)
+    , node(uNode)
+    , name(uName)
+{
+}
+
+GraphReportCurve::GraphReportCurve()
+{
+}
+
 GraphReportItem::GraphReportItem()
+    : subType(kNone)
 {
 }
 
@@ -161,6 +177,10 @@ ReportItem::Type GraphReportItem::type() const
 ReportItem* GraphReportItem::clone() const
 {
     GraphReportItem* pResult = new GraphReportItem(this);
+    pResult->subType = subType;
+    pResult->coordDir = coordDir;
+    pResult->responseDir = responseDir;
+    pResult->curves = curves;
     pResult->xLabel = xLabel;
     pResult->yLabel = yLabel;
     return pResult;

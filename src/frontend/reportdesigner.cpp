@@ -11,7 +11,7 @@
 
 #include "customlineedit.h"
 #include "customtabwidget.h"
-#include "reportdatamanager.h"
+#include "reportdataeditor.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
 #include "reportsceneitem.h"
@@ -144,7 +144,25 @@ void ReportDesigner::refreshEditor()
     ReportItem* pItem = nullptr;
     if (mSelectedItems.size() == 1)
         pItem = mSelectedItems.first();
+
+    // Property
     mpPropertyEditor->setItem(pItem);
+
+    // Data
+    QLayout* pDataLayout = mpDataEditorContainer->layout();
+    if (mpDataEditor)
+    {
+        pDataLayout->removeWidget(mpDataEditor);
+        delete mpDataEditor;
+        mpDataEditor = nullptr;
+    }
+    if (pItem)
+    {
+        if (pItem->type() == ReportItem::kGraph)
+            mpDataEditor = new GraphReportDataEditor(pItem);
+        if (mpDataEditor)
+            pDataLayout->addWidget(mpDataEditor);
+    }
 }
 
 //! Add a report item of the specified type
@@ -406,7 +424,9 @@ QWidget* ReportDesigner::createEditorWidget()
 {
     // Create the widgets
     mpPropertyEditor = new ReportPropertyEditor;
-    mpDataManager = new ReportDataManager;
+    mpDataEditor = nullptr;
+    mpDataEditorContainer = new QWidget;
+    mpDataEditorContainer->setLayout(new QVBoxLayout);
 
     // Combine the widgets
     CustomTabWidget* pTabWidget = new CustomTabWidget;
@@ -414,7 +434,8 @@ QWidget* ReportDesigner::createEditorWidget()
     pTabWidget->setTabsClosable(false);
     pTabWidget->setTabPosition(CustomTabWidget::North);
     pTabWidget->addTab(mpPropertyEditor, tr("Properties"));
-    pTabWidget->addTab(mpDataManager, tr("Data"));
+    pTabWidget->addTab(mpDataEditorContainer, tr("Data"));
+    pTabWidget->setCurrentIndex(1);
 
     return pTabWidget;
 }

@@ -16,7 +16,7 @@ namespace Frontend
 
 class ReportSceneView;
 class ReportPropertyEditor;
-class ReportDataManager;
+class ReportDataEditor;
 
 //! Class to design page content
 class ReportDesigner : public QWidget
@@ -58,12 +58,21 @@ private:
 
 private:
     Backend::Core::ReportPage& mPage;
+
+    // Scene
     QGraphicsScene* mpScene;
     ReportSceneView* mpView;
     QComboBox* mpScaleSelector;
+
+    // Item
     QListWidget* mpItemList;
+
+    // Editor
     ReportPropertyEditor* mpPropertyEditor;
-    ReportDataManager* mpDataManager;
+    ReportDataEditor* mpDataEditor;
+    QWidget* mpDataEditorContainer;
+
+    // Selection
     QList<Backend::Core::ReportItem*> mSelectedItems;
 };
 

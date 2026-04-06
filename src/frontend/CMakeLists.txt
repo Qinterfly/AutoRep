@@ -41,7 +41,7 @@ set(FRONTEND_HEADERS
     geometryview.h
     reportsceneitem.h
     reportpropertyeditor.h
-    reportdatamanager.h
+    reportdataeditor.h
 )
 
 set(FRONTEND_SOURCES
@@ -58,7 +58,7 @@ set(FRONTEND_SOURCES
     geometryview.cpp
     reportsceneitem.cpp
     reportpropertyeditor.cpp
-    reportdatamanager.cpp
+    reportdataeditor.cpp
 )
 
 qt_add_library(frontend STATIC
