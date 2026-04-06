@@ -7,7 +7,6 @@
 #include "reportdocument.h"
 
 QT_FORWARD_DECLARE_CLASS(QListWidget)
-QT_FORWARD_DECLARE_CLASS(QGroupBox)
 QT_FORWARD_DECLARE_CLASS(QPrinter)
 QT_FORWARD_DECLARE_CLASS(QListWidgetItem)
 QT_FORWARD_DECLARE_CLASS(QComboBox)
@@ -17,6 +16,7 @@ namespace Frontend
 
 class ReportSceneView;
 class ReportPropertyEditor;
+class ReportDataManager;
 
 //! Class to design page content
 class ReportDesigner : public QWidget
@@ -34,9 +34,9 @@ public:
 private:
     void createContent();
     void createConnections();
-    QGroupBox* createSceneGroupBox();
-    QGroupBox* createListGroupBox();
-    QGroupBox* createEditorGroupBox();
+    QWidget* createSceneWidget();
+    QWidget* createListWidget();
+    QWidget* createEditorWidget();
 
     // Draw
     void drawAll();
@@ -62,7 +62,8 @@ private:
     ReportSceneView* mpView;
     QComboBox* mpScaleSelector;
     QListWidget* mpItemList;
-    ReportPropertyEditor* mpItemEditor;
+    ReportPropertyEditor* mpPropertyEditor;
+    ReportDataManager* mpDataManager;
     QList<Backend::Core::ReportItem*> mSelectedItems;
 };
 

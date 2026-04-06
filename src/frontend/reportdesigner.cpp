@@ -10,6 +10,8 @@
 #include <QWheelEvent>
 
 #include "customlineedit.h"
+#include "customtabwidget.h"
+#include "reportdatamanager.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
 #include "reportsceneitem.h"
@@ -142,7 +144,7 @@ void ReportDesigner::refreshEditor()
     ReportItem* pItem = nullptr;
     if (mSelectedItems.size() == 1)
         pItem = mSelectedItems.first();
-    mpItemEditor->setItem(pItem);
+    mpPropertyEditor->setItem(pItem);
 }
 
 //! Add a report item of the specified type
@@ -285,24 +287,26 @@ void ReportDesigner::setScaleBySelector()
 //! Create all the widgets
 void ReportDesigner::createContent()
 {
-    // Create the control layout
-    QVBoxLayout* pControlLayout = new QVBoxLayout;
-    pControlLayout->addWidget(createListGroupBox());
-    pControlLayout->addWidget(createEditorGroupBox());
-    QWidget* pControlWidget = new QWidget;
-    pControlWidget->setLayout(pControlLayout);
+    // Constants
+    int const kHandleWidth = 5;
+
+    // Create the control widgets
+    QSplitter* pControlSplitter = new QSplitter(Qt::Vertical);
+    pControlSplitter->setHandleWidth(kHandleWidth);
+    pControlSplitter->addWidget(createListWidget());
+    pControlSplitter->addWidget(createEditorWidget());
 
     // Combine the widgets
-    QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
-    pSplitter->addWidget(createSceneGroupBox());
-    pSplitter->addWidget(pControlWidget);
-    pSplitter->setHandleWidth(3);
-    pSplitter->setStretchFactor(0, 2);
-    pSplitter->setStretchFactor(1, 1);
+    QSplitter* pMainSplitter = new QSplitter(Qt::Horizontal);
+    pMainSplitter->addWidget(createSceneWidget());
+    pMainSplitter->addWidget(pControlSplitter);
+    pMainSplitter->setHandleWidth(kHandleWidth);
+    pMainSplitter->setStretchFactor(0, 2);
+    pMainSplitter->setStretchFactor(1, 1);
 
     // Create the main layout
     QVBoxLayout* pMainLayout = new QVBoxLayout;
-    pMainLayout->addWidget(pSplitter);
+    pMainLayout->addWidget(pMainSplitter);
     setLayout(pMainLayout);
 }
 
@@ -318,11 +322,11 @@ void ReportDesigner::createConnections()
     connect(mpScene, &QGraphicsScene::selectionChanged, this, &ReportDesigner::selectByScene);
 
     // Editor
-    connect(mpItemEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
+    connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
 }
 
 //! Create the group of scene widgets
-QGroupBox* ReportDesigner::createSceneGroupBox()
+QWidget* ReportDesigner::createSceneWidget()
 {
     // Constants
     QList<int> const kScales = {10, 25, 50, 75, 100, 125, 150, 200, 400, 800, 1600};
@@ -366,7 +370,7 @@ QGroupBox* ReportDesigner::createSceneGroupBox()
 }
 
 //! Create the group of item widgets
-QGroupBox* ReportDesigner::createListGroupBox()
+QWidget* ReportDesigner::createListWidget()
 {
     // Create the widgets
     mpItemList = new QListWidget;
@@ -397,19 +401,22 @@ QGroupBox* ReportDesigner::createListGroupBox()
     return pGroupBox;
 }
 
-//! Create the group of properties
-QGroupBox* ReportDesigner::createEditorGroupBox()
+//! Create the tab widget consisted of property and data editors
+QWidget* ReportDesigner::createEditorWidget()
 {
-    // Create the wwidgets
-    mpItemEditor = new ReportPropertyEditor;
+    // Create the widgets
+    mpPropertyEditor = new ReportPropertyEditor;
+    mpDataManager = new ReportDataManager;
 
-    // Construct the group box
-    QGroupBox* pGroupBox = new QGroupBox(tr("Properties"));
-    QVBoxLayout* pLayout = new QVBoxLayout;
-    pLayout->setContentsMargins(0, 0, 0, 0);
-    pLayout->addWidget(mpItemEditor);
-    pGroupBox->setLayout(pLayout);
-    return pGroupBox;
+    // Combine the widgets
+    CustomTabWidget* pTabWidget = new CustomTabWidget;
+    pTabWidget->setTabsRenamable(false);
+    pTabWidget->setTabsClosable(false);
+    pTabWidget->setTabPosition(CustomTabWidget::North);
+    pTabWidget->addTab(mpPropertyEditor, tr("Properties"));
+    pTabWidget->addTab(mpDataManager, tr("Data"));
+
+    return pTabWidget;
 }
 
 ReportSceneView::ReportSceneView(QWidget* pParent)
