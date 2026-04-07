@@ -5,6 +5,7 @@
 #include <QWidget>
 
 #include "reportdocument.h"
+#include "reportitem.h"
 
 QT_FORWARD_DECLARE_CLASS(QListWidget)
 QT_FORWARD_DECLARE_CLASS(QPrinter)
@@ -27,9 +28,11 @@ public:
     ReportDesigner(Backend::Core::ReportPage& page, QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
+    Backend::Core::ReportPage& page();
     void fit();
     void refresh();
     bool print(QPrinter& printer);
+    void select(int index);
 
 private:
     void createContent();
@@ -55,6 +58,7 @@ private:
     void selectByScene();
     void changeItemByList(QListWidgetItem* pListItem);
     void setScaleBySelector();
+    void setDataEditor(Backend::Core::ReportItem* pItem);
 
 private:
     Backend::Core::ReportPage& mPage;

@@ -36,6 +36,18 @@ ReportDesigner* ReportWorkspace::designer(int iPage)
     return nullptr;
 }
 
+//! Retrieve the designer associated with the name
+ReportDesigner* ReportWorkspace::designer(QString const& name)
+{
+    int numPages = mpDesignerTabs->count();
+    for (int iPage = 0; iPage != numPages; ++iPage)
+    {
+        if (name == mpDesignerTabs->tabText(iPage))
+            return (ReportDesigner*) mpDesignerTabs->widget(iPage);
+    }
+    return nullptr;
+}
+
 //! Print the specified page to a pdf file
 bool ReportWorkspace::print(QString const& pathFile, int iPage)
 {
@@ -112,16 +124,18 @@ ReportPage createImagRealPage()
     pImag->name = QObject::tr("Imaginary");
     pImag->rect = QRect(25, 35, 150, 110);
     pImag->subType = GraphReportItem::kImag;
-    pImag->responseDir = Direction::kY;
+    pImag->responseDir = ReportDirection::kY;
+    pImag->unit = "m/s^2";
     pImag->xLabel = QObject::tr("Frequency, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create a real graph
     GraphReportItem* pReal = new GraphReportItem;
     pReal->name = QObject::tr("Real");
-    pReal->rect = QRect(25, 145, 150, 110);
-    pImag->subType = GraphReportItem::kReal;
-    pImag->responseDir = Direction::kY;
+    pReal->rect = QRect(25, 150, 150, 110);
+    pReal->subType = GraphReportItem::kReal;
+    pReal->responseDir = ReportDirection::kY;
+    pReal->unit = "m/s^2";
     pReal->xLabel = QObject::tr("Frequency, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
@@ -134,7 +148,7 @@ ReportPage createImagRealPage()
     // Create the caption
     TextReportItem* pCaption = new TextReportItem;
     pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(65, 255, 80, 10);
+    pCaption->rect = QRect(65, 265, 80, 10);
     pCaption->text = QObject::tr("Figure X.YY");
 
     // Create the page number

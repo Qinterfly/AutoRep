@@ -23,6 +23,7 @@ public:
 
     QSize sizeHint() const;
     ReportDesigner* designer(int iPage);
+    ReportDesigner* designer(QString const& name);
 
     bool print(QString const& pathFile, int iPage);
     bool print(QString const& pathFile);

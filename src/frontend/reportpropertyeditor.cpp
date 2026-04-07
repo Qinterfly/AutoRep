@@ -4,7 +4,7 @@
 #include <qttreepropertybrowser.h>
 #include <qtvariantproperty.h>
 
-#include "reportdocument.h"
+#include "reportitem.h"
 #include "reportpropertyeditor.h"
 #include "uiutility.h"
 

@@ -1,12 +1,14 @@
 #include <config.h>
 
 #include "fileutility.h"
+#include "reportdesigner.h"
 #include "reportworkspace.h"
 #include "sessioneditor.h"
 #include "testfrontend.h"
 
 using namespace Tests;
 using namespace Backend;
+using namespace Backend::Core;
 using namespace Frontend;
 
 TestFrontend::TestFrontend()
@@ -60,6 +62,37 @@ void TestFrontend::addResponseBundles()
         QVERIFY(pResponseEditor->addBundle(paths));
     }
     QVERIFY(pResponseEditor->collection().count() == numBundles);
+}
+
+//! Set the imaginary/real page of the report
+void TestFrontend::setImRePage()
+{
+    QStringList points = {"W:1p22", "W:1p23"};
+    ReportDesigner* pDesigner = mpReportWorkspace->designer("Im/Re");
+
+    // Get the plots
+    ReportPage& page = pDesigner->page();
+    GraphReportItem* pImag = (GraphReportItem*) page.get(0);
+    GraphReportItem* pReal = (GraphReportItem*) page.get(1);
+
+    // Add the points
+    for (QString const& p : points)
+    {
+        pImag->addPoint(p);
+        pReal->addPoint(p);
+    }
+
+    // Refresh the page
+    pDesigner->refresh();
+
+    // Select the first item
+    pDesigner->select(0);
+}
+
+//! Make up the report
+void TestFrontend::buildReport()
+{
+    // TODO
 }
 
 //! Write the report to a file

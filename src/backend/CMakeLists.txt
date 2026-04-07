@@ -6,14 +6,14 @@ find_package(Eigen3 CONFIG REQUIRED)
 set(BACKEND_HEADERS
     fileutility.h
     session.h
-
+    reportitem.h
     reportdocument.h
 )
 
 set(BACKEND_SOURCES
     fileutility.cpp
     session.cpp
-
+    reportitem.cpp
     reportdocument.cpp
 )
 

@@ -34,6 +34,12 @@ ReportDesigner::ReportDesigner(ReportPage& page, QWidget* pParent)
     refresh();
 }
 
+//! Get the page
+ReportPage& ReportDesigner::page()
+{
+    return mPage;
+}
+
 //! Fit the content
 void ReportDesigner::fit()
 {
@@ -68,6 +74,16 @@ bool ReportDesigner::print(QPrinter& printer)
     painter.end();
 
     return true;
+}
+
+//! Select a report item by its index
+void ReportDesigner::select(int index)
+{
+    ReportItem* pItem = mPage.get(index);
+    if (!pItem)
+        return;
+    mSelectedItems = {pItem};
+    refresh();
 }
 
 //! Draw all the graphic objects
@@ -144,25 +160,8 @@ void ReportDesigner::refreshEditor()
     ReportItem* pItem = nullptr;
     if (mSelectedItems.size() == 1)
         pItem = mSelectedItems.first();
-
-    // Property
     mpPropertyEditor->setItem(pItem);
-
-    // Data
-    QLayout* pDataLayout = mpDataEditorContainer->layout();
-    if (mpDataEditor)
-    {
-        pDataLayout->removeWidget(mpDataEditor);
-        delete mpDataEditor;
-        mpDataEditor = nullptr;
-    }
-    if (pItem)
-    {
-        if (pItem->type() == ReportItem::kGraph)
-            mpDataEditor = new GraphReportDataEditor(pItem);
-        if (mpDataEditor)
-            pDataLayout->addWidget(mpDataEditor);
-    }
+    setDataEditor(pItem);
 }
 
 //! Add a report item of the specified type
@@ -300,6 +299,38 @@ void ReportDesigner::setScaleBySelector()
     // Apply the scale factor to the fitted view
     double scale = percentScale / 100.0;
     mpView->scale(scale, scale);
+}
+
+//! Set the editor for item data
+void ReportDesigner::setDataEditor(ReportItem* pItem)
+{
+    QLayout* pDataLayout = mpDataEditorContainer->layout();
+    if (mpDataEditor)
+    {
+        // Set the new data if the editor has the same type
+        if (pItem && mpDataEditor->type() == pItem->type())
+        {
+            mpDataEditor->setItem(pItem);
+            return;
+        }
+
+        // Remove the current editor
+        pDataLayout->removeWidget(mpDataEditor);
+        delete mpDataEditor;
+        mpDataEditor = nullptr;
+    }
+
+    // Create the new editor, if necessary
+    if (pItem)
+    {
+        if (pItem->type() == ReportItem::kGraph)
+            mpDataEditor = new GraphReportDataEditor;
+        if (mpDataEditor)
+        {
+            mpDataEditor->setItem(pItem);
+            pDataLayout->addWidget(mpDataEditor);
+        }
+    }
 }
 
 //! Create all the widgets

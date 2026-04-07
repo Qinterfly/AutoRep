@@ -1,3 +1,4 @@
+#include <QComboBox>
 #include <QSettings>
 #include <QTableWidgetItem>
 #include <QToolBar>
@@ -96,6 +97,21 @@ QString getLastPathFile(QSettings const& settings)
 void setLastPathFile(QSettings& settings, QString const& pathFile)
 {
     settings.setValue(Constants::Settings::skLastPathFile, pathFile);
+}
+
+//! Set combobox current index by item key
+void setIndexByKey(QComboBox* pComboBox, int key)
+{
+    int numItems = pComboBox->count();
+    pComboBox->setCurrentIndex(-1);
+    for (int i = 0; i != numItems; ++i)
+    {
+        if (pComboBox->itemData(i).toInt() == key)
+        {
+            pComboBox->setCurrentIndex(i);
+            break;
+        }
+    }
 }
 
 //! Create table widget item associated with a double value

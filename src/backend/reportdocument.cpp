@@ -1,4 +1,5 @@
 #include "reportdocument.h"
+#include "reportitem.h"
 
 using namespace Backend::Core;
 
@@ -103,85 +104,4 @@ void ReportPage::clear()
 
 ReportDocument::ReportDocument()
 {
-}
-
-ReportItem::ReportItem()
-    : name(QString())
-    , rect(0, 0, 0, 0)
-    , angle(0)
-    , font("Times New Roman", 12)
-{
-}
-
-ReportItem::ReportItem(ReportItem const* pAnother)
-{
-    name = pAnother->name;
-    rect = pAnother->rect;
-    angle = pAnother->angle;
-    font = pAnother->font;
-}
-
-TextReportItem::TextReportItem()
-{
-    alignment = Qt::AlignHCenter | Qt::AlignVCenter;
-}
-
-TextReportItem::TextReportItem(ReportItem const* pAnother)
-    : ReportItem(pAnother)
-{
-}
-
-ReportItem::Type TextReportItem::type() const
-{
-    return ReportItem::kText;
-}
-
-ReportItem* TextReportItem::clone() const
-{
-    TextReportItem* pResult = new TextReportItem(this);
-    pResult->alignment = alignment;
-    pResult->text = text;
-    return pResult;
-}
-
-GraphReportPoint::GraphReportPoint()
-{
-}
-
-GraphReportPoint::GraphReportPoint(QString const& uComponent, QString const& uNode, QString const& uName)
-    : component(uComponent)
-    , node(uNode)
-    , name(uName)
-{
-}
-
-GraphReportCurve::GraphReportCurve()
-{
-}
-
-GraphReportItem::GraphReportItem()
-    : subType(kNone)
-{
-}
-
-GraphReportItem::GraphReportItem(ReportItem const* pAnother)
-    : ReportItem(pAnother)
-{
-}
-
-ReportItem::Type GraphReportItem::type() const
-{
-    return ReportItem::kGraph;
-}
-
-ReportItem* GraphReportItem::clone() const
-{
-    GraphReportItem* pResult = new GraphReportItem(this);
-    pResult->subType = subType;
-    pResult->coordDir = coordDir;
-    pResult->responseDir = responseDir;
-    pResult->curves = curves;
-    pResult->xLabel = xLabel;
-    pResult->yLabel = yLabel;
-    return pResult;
 }

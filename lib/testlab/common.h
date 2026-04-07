@@ -32,6 +32,15 @@ namespace Testlab
 		int sign;
 	};
 
+	struct ResponseUnit
+	{
+		int length;
+		int mass;
+		int time;
+		double scale;
+		std::wstring name;
+	};
+
 	struct ResponseHeader
 	{
 		ResponseType type;
@@ -40,6 +49,7 @@ namespace Testlab
 		std::wstring name;
 		ResponsePoint point;
 		ResponsePoint refPoint;
+		ResponseUnit unit;
 		int channel;
 		int numAverages;
 		std::wstring dimension;

@@ -1,6 +1,7 @@
 #include "reportsceneitem.h"
 #include "customplot.h"
 #include "reportdocument.h"
+#include "reportitem.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
