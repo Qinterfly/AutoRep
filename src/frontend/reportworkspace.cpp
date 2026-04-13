@@ -16,15 +16,16 @@ using namespace Backend::Core;
 // Helper function
 ReportPage createImagRealPage();
 
-ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, QWidget* pParent)
+ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseCollection const& collection, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
+    , mCollection(collection)
 {
     setFont(Utility::getFont());
     createContent();
     initialize();
-    refresh();
+    rebuild();
 }
 
 QSize ReportWorkspace::sizeHint() const
@@ -134,17 +135,25 @@ void ReportWorkspace::initialize()
     mDocument.pages.push_back(createImagRealPage());
 }
 
-//! Update the widgets content
+//! Replot the designer tabs
 void ReportWorkspace::refresh()
 {
-    // Set design tabs
+    mpDesignerTabs->count();
+    int numPages = mDocument.pages.size();
+    for (int i = 0; i != numPages; ++i)
+        designer(i)->refresh();
+}
+
+//! Rebuild the designer tabs
+void ReportWorkspace::rebuild()
+{
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mpDesignerTabs->removeAllPages();
     int numPages = mDocument.pages.size();
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, page);
+        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mCollection, page);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);

@@ -118,8 +118,8 @@ public:
     ReportItem* clone() const override;
 
     bool isMultiPointCurve() const;
-    void addCurve(QStringList const& points, QString const& name = QString());
-    void addPoint(QString const& point, QString const& name = QString());
+    GraphReportCurve& addCurve(QStringList const& points, QString const& name = QString());
+    GraphReportCurve& addPoint(QString const& point, QString const& name = QString());
 
 public:
     SubType subType;

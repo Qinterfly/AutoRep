@@ -68,6 +68,7 @@ void TestFrontend::addResponseBundles()
 void TestFrontend::setImRePage()
 {
     QStringList points = {"W:1p22", "W:1p23"};
+    QList<QColor> colors = {Qt::red, Qt::blue};
     ReportDesigner* pDesigner = mpReportWorkspace->designer("Im-Re");
     QVERIFY(pDesigner);
 
@@ -76,12 +77,14 @@ void TestFrontend::setImRePage()
     GraphReportItem* pImag = (GraphReportItem*) page.get(0);
     GraphReportItem* pReal = (GraphReportItem*) page.get(1);
 
-    // Add the points
-    for (QString const& p : points)
+    // Add the curves
+    int numPoints = points.size();
+    for (int i = 0; i != numPoints; ++i)
     {
-        pImag->addPoint(p);
-        pReal->addPoint(p);
+        GraphReportCurve& curve = pImag->addPoint(points[i]);
+        curve.lineColor = colors[i];
     }
+    pReal->curves = pImag->curves;
 
     // Refresh the page
     pDesigner->refresh();

@@ -17,6 +17,7 @@
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
 #include "reportsceneitem.h"
+#include "sessioneditor.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
@@ -32,11 +33,12 @@ ReportDesignerOptions::ReportDesignerOptions()
     lockItems = false;
 }
 
-ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ReportPage& page, ReportDesignerOptions const& options,
-                               QWidget* pParent)
+ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, Backend::Core::ResponseCollection const& collection,
+                               ReportPage& page, ReportDesignerOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
+    , mCollection(collection)
     , mPage(page)
     , mOptions(options)
 {
@@ -156,7 +158,7 @@ void ReportDesigner::drawItems()
             pSceneItem = new TextReportSceneItem((TextReportItem*) pReportItem);
             break;
         case ReportItem::kGraph:
-            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem);
+            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mCollection);
             break;
         default:
             break;
@@ -367,7 +369,10 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     if (pItem)
     {
         if (pItem->type() == ReportItem::kGraph)
+        {
             mpDataEditor = new GraphReportDataEditor(mpGeometryView);
+            connect(mpDataEditor, &ReportDataEditor::edited, this, &ReportDesigner::refresh);
+        }
         if (mpDataEditor)
         {
             mpDataEditor->setItem(pItem);

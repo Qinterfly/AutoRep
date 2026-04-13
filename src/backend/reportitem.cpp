@@ -135,12 +135,12 @@ bool GraphReportItem::isMultiPointCurve() const
     return subType == GraphReportItem::kModeshape;
 }
 
-void GraphReportItem::addCurve(QStringList const& points, QString const& name)
+GraphReportCurve& GraphReportItem::addCurve(QStringList const& points, QString const& name)
 {
-    curves.push_back(GraphReportCurve(points, name));
+    return curves.emplace_back(GraphReportCurve(points, name));
 }
 
-void GraphReportItem::addPoint(QString const& point, QString const& name)
+GraphReportCurve& GraphReportItem::addPoint(QString const& point, QString const& name)
 {
-    addCurve({point}, name);
+    return addCurve({point}, name);
 }

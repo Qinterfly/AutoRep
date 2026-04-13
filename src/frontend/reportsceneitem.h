@@ -8,6 +8,7 @@ namespace Backend::Core
 class ReportItem;
 class TextReportItem;
 class GraphReportItem;
+class ResponseCollection;
 }
 
 namespace Frontend
@@ -93,18 +94,19 @@ private:
 class GraphReportSceneItem : public ReportSceneItem
 {
 public:
-    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, QGraphicsItem* pParent = nullptr);
+    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ResponseCollection const& collection,
+                         QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
-    void setState();
-
 protected:
+    void setState();
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
 
 private:
     void drawPlot(QPainter* pPainter);
 
 private:
+    Backend::Core::ResponseCollection const& mCollection;
     CustomPlot* mpPlot;
 };
 

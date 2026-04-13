@@ -68,7 +68,7 @@ void MainWindow::createContent()
 
     // Create the widgets
     mpSessionEditor = new SessionEditor(mSettings);
-    mpReportWorkspace = new ReportWorkspace(mSettings, mpSessionEditor->geometryView());
+    mpReportWorkspace = new ReportWorkspace(mSettings, mpSessionEditor->geometryView(), mpSessionEditor->responseEditor()->collection());
     QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
     pSplitter->addWidget(mpSessionEditor);
     pSplitter->addWidget(mpReportWorkspace);
@@ -85,6 +85,8 @@ void MainWindow::createContent()
 //! Connect the widgets between each other
 void MainWindow::createConnections()
 {
+    // Response editor
+    connect(mpSessionEditor->responseEditor(), &ResponseEditor::edited, mpReportWorkspace, &ReportWorkspace::refresh);
     // TODO
 }
 

@@ -1,13 +1,18 @@
-#include "reportsceneitem.h"
+#include <testlab/common.h>
+
 #include "customplot.h"
 #include "reportdocument.h"
 #include "reportitem.h"
+#include "reportsceneitem.h"
+#include "session.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
 
 // Helper function
 QRectF rotatedRect(QRectF const& rect, qreal angle);
+QVector<double> convert(std::vector<double> const& data);
+int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
@@ -250,8 +255,9 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->restore();
 }
 
-GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, QGraphicsItem* pParent)
+GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ResponseCollection const& collection, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
+    , mCollection(collection)
     , mpPlot(new CustomPlot)
 {
 }
@@ -264,8 +270,63 @@ GraphReportSceneItem::~GraphReportSceneItem()
 //! Set the item state
 void GraphReportSceneItem::setState()
 {
+    // Retrieve the item
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Clear the plot
     mpPlot->clear();
+
+    // Process all the curves
+    int numBundles = mCollection.count();
+    int numCurves = pItem->curves.size();
+    for (int iBundle = 0; iBundle != numBundles; ++iBundle)
+    {
+        ResponseBundle const& bundle = mCollection.get(iBundle);
+
+        // Show only the last bundle if multi mode is not enabled
+        if (pItem->subType != GraphReportItem::kMultiReal && pItem->subType != GraphReportItem::kMultiImag)
+            mpPlot->clearPlottables();
+
+        // Loop through all the curves
+        for (int iCurve = 0; iCurve != numCurves; ++iCurve)
+        {
+            GraphReportCurve const& curve = pItem->curves[iCurve];
+
+            // Loop through all the points belonged to the curve
+            int numPoints = curve.points.size();
+            for (int iPoint = 0; iPoint != numPoints; ++iPoint)
+            {
+                // Find the response associated with the point which has the same direction
+                GraphReportPoint const& point = curve.points[iPoint];
+                int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
+                if (iResponse < 0)
+                    continue;
+                Testlab::Response const& response = bundle.responses[iResponse];
+
+                // Set the X-data
+                QList<double> xData;
+                if (pItem->subType != GraphReportItem::kModeshape)
+                    xData = convert(response.keys);
+
+                // Set the Y-data
+                QList<double> yData;
+                if (pItem->subType == GraphReportItem::kReal || pItem->subType == GraphReportItem::kMultiReal)
+                    yData = convert(response.realValues);
+                else if (pItem->subType == GraphReportItem::kImag || pItem->subType == GraphReportItem::kMultiImag)
+                    yData = convert(response.imagValues);
+                if (xData.isEmpty() || xData.size() != yData.size())
+                    continue;
+
+                // Add the plottable
+                QCPCurve* pPlottable = new QCPCurve(mpPlot->xAxis, mpPlot->yAxis);
+                pPlottable->setData(xData, yData);
+                pPlottable->setPen(QPen(curve.lineColor));
+                pPlottable->setName(point.node);
+            }
+        }
+    }
+
+    // Set the axes
     mpPlot->xAxis->setTickLabelFont(pItem->font);
     mpPlot->yAxis->setTickLabelFont(pItem->font);
     mpPlot->xAxis->setLabelFont(pItem->font);
@@ -273,19 +334,11 @@ void GraphReportSceneItem::setState()
     mpPlot->xAxis->setLabel(pItem->xLabel);
     mpPlot->yAxis->setLabel(pItem->yLabel);
 
-    // -- DEBUG --------------------------------
-    QCPGraph* pGraph = mpPlot->addGraph();
-    pGraph->setPen(QPen(Qt::red));
-    QVector<double> x(251), y(251);
-    for (int i = 0; i < 251; ++i)
-    {
-        x[i] = i;
-        y[i] = qExp(-i / 150.0) * qCos(i / 10.0);
-    }
-    pGraph->setData(x, y);
-    pGraph->rescaleAxes();
-    // -- DEBUG --------------------------------
+    // Set the legend visibility
+    mpPlot->legend->setVisible(mpPlot->plottableCount() > 0);
 
+    // Render the plot
+    mpPlot->rescaleAxes();
     mpPlot->replot();
 }
 
@@ -337,4 +390,34 @@ QRectF rotatedRect(QRectF const& rect, qreal angle)
     t.rotate(angle);
     t.translate(-c.x(), -c.y());
     return t.mapRect(rect);
+}
+
+//! Helper function to convert double data
+QVector<double> convert(std::vector<double> const& data)
+{
+    return QVector<double>(data.begin(), data.end());
+}
+
+//! Helper function to find the response measured at the specified point along the requested direction
+int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type)
+{
+    int iFound = -1;
+    int numResponses = bundle.responses.size();
+    for (int i = 0; i != numResponses; ++i)
+    {
+        Testlab::Response const& response = bundle.responses[i];
+
+        // Slice the response data
+        Testlab::ResponsePoint const& responsePoint = response.header.point;
+        QString componentName = QString::fromStdWString(responsePoint.component);
+        QString nodeName = QString::fromStdWString(responsePoint.node);
+
+        // Check the flags
+        bool isPoint = componentName == point.component && nodeName == point.node;
+        bool isDir = (int) dir == (int) responsePoint.direction;
+        bool isType = response.header.type == type;
+        if (isPoint && isDir && isType)
+            return i;
+    }
+    return iFound;
 }

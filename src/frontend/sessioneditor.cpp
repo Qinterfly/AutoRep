@@ -76,7 +76,7 @@ void SessionEditor::createContent()
 
     // Create the tab widget
     mpGeometryView = new GeometryView;
-    mpResponseEditor = new ResponseEditor(mSession);
+    mpResponseEditor = new ResponseEditor(mSettings, mSession);
     CustomTabWidget* pTabWidget = new CustomTabWidget;
     pTabWidget->setTabsRenamable(false);
     pTabWidget->setTabsClosable(false);
@@ -100,8 +100,9 @@ void SessionEditor::openProjectDialog()
     openProject(pathFile);
 }
 
-ResponseEditor::ResponseEditor(Session& session, QWidget* pParent)
+ResponseEditor::ResponseEditor(QSettings& settings, Session& session, QWidget* pParent)
     : QWidget(pParent)
+    , mSettings(settings)
     , mSession(session)
 {
     setFont(Utility::getFont());

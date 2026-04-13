@@ -260,6 +260,9 @@ void GraphReportDataEditor::addCurve()
     // Select the last curve
     if (!selectedPoints.isEmpty())
         mpCurveList->setCurrentRow(mpCurveList->count() - 1);
+
+    // Finish up the editing
+    emit edited();
 }
 
 //! Replace the selected curve with the new one
@@ -291,6 +294,9 @@ void GraphReportDataEditor::editSelectedCurve()
 
     // Update the widgets content
     refresh();
+
+    // Finish up the editing
+    emit edited();
 }
 
 //! Rename the selected curve
@@ -319,6 +325,9 @@ void GraphReportDataEditor::renameSelectedCurve()
 
     // Update the widgets content
     refresh();
+
+    // Finish up the editing
+    emit edited();
 }
 
 //! Process removing the current curve
@@ -342,6 +351,9 @@ void GraphReportDataEditor::removeSelectedCurve()
 
     // Select the last curve
     mpCurveList->setCurrentRow(mpCurveList->count() - 1);
+
+    // Finish up the editing
+    emit edited();
 }
 
 //! Retrieve the selected points from the geometry view

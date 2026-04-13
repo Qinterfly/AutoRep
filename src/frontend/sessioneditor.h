@@ -37,8 +37,8 @@ private:
     void openProjectDialog();
 
 private:
-    Backend::Core::Session mSession;
     QSettings& mSettings;
+    Backend::Core::Session mSession;
 
     // Project
     Edit1s* mpProjectPath;
@@ -55,7 +55,7 @@ class ResponseEditor : public QWidget
     Q_OBJECT
 
 public:
-    ResponseEditor(Backend::Core::Session& session, QWidget* pParent = nullptr);
+    ResponseEditor(QSettings& settings, Backend::Core::Session& session, QWidget* pParent = nullptr);
     virtual ~ResponseEditor() = default;
 
     Backend::Core::ResponseCollection const& collection() const;
@@ -76,6 +76,7 @@ private:
     QLayout* createResponseLayout();
 
 private:
+    QSettings& mSettings;
     Backend::Core::Session& mSession;
     Backend::Core::ResponseCollection mCollection;
     QListWidget* mpBundleList;
