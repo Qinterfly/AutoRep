@@ -6,6 +6,11 @@
 #include <QSettings>
 #include <QTranslator>
 
+namespace Backend::Core
+{
+class GraphReportCurve;
+}
+
 namespace Frontend
 {
 

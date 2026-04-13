@@ -157,9 +157,13 @@ public:
     void plot();
     void refresh();
 
-    void setSelections(QList<GeometrySelection> const& selections);
+    int numSelected();
     QList<GeometrySelection> selections() const;
+    QList<QPair<QString, QString>> selectionPairs() const;
+    Testlab::Geometry const& getGeometry() const;
 
+    void clearSelection();
+    bool addSelection(QString const& componentName, QString const& nodeName);
     void setGeometry(Testlab::Geometry geometry);
     void setIsometricView();
     void setPlaneView(int dir, int sign);

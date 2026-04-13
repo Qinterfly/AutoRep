@@ -24,9 +24,17 @@ using namespace Frontend;
 // Helper functions
 QListWidgetItem* createListItem(ReportPage const& page, int index);
 
-ReportDesigner::ReportDesigner(ReportPage& page, QWidget* pParent)
+ReportDesignerOptions::ReportDesignerOptions()
+{
+    // Flags
+    lockItems = false;
+}
+
+ReportDesigner::ReportDesigner(ReportPage& page, GeometryView* pGeometryView, ReportDesignerOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mPage(page)
+    , mpGeometryView(pGeometryView)
+    , mOptions(options)
 {
     setFont(Utility::getFont());
     createContent();
@@ -43,8 +51,8 @@ ReportPage& ReportDesigner::page()
 //! Fit the content
 void ReportDesigner::fit()
 {
-    mpView->resetTransform();
-    mpView->fitToPage();
+    mpSceneView->resetTransform();
+    mpSceneView->fitToPage();
 }
 
 //! Render the page content
@@ -64,7 +72,7 @@ bool ReportDesigner::print(QPrinter& printer)
     printer.newPage();
 
     // Set the view
-    mpView->fitToPage();
+    mpSceneView->fitToPage();
 
     // Print to the file
     QPainter painter;
@@ -77,7 +85,7 @@ bool ReportDesigner::print(QPrinter& printer)
 }
 
 //! Select a report item by its index
-void ReportDesigner::select(int index)
+void ReportDesigner::selectItem(int index)
 {
     ReportItem* pItem = mPage.get(index);
     if (!pItem)
@@ -91,7 +99,7 @@ void ReportDesigner::drawAll()
 {
     // Set up the scene
     QSignalBlocker blockerScene(mpScene);
-    QSignalBlocker blockerView(mpView);
+    QSignalBlocker blockerSceneView(mpSceneView);
     mpScene->clear();
     mpScene->setSceneRect(mPage.size.rect(QPageSize::Millimeter));
 
@@ -121,6 +129,7 @@ void ReportDesigner::drawItems()
         }
         if (!pSceneItem)
             continue;
+        pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, !mOptions.lockItems);
         connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
         if (mSelectedItems.contains(pSceneItem->item()))
             pSceneItem->setSelected(true);
@@ -135,7 +144,7 @@ void ReportDesigner::drawBorder()
     pBorder->setZValue(-1000);
     pBorder->setFlag(QGraphicsItem::ItemIsSelectable, false);
     pBorder->setFlag(QGraphicsItem::ItemIsMovable, false);
-    mpView->setBackgroundBrush(QColor(210, 210, 210));
+    mpSceneView->setBackgroundBrush(QColor(210, 210, 210));
 }
 
 //! Update the list of page items
@@ -292,13 +301,13 @@ void ReportDesigner::setScaleBySelector()
     int percentScale = mpScaleSelector->currentData().toInt();
 
     // Fit the page
-    mpView->fitToPage();
+    mpSceneView->fitToPage();
     if (percentScale <= 0)
         return;
 
     // Apply the scale factor to the fitted view
     double scale = percentScale / 100.0;
-    mpView->scale(scale, scale);
+    mpSceneView->scale(scale, scale);
 }
 
 //! Set the editor for item data
@@ -324,7 +333,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     if (pItem)
     {
         if (pItem->type() == ReportItem::kGraph)
-            mpDataEditor = new GraphReportDataEditor;
+            mpDataEditor = new GraphReportDataEditor(mpGeometryView);
         if (mpDataEditor)
         {
             mpDataEditor->setItem(pItem);
@@ -382,14 +391,14 @@ QWidget* ReportDesigner::createSceneWidget()
 
     // Create the scene and the view
     mpScene = new QGraphicsScene;
-    mpView = new ReportSceneView;
+    mpSceneView = new ReportSceneView;
 
     // Initialize the view
-    mpView->setScene(mpScene);
-    mpView->setRenderHint(QPainter::Antialiasing);
-    mpView->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
-    mpView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-    mpView->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
+    mpSceneView->setScene(mpScene);
+    mpSceneView->setRenderHint(QPainter::Antialiasing);
+    mpSceneView->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+    mpSceneView->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+    mpSceneView->setResizeAnchor(QGraphicsView::AnchorUnderMouse);
 
     // Create the scale combobox
     mpScaleSelector = new QComboBox;
@@ -400,11 +409,30 @@ QWidget* ReportDesigner::createSceneWidget()
     mpScaleSelector->addItem(tr("Fit Page"), -1);
     mpScaleSelector->setCurrentIndex(mpScaleSelector->count() - 1);
 
+    // Create the helper function to create actions
+    auto createBoolAction = [this](QIcon const& icon, QString const& name, bool& option)
+    {
+        QAction* pAction = new QAction(icon, name, this);
+        pAction->setCheckable(true);
+        pAction->setChecked(option);
+        connect(pAction, &QAction::triggered, this,
+                [this, &option](bool flag)
+                {
+                    option = flag;
+                    refresh();
+                });
+        return pAction;
+    };
+
+    // Create the actions
+    QAction* pLockSceneAction = createBoolAction(QIcon(":/icons/lock.svg"), tr("Lock items"), mOptions.lockItems);
+
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addWidget(new QLabel(tr("Scale: ")));
     pToolBar->addWidget(mpScaleSelector);
     pToolBar->addSeparator();
+    pToolBar->addAction(pLockSceneAction);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
 
@@ -413,7 +441,7 @@ QWidget* ReportDesigner::createSceneWidget()
     QVBoxLayout* pLayout = new QVBoxLayout;
     pLayout->setContentsMargins(0, 0, 0, 0);
     pLayout->addWidget(pToolBar);
-    pLayout->addWidget(mpView);
+    pLayout->addWidget(mpSceneView);
     pGroupBox->setLayout(pLayout);
     return pGroupBox;
 }

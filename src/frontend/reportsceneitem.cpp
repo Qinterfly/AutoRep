@@ -25,6 +25,11 @@ ReportItem* ReportSceneItem::item()
     return mpItem;
 }
 
+bool ReportSceneItem::isMovable() const
+{
+    return flags().testFlag(QGraphicsItem::ItemIsMovable);
+}
+
 QRectF ReportSceneItem::boundingRect() const
 {
     qreal const m = 2;
@@ -37,50 +42,57 @@ void ReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* 
     if (isSelected())
     {
         drawBorder(pPainter);
-        drawHandles(pPainter);
+        if (isMovable())
+            drawHandles(pPainter);
     }
 }
 
 void ReportSceneItem::hoverMoveEvent(QGraphicsSceneHoverEvent* pEvent)
 {
-    mHandle = detectHandle(pEvent->pos());
-    switch (mHandle)
+    if (isMovable())
     {
-    case Handle::kTopLeft:
-    case Handle::kBottomRight:
-        setCursor(Qt::SizeFDiagCursor);
-        break;
-    case Handle::kTopRight:
-    case Handle::kBottomLeft:
-        setCursor(Qt::SizeBDiagCursor);
-        break;
-    case Handle::kTop:
-    case Handle::kBottom:
-        setCursor(Qt::SizeVerCursor);
-        break;
-    case Handle::kLeft:
-    case Handle::kRight:
-        setCursor(Qt::SizeHorCursor);
-        break;
-    default:
-        setCursor(Qt::OpenHandCursor);
-        break;
+        mHandle = detectHandle(pEvent->pos());
+        switch (mHandle)
+        {
+        case Handle::kTopLeft:
+        case Handle::kBottomRight:
+            setCursor(Qt::SizeFDiagCursor);
+            break;
+        case Handle::kTopRight:
+        case Handle::kBottomLeft:
+            setCursor(Qt::SizeBDiagCursor);
+            break;
+        case Handle::kTop:
+        case Handle::kBottom:
+            setCursor(Qt::SizeVerCursor);
+            break;
+        case Handle::kLeft:
+        case Handle::kRight:
+            setCursor(Qt::SizeHorCursor);
+            break;
+        default:
+            setCursor(Qt::OpenHandCursor);
+            break;
+        }
     }
     QGraphicsItem::hoverMoveEvent(pEvent);
 }
 
 void ReportSceneItem::mousePressEvent(QGraphicsSceneMouseEvent* pEvent)
 {
-    mHandle = detectHandle(pEvent->pos());
     mLastPos = pEvent->pos();
-    if (mHandle != Handle::kNone)
+    if (isMovable())
     {
-        mMode = Mode::kResize;
-    }
-    else if (flags().testFlag(QGraphicsItem::ItemIsMovable))
-    {
-        mMode = Mode::kMove;
-        setCursor(Qt::ClosedHandCursor);
+        mHandle = detectHandle(pEvent->pos());
+        if (mHandle != Handle::kNone)
+        {
+            mMode = Mode::kResize;
+        }
+        else
+        {
+            mMode = Mode::kMove;
+            setCursor(Qt::ClosedHandCursor);
+        }
     }
     QGraphicsItem::mousePressEvent(pEvent);
 }

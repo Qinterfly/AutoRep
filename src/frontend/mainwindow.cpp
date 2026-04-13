@@ -16,6 +16,7 @@
 #include "uiutility.h"
 
 using namespace Frontend;
+using namespace Backend::Core;
 
 QString MainWindow::language = "ru";
 CustomStatusBar* MainWindow::pStatusBar = nullptr;
@@ -66,7 +67,7 @@ void MainWindow::createContent()
 
     // Create the widgets
     mpSessionEditor = new SessionEditor(mSettings);
-    mpReportWorkspace = new ReportWorkspace(mSettings);
+    mpReportWorkspace = new ReportWorkspace(mSettings, mpSessionEditor->geometryView());
     QSplitter* pSplitter = new QSplitter(Qt::Horizontal);
     pSplitter->addWidget(mpSessionEditor);
     pSplitter->addWidget(mpReportWorkspace);

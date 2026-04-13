@@ -71,22 +71,35 @@ QString GraphReportPoint::name() const
 }
 
 GraphReportCurve::GraphReportCurve()
+    : lineStyle("line")
+    , lineWidth(1.0)
+    , lineColor(Qt::red)
+    , markerShape("dot")
+    , markerSize(2)
+    , markerColor(Qt::black)
 {
 }
 
 GraphReportCurve::GraphReportCurve(QList<GraphReportPoint> const& uPoints, QString const& uName)
-    : name(uName)
-    , points(uPoints)
+    : GraphReportCurve()
 {
+    name = uName;
+    points = uPoints;
 }
 
 GraphReportCurve::GraphReportCurve(QList<QString> const& uPoints, QString const& uName)
-    : name(uName)
+    : GraphReportCurve()
 {
+    name = uName;
     int numPoints = uPoints.size();
     points.resize(numPoints);
     for (int i = 0; i != numPoints; ++i)
         points[i] = GraphReportPoint(uPoints[i]);
+}
+
+bool GraphReportCurve::isEmpty() const
+{
+    return points.isEmpty();
 }
 
 GraphReportItem::GraphReportItem()
@@ -115,6 +128,11 @@ ReportItem* GraphReportItem::clone() const
     pResult->xLabel = xLabel;
     pResult->yLabel = yLabel;
     return pResult;
+}
+
+bool GraphReportItem::isMultiPointCurve() const
+{
+    return subType == GraphReportItem::kModeshape;
 }
 
 void GraphReportItem::addCurve(QStringList const& points, QString const& name)

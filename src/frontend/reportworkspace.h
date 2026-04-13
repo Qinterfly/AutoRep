@@ -7,18 +7,24 @@
 
 QT_FORWARD_DECLARE_CLASS(QSettings)
 
+namespace Backend::Core
+{
+class GraphReportCurve;
+}
+
 namespace Frontend
 {
 
 class CustomTabWidget;
 class ReportDesigner;
+class GeometryView;
 
 class ReportWorkspace : public QWidget
 {
     Q_OBJECT
 
 public:
-    ReportWorkspace(QSettings& settings, QWidget* pParent = nullptr);
+    ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, QWidget* pParent = nullptr);
     virtual ~ReportWorkspace() = default;
 
     QSize sizeHint() const;
@@ -33,8 +39,14 @@ private:
     void initialize();
     void refresh();
 
+    // Slots
+    void processSelectCurve(Backend::Core::GraphReportCurve curve);
+    void processAddCurve(int iPage);
+    void processEditCurve(int iPage);
+
 private:
     QSettings& mSettings;
+    GeometryView* mpGeometryView;
     Backend::Core::ReportDocument mDocument;
     CustomTabWidget* mpDesignerTabs;
 };

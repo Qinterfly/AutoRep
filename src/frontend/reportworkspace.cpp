@@ -13,9 +13,10 @@ using namespace Backend::Core;
 // Helper function
 ReportPage createImagRealPage();
 
-ReportWorkspace::ReportWorkspace(QSettings& settings, QWidget* pParent)
+ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
+    , mpGeometryView(pGeometryView)
 {
     setFont(Utility::getFont());
     createContent();
@@ -106,7 +107,7 @@ void ReportWorkspace::refresh()
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(page);
+        ReportDesigner* pDesigner = new ReportDesigner(page, mpGeometryView);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);

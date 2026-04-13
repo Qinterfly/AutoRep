@@ -73,10 +73,10 @@ target_link_libraries(frontend PRIVATE
     Qt::Widgets
     Qt::Svg
     Qt::PrintSupport
-    backend
     ${VTK_LIBRARIES}
     qtpropertybrowser
     qcustomplot
+    backend
 )
 
 target_include_directories(frontend PUBLIC ${CMAKE_BINARY_DIR})

@@ -86,7 +86,7 @@ void TestFrontend::setImRePage()
     pDesigner->refresh();
 
     // Select the first item
-    pDesigner->select(0);
+    pDesigner->selectItem(0);
 }
 
 //! Make up the report

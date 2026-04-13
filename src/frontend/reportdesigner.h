@@ -18,6 +18,17 @@ namespace Frontend
 class ReportSceneView;
 class ReportPropertyEditor;
 class ReportDataEditor;
+class GeometryView;
+
+//! Rendering options
+struct ReportDesignerOptions
+{
+    ReportDesignerOptions();
+    ~ReportDesignerOptions() = default;
+
+    // Flags
+    bool lockItems;
+};
 
 //! Class to design page content
 class ReportDesigner : public QWidget
@@ -25,14 +36,15 @@ class ReportDesigner : public QWidget
     Q_OBJECT
 
 public:
-    ReportDesigner(Backend::Core::ReportPage& page, QWidget* pParent = nullptr);
+    ReportDesigner(Backend::Core::ReportPage& page, GeometryView* pGeometryView, ReportDesignerOptions const& options = ReportDesignerOptions(),
+                   QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
     Backend::Core::ReportPage& page();
     void fit();
     void refresh();
     bool print(QPrinter& printer);
-    void select(int index);
+    void selectItem(int index);
 
 private:
     void createContent();
@@ -62,10 +74,12 @@ private:
 
 private:
     Backend::Core::ReportPage& mPage;
+    GeometryView* mpGeometryView;
+    ReportDesignerOptions mOptions;
 
     // Scene
     QGraphicsScene* mpScene;
-    ReportSceneView* mpView;
+    ReportSceneView* mpSceneView;
     QComboBox* mpScaleSelector;
 
     // Item

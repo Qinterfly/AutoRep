@@ -26,6 +26,7 @@ public:
     virtual ~ReportSceneItem() = default;
 
     Backend::Core::ReportItem* item();
+    bool isMovable() const;
 
     QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;

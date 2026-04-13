@@ -1,6 +1,7 @@
 #ifndef REPORTITEM_H
 #define REPORTITEM_H
 
+#include <QColor>
 #include <QFont>
 #include <QList>
 #include <QRect>
@@ -81,9 +82,17 @@ public:
     GraphReportCurve(QList<QString> const& uPoints, QString const& uName = QString());
     ~GraphReportCurve() = default;
 
+    bool isEmpty() const;
+
 public:
     QString name;
     QList<GraphReportPoint> points;
+    QString lineStyle;
+    double lineWidth;
+    QColor lineColor;
+    QString markerShape;
+    int markerSize;
+    QColor markerColor;
 };
 
 //! Class to define a layout of a graph element
@@ -108,6 +117,7 @@ public:
     Type type() const override;
     ReportItem* clone() const override;
 
+    bool isMultiPointCurve() const;
     void addCurve(QStringList const& points, QString const& name = QString());
     void addPoint(QString const& point, QString const& name = QString());
 

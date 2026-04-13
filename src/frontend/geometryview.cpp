@@ -114,14 +114,68 @@ void GeometryView::refresh()
     mRenderWindow->Render();
 }
 
-void GeometryView::setSelections(QList<GeometrySelection> const& selections)
+int GeometryView::numSelected()
 {
-    mStyle->select(selections);
+    return selections().size();
 }
 
+//! Retrieve the current selection
 QList<GeometrySelection> GeometryView::selections() const
 {
     return mStyle->selections();
+}
+
+//! Retrieve the current selection as the pairs of component and node names
+QList<QPair<QString, QString>> GeometryView::selectionPairs() const
+{
+    QList<GeometrySelection> selections = mStyle->selections();
+    int numSelections = selections.size();
+    QList<QPair<QString, QString>> result(numSelections);
+    for (int i = 0; i != numSelections; ++i)
+    {
+        GeometrySelection const& selection = selections[i];
+        int iComponent = selection.iComponent;
+        int iNode = selection.iNode;
+        Testlab::Component const& component = mGeometry.components[iComponent];
+        QString componentName = QString::fromStdWString(component.name);
+        QString nodeName = QString::fromStdWString(component.nodes[iNode].name);
+        result[i] = {componentName, nodeName};
+    }
+    return result;
+}
+
+Testlab::Geometry const& GeometryView::getGeometry() const
+{
+    return mGeometry;
+}
+
+void GeometryView::clearSelection()
+{
+    mStyle->deselectAll();
+}
+
+//! Add the node to the current selection set
+bool GeometryView::addSelection(QString const& componentName, QString const& nodeName)
+{
+    int numComponents = mGeometry.components.size();
+    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
+    {
+        Testlab::Component const& component = mGeometry.components[iComponent];
+        int numNodes = component.nodes.size();
+        QString cName = QString::fromStdWString(component.name);
+        for (int iNode = 0; iNode != numNodes; ++iNode)
+        {
+            Testlab::Node const& node = component.nodes[iNode];
+            QString nName = QString::fromStdWString(node.name);
+            if (cName == componentName && nName == nodeName)
+            {
+                GeometrySelection selection(iComponent, iNode);
+                mStyle->select({selection});
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 //! Replace the geometry
@@ -741,10 +795,6 @@ QList<GeometrySelection> GeometryInteractorStyle::selections() const
 //! Select the actors associated with the requested keys
 void GeometryInteractorStyle::select(QList<GeometrySelection> const& keys)
 {
-    // Drop the previous selection
-    deselectAll();
-
-    // Process all the keys
     int numKeys = keys.size();
     for (int i = 0; i != numKeys; ++i)
     {
