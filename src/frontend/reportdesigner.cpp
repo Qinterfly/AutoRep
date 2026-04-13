@@ -1,4 +1,5 @@
 #include <QComboBox>
+#include <QFileDialog>
 #include <QGroupBox>
 #include <QLabel>
 #include <QListWidget>
@@ -11,6 +12,7 @@
 
 #include "customlineedit.h"
 #include "customtabwidget.h"
+#include "fileutility.h"
 #include "reportdataeditor.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
@@ -30,10 +32,12 @@ ReportDesignerOptions::ReportDesignerOptions()
     lockItems = false;
 }
 
-ReportDesigner::ReportDesigner(ReportPage& page, GeometryView* pGeometryView, ReportDesignerOptions const& options, QWidget* pParent)
+ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ReportPage& page, ReportDesignerOptions const& options,
+                               QWidget* pParent)
     : QWidget(pParent)
-    , mPage(page)
+    , mSettings(settings)
     , mpGeometryView(pGeometryView)
+    , mPage(page)
     , mOptions(options)
 {
     setFont(Utility::getFont());
@@ -81,7 +85,37 @@ bool ReportDesigner::print(QPrinter& printer)
     mpScene->render(&painter);
     painter.end();
 
+    // Display the info
+    qInfo() << tr("Page %1 is successfully printed").arg(mPage.name);
+
     return true;
+}
+
+//! Print the page content using a file dialog
+bool ReportDesigner::printDialog()
+{
+    // Constants
+    QString const kExpectedSuffix = "pdf";
+
+    // Get the file path
+    QString pathFile = Utility::getLastPathFile(mSettings);
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+    pathFile = QFileDialog::getSaveFileName(this, tr("Print Page"), pathFile, tr("Page file format (*%1)").arg(kExpectedSuffix));
+    if (pathFile.isEmpty())
+        return false;
+
+    // Modify the suffix, if necessary
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+
+    // Configure the printer
+    QPrinter printer;
+    printer.setOutputFileName(pathFile);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+
+    return print(printer);
 }
 
 //! Select a report item by its index
@@ -433,6 +467,8 @@ QWidget* ReportDesigner::createSceneWidget()
     pToolBar->addWidget(mpScaleSelector);
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
+    pToolBar->addSeparator();
+    pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
 
@@ -464,7 +500,6 @@ QWidget* ReportDesigner::createListWidget()
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/arrow-up.svg"), tr("Move up"), this, [this]() { moveSelectedItems(-1); });
     pToolBar->addAction(QIcon(":/icons/arrow-down.svg"), tr("Move down"), this, [this]() { moveSelectedItems(+1); });
-
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
 

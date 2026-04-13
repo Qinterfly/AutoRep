@@ -1,10 +1,13 @@
+#include <QFileDialog>
 #include <QPrinter>
 #include <QSettings>
+#include <QToolBar>
 #include <QVBoxLayout>
 
 #include "customtabwidget.h"
 #include "reportdesigner.h"
 #include "reportworkspace.h"
+#include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Frontend;
@@ -53,6 +56,7 @@ ReportDesigner* ReportWorkspace::designer(QString const& name)
 bool ReportWorkspace::print(QString const& pathFile, int iPage)
 {
     QPrinter printer;
+    printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(pathFile);
     ReportDesigner* pDesigner = designer(iPage);
     if (!pDesigner)
@@ -64,6 +68,7 @@ bool ReportWorkspace::print(QString const& pathFile, int iPage)
 bool ReportWorkspace::print(QString const& pathFile)
 {
     QPrinter printer;
+    printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(pathFile);
     int numPages = mDocument.pages.size();
     for (int iPage = 0; iPage != numPages; ++iPage)
@@ -74,12 +79,43 @@ bool ReportWorkspace::print(QString const& pathFile)
         if (!pDesigner->print(printer))
             return false;
     }
+    qInfo() << tr("Document is printed to the file %1").arg(pathFile);
     return true;
+}
+
+//! Print all the pages to a pdf file using a file dialog
+bool ReportWorkspace::printDialog()
+{
+    // Constants
+    QString const kExpectedSuffix = "pdf";
+
+    // Get the file path
+    QString pathFile = Utility::getLastPathFile(mSettings);
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+    pathFile = QFileDialog::getSaveFileName(this, tr("Print Document"), pathFile, tr("Document file format (*%1)").arg(kExpectedSuffix));
+    if (pathFile.isEmpty())
+        return false;
+
+    // Modify the suffix, if necessary
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+
+    return print(pathFile);
 }
 
 //! Create all the widgets
 void ReportWorkspace::createContent()
 {
+    // Create the toolbar
+    QToolBar* pToolBar = new QToolBar;
+    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import template"));
+    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export template"));
+    pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
+    pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+    Utility::setShortcutHints(pToolBar);
+
     // Create the tab widget
     mpDesignerTabs = new CustomTabWidget;
     mpDesignerTabs->setTabsRenamable(false);
@@ -87,6 +123,7 @@ void ReportWorkspace::createContent()
 
     // Create the layout
     QVBoxLayout* pLayout = new QVBoxLayout;
+    pLayout->addWidget(pToolBar);
     pLayout->addWidget(mpDesignerTabs);
     setLayout(pLayout);
 }
@@ -107,7 +144,7 @@ void ReportWorkspace::refresh()
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(page, mpGeometryView);
+        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, page);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);
@@ -118,7 +155,7 @@ void ReportWorkspace::refresh()
 //! Helper function to create a default page with imaginary and real parts of a spectrum
 ReportPage createImagRealPage()
 {
-    ReportPage page(QPageSize::A4, QObject::tr("Im/Re"));
+    ReportPage page(QPageSize::A4, QObject::tr("Im-Re"));
 
     // Create an imaginary graph
     GraphReportItem* pImag = new GraphReportItem;

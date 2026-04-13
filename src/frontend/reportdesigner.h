@@ -11,6 +11,7 @@ QT_FORWARD_DECLARE_CLASS(QListWidget)
 QT_FORWARD_DECLARE_CLASS(QPrinter)
 QT_FORWARD_DECLARE_CLASS(QListWidgetItem)
 QT_FORWARD_DECLARE_CLASS(QComboBox)
+QT_FORWARD_DECLARE_CLASS(QSettings)
 
 namespace Frontend
 {
@@ -20,7 +21,7 @@ class ReportPropertyEditor;
 class ReportDataEditor;
 class GeometryView;
 
-//! Rendering options
+//! Designer options
 struct ReportDesignerOptions
 {
     ReportDesignerOptions();
@@ -36,14 +37,15 @@ class ReportDesigner : public QWidget
     Q_OBJECT
 
 public:
-    ReportDesigner(Backend::Core::ReportPage& page, GeometryView* pGeometryView, ReportDesignerOptions const& options = ReportDesignerOptions(),
-                   QWidget* pParent = nullptr);
+    ReportDesigner(QSettings& settings, GeometryView* pGeometryView, Backend::Core::ReportPage& page,
+                   ReportDesignerOptions const& options = ReportDesignerOptions(), QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
     Backend::Core::ReportPage& page();
     void fit();
     void refresh();
     bool print(QPrinter& printer);
+    bool printDialog();
     void selectItem(int index);
 
 private:
@@ -73,8 +75,9 @@ private:
     void setDataEditor(Backend::Core::ReportItem* pItem);
 
 private:
-    Backend::Core::ReportPage& mPage;
+    QSettings& mSettings;
     GeometryView* mpGeometryView;
+    Backend::Core::ReportPage& mPage;
     ReportDesignerOptions mOptions;
 
     // Scene

@@ -68,7 +68,8 @@ void TestFrontend::addResponseBundles()
 void TestFrontend::setImRePage()
 {
     QStringList points = {"W:1p22", "W:1p23"};
-    ReportDesigner* pDesigner = mpReportWorkspace->designer("Im/Re");
+    ReportDesigner* pDesigner = mpReportWorkspace->designer("Im-Re");
+    QVERIFY(pDesigner);
 
     // Get the plots
     ReportPage& page = pDesigner->page();

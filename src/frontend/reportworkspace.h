@@ -33,6 +33,7 @@ public:
 
     bool print(QString const& pathFile, int iPage);
     bool print(QString const& pathFile);
+    bool printDialog();
 
 private:
     void createContent();

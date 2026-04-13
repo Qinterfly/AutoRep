@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget* pParent, bool isRestore)
 
 MainWindow::~MainWindow()
 {
+    saveSettings();
 }
 
 SessionEditor* MainWindow::sessionEditor()

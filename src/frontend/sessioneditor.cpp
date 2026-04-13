@@ -9,6 +9,7 @@
 #include "customtabwidget.h"
 #include "geometryview.h"
 #include "sessioneditor.h"
+#include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Frontend;
@@ -63,15 +64,15 @@ bool SessionEditor::openProject(QString const& pathFile)
 //! Create all the widgets
 void SessionEditor::createContent()
 {
-    // Create the project layout
-    QHBoxLayout* pProjectLayout = new QHBoxLayout;
+    // Create the toolbar
     mpProjectPath = new Edit1s;
-    QPushButton* pOpenProjectButton = new QPushButton(QIcon(":/icons/document-open.svg"), QString());
-    connect(pOpenProjectButton, &QPushButton::clicked, this, &SessionEditor::openProjectDialog);
     mpProjectPath->setReadOnly(true);
-    pProjectLayout->addWidget(new QLabel(tr("Testlab project: ")));
-    pProjectLayout->addWidget(mpProjectPath);
-    pProjectLayout->addWidget(pOpenProjectButton);
+    QToolBar* pToolBar = new QToolBar;
+    pToolBar->addWidget(new QLabel(tr("Testlab project: ")));
+    pToolBar->addWidget(mpProjectPath);
+    pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open project"), this, &SessionEditor::openProjectDialog);
+    pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+    Utility::setShortcutHints(pToolBar);
 
     // Create the tab widget
     mpGeometryView = new GeometryView;
@@ -84,7 +85,7 @@ void SessionEditor::createContent()
 
     // Create the main layout
     QVBoxLayout* pMainLayout = new QVBoxLayout;
-    pMainLayout->addLayout(pProjectLayout);
+    pMainLayout->addWidget(pToolBar);
     pMainLayout->addWidget(pTabWidget);
     setLayout(pMainLayout);
 }
