@@ -69,11 +69,11 @@ void GraphReportDataEditor::refresh()
 
     // Set the coordinate direction
     QSignalBlocker blockerCoordDir(mpCoordDirSelector);
-    Utility::setIndexByKey(mpCoordDirSelector, pItem->coordDir);
+    Utility::setIndexByKey(mpCoordDirSelector, (int) pItem->coordDir);
 
     // Set the response direction
     QSignalBlocker blockerResponseDir(mpResponseDirSelector);
-    Utility::setIndexByKey(mpResponseDirSelector, pItem->responseDir);
+    Utility::setIndexByKey(mpResponseDirSelector, (int) pItem->responseDir);
 
     // Set the curve list
     QSignalBlocker blockerCurveList(mpCurveList);
@@ -425,9 +425,9 @@ QComboBox* createDirComboBox()
 {
     QComboBox* pResult = new QComboBox;
     pResult->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    pResult->addItem(QString(), ReportDirection::kNone);
-    pResult->addItem("X", ReportDirection::kX);
-    pResult->addItem("Y", ReportDirection::kY);
-    pResult->addItem("Z", ReportDirection::kZ);
+    pResult->addItem(QString(), (int) ReportDirection::kNone);
+    pResult->addItem("X", (int) ReportDirection::kX);
+    pResult->addItem("Y", (int) ReportDirection::kY);
+    pResult->addItem("Z", (int) ReportDirection::kZ);
     return pResult;
 }

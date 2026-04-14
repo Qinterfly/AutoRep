@@ -71,12 +71,13 @@ QString GraphReportPoint::name() const
 }
 
 GraphReportCurve::GraphReportCurve()
-    : lineStyle("line")
-    , lineWidth(1.0)
+    : penStyle(Qt::SolidLine)
+    , lineStyle(ReportLineStyle::kLine)
+    , lineWidth(1.25)
     , lineColor(Qt::red)
-    , markerShape("dot")
-    , markerSize(2)
-    , markerColor(Qt::black)
+    , markerShape(ReportMarkerShape::kDisc)
+    , markerSize(6)
+    , markerColor(lineColor)
 {
 }
 
@@ -104,6 +105,8 @@ bool GraphReportCurve::isEmpty() const
 
 GraphReportItem::GraphReportItem()
     : subType(kNone)
+    , scaleRange(1.1)
+    , numTicks(5)
 {
 }
 
@@ -120,13 +123,17 @@ ReportItem::Type GraphReportItem::type() const
 ReportItem* GraphReportItem::clone() const
 {
     GraphReportItem* pResult = new GraphReportItem(this);
+    pResult->curves = curves;
+    // Header
     pResult->subType = subType;
     pResult->coordDir = coordDir;
     pResult->responseDir = responseDir;
     pResult->unit = unit;
-    pResult->curves = curves;
+    // Axes
     pResult->xLabel = xLabel;
     pResult->yLabel = yLabel;
+    pResult->scaleRange = scaleRange;
+    pResult->numTicks = numTicks;
     return pResult;
 }
 

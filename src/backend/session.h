@@ -18,15 +18,20 @@ using Responses = std::vector<Testlab::Response>;
 
 struct ResponseBundle
 {
+    ResponseBundle();
+    ~ResponseBundle() = default;
+
     QString name;
     Responses responses;
+    double frequency;
+    double force;
 };
 
 class ResponseCollection
 {
 public:
     ResponseCollection();
-    ~ResponseCollection();
+    ~ResponseCollection() = default;
 
     int count() const;
     ResponseBundle const& get(int index) const;

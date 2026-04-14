@@ -7,7 +7,7 @@ CustomVariantPropertyManager::CustomVariantPropertyManager(QWidget* pParent)
 
 QtVariantProperty* CustomVariantPropertyManager::addProperty(int id, int type, const QString& name)
 {
-    if (contains(type))
+    if (contains(id))
         return nullptr;
     QtVariantProperty* pProperty = QtVariantPropertyManager::addProperty(type, name);
     registerProperty(pProperty, id);

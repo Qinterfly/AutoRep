@@ -28,7 +28,9 @@ public:
         kFont,
         kText,
         kXLabel,
-        kYLabel
+        kYLabel,
+        kScaleRange,
+        kNumTicks
     };
 
     ReportPropertyEditor(QWidget* pParent = nullptr);

@@ -10,12 +10,42 @@ namespace Backend::Core
 {
 
 // Common types
-enum ReportDirection
+enum class ReportDirection
 {
     kNone,
     kX,
     kY,
     kZ
+};
+
+enum class ReportLineStyle
+{
+    kNone,
+    kLine,
+    kStepLeft,
+    kStepRight,
+    kStepCenter,
+    kImpulse
+};
+
+enum class ReportMarkerShape
+{
+    kNone,
+    kDot,
+    kCross,
+    kPlus,
+    kCircle,
+    kDisc,
+    kSquare,
+    kDiamond,
+    kStar,
+    kTriangle,
+    kTriangleInverted,
+    kCrossSquare,
+    kPlusSquare,
+    kCrossCircle,
+    kPlusCircle,
+    kPeace
 };
 
 //! Base class for items
@@ -87,10 +117,14 @@ public:
 public:
     QString name;
     QList<GraphReportPoint> points;
-    QString lineStyle;
+    // Pen
+    Qt::PenStyle penStyle;
+    // Line
+    ReportLineStyle lineStyle;
     double lineWidth;
     QColor lineColor;
-    QString markerShape;
+    // Marker
+    ReportMarkerShape markerShape;
     int markerSize;
     QColor markerColor;
 };
@@ -122,13 +156,17 @@ public:
     GraphReportCurve& addPoint(QString const& point, QString const& name = QString());
 
 public:
+    QList<GraphReportCurve> curves;
+    // Header
     SubType subType;
     ReportDirection coordDir;
     ReportDirection responseDir;
     QString unit;
-    QList<GraphReportCurve> curves;
+    // Axes
     QString xLabel;
     QString yLabel;
+    double scaleRange;
+    int numTicks;
 };
 }
 

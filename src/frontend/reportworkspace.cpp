@@ -111,6 +111,7 @@ void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
+    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("Default template"), this, &ReportWorkspace::setDefaultDocument);
     pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import template"));
     pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export template"));
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
@@ -158,7 +159,16 @@ void ReportWorkspace::rebuild()
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);
         mpDesignerTabs->addTab(pDesigner, name);
+        pDesigner->fit();
     }
+}
+
+//! Set the default document
+void ReportWorkspace::setDefaultDocument()
+{
+    mDocument = ReportDocument();
+    initialize();
+    rebuild();
 }
 
 //! Helper function to create a default page with imaginary and real parts of a spectrum

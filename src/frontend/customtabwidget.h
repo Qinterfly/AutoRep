@@ -14,6 +14,7 @@ public:
     CustomTabWidget(QWidget* pParent = nullptr);
     virtual ~CustomTabWidget() = default;
 
+    bool tabsRenameable() const;
     void setTabsRenamable(bool flag);
 
     void removePage(int index);

@@ -15,9 +15,14 @@ CustomTabWidget::CustomTabWidget(QWidget* pParent)
     setFont(Utility::getFont());
     setContentsMargins(0, 0, 0, 0);
     setTabsClosable(true);
+    setTabsRenamable(true);
     tabBar()->installEventFilter(this);
-    mRenameEnabled = true;
     connect(tabBar(), &QTabBar::tabCloseRequested, this, &CustomTabWidget::removePage);
+}
+
+bool CustomTabWidget::tabsRenameable() const
+{
+    return mRenameEnabled;
 }
 
 //! Enable tab renaming
@@ -84,10 +89,13 @@ bool CustomTabWidget::eventFilter(QObject* pObject, QEvent* pEvent)
                     connect(pCloseAllAction, &QAction::triggered, this, &CustomTabWidget::removeAllPages);
 
                     // Add the actions
-                    pMenu->addAction(pCloseAction);
-                    pMenu->addAction(pRenameAction);
+                    if (tabsClosable())
+                        pMenu->addAction(pCloseAction);
+                    if (tabsRenameable())
+                        pMenu->addAction(pRenameAction);
                     pMenu->addSeparator();
-                    pMenu->addAction(pCloseAllAction);
+                    if (tabsClosable())
+                        pMenu->addAction(pCloseAllAction);
 
                     // Display the menu
                     pMenu->exec(QCursor::pos());
@@ -101,7 +109,7 @@ bool CustomTabWidget::eventFilter(QObject* pObject, QEvent* pEvent)
 //! Create a dialog to edit tab text
 void CustomTabWidget::renameTabDialog(int iTab)
 {
-    if (!mRenameEnabled)
+    if (!tabsRenameable())
         return;
     QString text = QInputDialog::getText(this, tr("Rename Tab"), tr("Tab name"), QLineEdit::Normal, tabText(iTab));
     if (!text.isEmpty())

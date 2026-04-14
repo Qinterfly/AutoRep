@@ -7,11 +7,13 @@
 
 using namespace Backend::Core;
 
-ResponseCollection::ResponseCollection()
+ResponseBundle::ResponseBundle()
+    : frequency(0.0)
+    , force(0.0)
 {
 }
 
-ResponseCollection::~ResponseCollection()
+ResponseCollection::ResponseCollection()
 {
 }
 

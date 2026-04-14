@@ -42,6 +42,9 @@ private:
     void initialize();
     void rebuild();
 
+    // Slots
+    void setDefaultDocument();
+
 private:
     QSettings& mSettings;
     GeometryView* mpGeometryView;

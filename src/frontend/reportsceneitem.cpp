@@ -1,4 +1,6 @@
 #include <testlab/common.h>
+#include <QSvgGenerator>
+#include <QSvgRenderer>
 
 #include "customplot.h"
 #include "reportdocument.h"
@@ -284,8 +286,8 @@ void GraphReportSceneItem::setState()
         ResponseBundle const& bundle = mCollection.get(iBundle);
 
         // Show only the last bundle if multi mode is not enabled
-        if (pItem->subType != GraphReportItem::kMultiReal && pItem->subType != GraphReportItem::kMultiImag)
-            mpPlot->clearPlottables();
+        if (iBundle < numBundles - 1 && pItem->subType != GraphReportItem::kMultiReal && pItem->subType != GraphReportItem::kMultiImag)
+            continue;
 
         // Loop through all the curves
         for (int iCurve = 0; iCurve != numCurves; ++iCurve)
@@ -318,15 +320,16 @@ void GraphReportSceneItem::setState()
                     continue;
 
                 // Add the plottable
-                QCPCurve* pPlottable = new QCPCurve(mpPlot->xAxis, mpPlot->yAxis);
-                pPlottable->setData(xData, yData);
-                pPlottable->setPen(QPen(curve.lineColor));
-                pPlottable->setName(point.node);
+                addPlottable(xData, yData, curve, point.node);
             }
         }
     }
 
-    // Set the axes
+    // Set the legend visibility
+    bool isPlottables = mpPlot->plottableCount() > 0;
+    mpPlot->legend->setVisible(isPlottables);
+
+    // Set the axes labels
     mpPlot->xAxis->setTickLabelFont(pItem->font);
     mpPlot->yAxis->setTickLabelFont(pItem->font);
     mpPlot->xAxis->setLabelFont(pItem->font);
@@ -334,12 +337,47 @@ void GraphReportSceneItem::setState()
     mpPlot->xAxis->setLabel(pItem->xLabel);
     mpPlot->yAxis->setLabel(pItem->yLabel);
 
-    // Set the legend visibility
-    mpPlot->legend->setVisible(mpPlot->plottableCount() > 0);
+    // Set the axes range
+    mpPlot->rescaleAxes();
+    if (isPlottables)
+    {
+        mpPlot->xAxis->scaleRange(pItem->scaleRange);
+        mpPlot->yAxis->scaleRange(pItem->scaleRange);
+    }
+
+    // Set the axes ticks
+    if (pItem->numTicks > 0)
+    {
+        mpPlot->xAxis->ticker()->setTickCount(pItem->numTicks);
+        mpPlot->yAxis->ticker()->setTickCount(pItem->numTicks);
+        mpPlot->xAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
+        mpPlot->yAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
+    }
+    else
+    {
+        mpPlot->xAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
+        mpPlot->yAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
+    }
 
     // Render the plot
-    mpPlot->rescaleAxes();
     mpPlot->replot();
+}
+
+//! Add the plottable to the plot
+void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double> const& yData, GraphReportCurve const& curve,
+                                        QString const& name)
+{
+    // Define the style
+    QPen pen(curve.lineColor, curve.lineWidth, curve.penStyle);
+    QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
+    QString label = name.isEmpty() ? curve.name : name;
+
+    // Create the plottable
+    QCPCurve* pPlottable = new QCPCurve(mpPlot->xAxis, mpPlot->yAxis);
+    pPlottable->setData(xData, yData);
+    pPlottable->setPen(pen);
+    pPlottable->setName(label);
+    pPlottable->setScatterStyle(style);
 }
 
 //! Process paint event
@@ -353,9 +391,12 @@ void GraphReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem co
 //! Draw the plot to the vector picture
 void GraphReportSceneItem::drawPlot(QPainter* pPainter)
 {
+    // Constants
+    qreal const kInchToMM = 25.4;
+
     // Get the dimensions
     double dpi = pPainter->device()->logicalDpiX();
-    auto mmToPx = [dpi](double mm) { return mm * dpi / 25.4; };
+    auto mmToPx = [dpi, kInchToMM](double mm) { return mm * dpi / kInchToMM; };
     QSize pxSize(mmToPx(mpItem->rect.width()), mmToPx(mpItem->rect.height()));
 
     // Create the picture
@@ -379,6 +420,56 @@ void GraphReportSceneItem::drawPlot(QPainter* pPainter)
     pPainter->scale(scaleFactor, scaleFactor);
     pPainter->drawPicture(pos, pic);
     pPainter->restore();
+}
+
+//! Draw the plot as the svg image
+void GraphReportSceneItem::drawAsImage(QPainter* pPainter, QSize const& size)
+{
+    // Create the buffer
+    QByteArray byteArray;
+    QBuffer buffer(&byteArray);
+    buffer.open(QIODevice::WriteOnly);
+
+    // Render to the buffer
+    renderToBuffer(buffer, size);
+    QSvgRenderer renderer(byteArray);
+
+    // Copy the result to the painter
+    pPainter->save();
+    renderer.render(pPainter, mpItem->rect);
+    pPainter->restore();
+}
+
+//! Render the plot to a svg file
+void GraphReportSceneItem::renderToSvg(QString const& pathFile, QSize const& size)
+{
+    // Set up the generator
+    QSvgGenerator generator;
+    generator.setFileName(pathFile);
+    generator.setSize(QSize(size.width(), size.height()));
+    generator.setViewBox(QRect(0, 0, size.width(), size.height()));
+
+    // Draw the content
+    QCPPainter painter;
+    painter.begin(&generator);
+    mpPlot->toPainter(&painter, size.width(), size.height());
+    painter.end();
+}
+
+//! Render the  plot to a buffer
+void GraphReportSceneItem::renderToBuffer(QBuffer& buffer, QSize const& size)
+{
+    // Set up the generator
+    QSvgGenerator generator;
+    generator.setOutputDevice(&buffer);
+    generator.setSize(QSize(size.width(), size.height()));
+    generator.setViewBox(QRect(0, 0, size.width(), size.height()));
+
+    // Draw the content
+    QCPPainter painter;
+    painter.begin(&generator);
+    mpPlot->toPainter(&painter, size.width(), size.height());
+    painter.end();
 }
 
 //! Helper function to compute rotated rectangle

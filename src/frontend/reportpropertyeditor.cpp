@@ -119,6 +119,14 @@ void ReportPropertyEditor::addGraphProperties()
     QtVariantProperty* pYLabelProperty = mpManager->addProperty(kYLabel, QMetaType::QString, tr("Y label"));
     pYLabelProperty->setValue(pItem->yLabel);
     mpEditor->addProperty(pYLabelProperty);
+
+    QtVariantProperty* pScaleRangeProperty = mpManager->addProperty(kScaleRange, QMetaType::Double, tr("Scale range"));
+    pScaleRangeProperty->setValue(pItem->scaleRange);
+    mpEditor->addProperty(pScaleRangeProperty);
+
+    QtVariantProperty* pNumTicksProperty = mpManager->addProperty(kNumTicks, QMetaType::Int, tr("Ticks number"));
+    pNumTicksProperty->setValue(pItem->numTicks);
+    mpEditor->addProperty(pNumTicksProperty);
 }
 
 //! Change the item property value
@@ -146,6 +154,12 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kYLabel:
         static_cast<GraphReportItem*>(mpItem)->yLabel = value.toString();
+        break;
+    case kScaleRange:
+        static_cast<GraphReportItem*>(mpItem)->scaleRange = value.toDouble();
+        break;
+    case kNumTicks:
+        static_cast<GraphReportItem*>(mpItem)->numTicks = value.toInt();
         break;
     default:
         return;

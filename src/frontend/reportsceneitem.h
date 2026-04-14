@@ -3,12 +3,15 @@
 
 #include <QGraphicsItem>
 
+QT_FORWARD_DECLARE_CLASS(QBuffer)
+
 namespace Backend::Core
 {
 class ReportItem;
 class TextReportItem;
 class GraphReportItem;
 class ResponseCollection;
+class GraphReportCurve;
 }
 
 namespace Frontend
@@ -99,11 +102,16 @@ public:
     virtual ~GraphReportSceneItem();
 
 protected:
-    void setState();
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
 
 private:
+    void setState();
+    void addPlottable(QList<double> const& xData, QList<double> const& yData, Backend::Core::GraphReportCurve const& curve,
+                      QString const& name = QString());
     void drawPlot(QPainter* pPainter);
+    void drawAsImage(QPainter* pPainter, QSize const& size);
+    void renderToSvg(QString const& pathFile, QSize const& size);
+    void renderToBuffer(QBuffer& buffer, QSize const& size);
 
 private:
     Backend::Core::ResponseCollection const& mCollection;
