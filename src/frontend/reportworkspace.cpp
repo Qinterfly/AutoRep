@@ -16,11 +16,11 @@ using namespace Backend::Core;
 // Helper function
 ReportPage createImagRealPage();
 
-ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseCollection const& collection, QWidget* pParent)
+ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
-    , mCollection(collection)
+    , mpResponseEditor(pResponseEditor)
 {
     setFont(Utility::getFont());
     createContent();
@@ -154,7 +154,7 @@ void ReportWorkspace::rebuild()
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mCollection, page);
+        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mpResponseEditor, page);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);
@@ -185,6 +185,7 @@ ReportPage createImagRealPage()
     pImag->unit = "m/s^2";
     pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
+    pImag->showBundleFreq = true;
 
     // Create a real graph
     GraphReportItem* pReal = new GraphReportItem;
@@ -195,6 +196,7 @@ ReportPage createImagRealPage()
     pReal->unit = "m/s^2";
     pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
+    pReal->showBundleFreq = true;
 
     // Create title
     TextReportItem* pTitle = new TextReportItem;

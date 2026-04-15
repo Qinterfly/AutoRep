@@ -33,12 +33,12 @@ ReportDesignerOptions::ReportDesignerOptions()
     lockItems = false;
 }
 
-ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, Backend::Core::ResponseCollection const& collection,
-                               ReportPage& page, ReportDesignerOptions const& options, QWidget* pParent)
+ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, ReportPage& page,
+                               ReportDesignerOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
-    , mCollection(collection)
+    , mpResponseEditor(pResponseEditor)
     , mPage(page)
     , mOptions(options)
 {
@@ -80,12 +80,20 @@ bool ReportDesigner::print(QPrinter& printer)
     // Set the view
     mpSceneView->fitToPage();
 
-    // Print to the file
+    // Start the painter
     QPainter painter;
     if (!painter.begin(&printer))
         return false;
+
+    // Render the scene to the painter
+    mIsPrinting = true;
+    drawAll();
     mpScene->render(&painter);
     painter.end();
+
+    // Restore the scene state
+    mIsPrinting = false;
+    drawAll();
 
     // Display the info
     qInfo() << tr("Page %1 is successfully printed").arg(mPage.name);
@@ -141,7 +149,8 @@ void ReportDesigner::drawAll()
 
     // Draw all the objects
     drawItems();
-    drawBorder();
+    if (!mIsPrinting)
+        drawBorder();
 }
 
 //! Draw the report items
@@ -151,6 +160,8 @@ void ReportDesigner::drawItems()
     for (int i = 0; i != numItems; ++i)
     {
         ReportItem* pReportItem = mPage.get(i);
+
+        // Create the item
         ReportSceneItem* pSceneItem = nullptr;
         switch (pReportItem->type())
         {
@@ -158,17 +169,31 @@ void ReportDesigner::drawItems()
             pSceneItem = new TextReportSceneItem((TextReportItem*) pReportItem);
             break;
         case ReportItem::kGraph:
-            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mCollection);
+            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mpResponseEditor->collection(),
+                                                  mpResponseEditor->iSelectedBundle());
             break;
         default:
             break;
         }
         if (!pSceneItem)
             continue;
-        pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, !mOptions.lockItems);
-        connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
-        if (mSelectedItems.contains(pSceneItem->item()))
-            pSceneItem->setSelected(true);
+
+        // Set the item flags and connections
+        if (mIsPrinting)
+        {
+            pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, false);
+            pSceneItem->setFlag(QGraphicsItem::ItemIsSelectable, false);
+        }
+        else
+        {
+            pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, !mOptions.lockItems);
+            pSceneItem->setFlag(QGraphicsItem::ItemIsSelectable, true);
+            connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
+            if (mSelectedItems.contains(pSceneItem->item()))
+                pSceneItem->setSelected(true);
+        }
+
+        // Add the item to the scene
         mpScene->addItem(pSceneItem);
     }
 }
@@ -428,6 +453,9 @@ QWidget* ReportDesigner::createSceneWidget()
 {
     // Constants
     QList<int> const kScales = {10, 25, 50, 75, 100, 125, 150, 200, 400, 800, 1600};
+
+    // Initialize the printing state
+    mIsPrinting = false;
 
     // Create the scene and the view
     mpScene = new QGraphicsScene;

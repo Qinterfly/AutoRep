@@ -127,6 +127,14 @@ void ReportPropertyEditor::addGraphProperties()
     QtVariantProperty* pNumTicksProperty = mpManager->addProperty(kNumTicks, QMetaType::Int, tr("Ticks number"));
     pNumTicksProperty->setValue(pItem->numTicks);
     mpEditor->addProperty(pNumTicksProperty);
+
+    QtVariantProperty* pGridWidthProperty = mpManager->addProperty(kGridWidth, QMetaType::Double, tr("Grid width"));
+    pGridWidthProperty->setValue(pItem->gridWidth);
+    mpEditor->addProperty(pGridWidthProperty);
+
+    QtVariantProperty* pShowBundleFreqProperty = mpManager->addProperty(kShowBundleFreq, QMetaType::Bool, tr("Bundle freq."));
+    pShowBundleFreqProperty->setValue(pItem->showBundleFreq);
+    mpEditor->addProperty(pShowBundleFreqProperty);
 }
 
 //! Change the item property value
@@ -160,6 +168,12 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kNumTicks:
         static_cast<GraphReportItem*>(mpItem)->numTicks = value.toInt();
+        break;
+    case kGridWidth:
+        static_cast<GraphReportItem*>(mpItem)->gridWidth = value.toDouble();
+        break;
+    case kShowBundleFreq:
+        static_cast<GraphReportItem*>(mpItem)->showBundleFreq = value.toBool();
         break;
     default:
         return;

@@ -30,7 +30,9 @@ public:
         kXLabel,
         kYLabel,
         kScaleRange,
-        kNumTicks
+        kNumTicks,
+        kGridWidth,
+        kShowBundleFreq
     };
 
     ReportPropertyEditor(QWidget* pParent = nullptr);

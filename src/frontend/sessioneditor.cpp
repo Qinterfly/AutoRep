@@ -116,11 +116,32 @@ ResponseCollection const& ResponseEditor::collection() const
     return mCollection;
 }
 
+int ResponseEditor::iSelectedBundle() const
+{
+    return mpBundleList->currentRow();
+}
+
 //! Add the response bundle
-bool ResponseEditor::addBundle(Backend::Core::Responses const& responses)
+bool ResponseEditor::addBundle(Responses const& responses)
 {
     if (responses.empty())
         return false;
+
+    // Helper function to parse name
+    auto parseValue = [](QString const& text, QString const& postfix)
+    {
+        QString escapedPostfix = QRegularExpression::escape(postfix);
+        QString pattern = QString("(-?\\d+[\\.,]?\\d*)\\s*%1").arg(escapedPostfix);
+        QRegularExpression re(pattern);
+        QRegularExpressionMatch match = re.match(text);
+        if (match.hasMatch())
+        {
+            QString valueStr = match.captured(1);
+            valueStr.replace(",", ".");
+            return valueStr.toDouble();
+        }
+        return 0.0;
+    };
 
     // Construct the default name
     QString path = QString::fromStdWString(responses.front().header.path);
@@ -132,9 +153,16 @@ bool ResponseEditor::addBundle(Backend::Core::Responses const& responses)
         if (numTokens > 2)
             name = tokens[numTokens - 3];
     }
+    if (name.isEmpty())
+        name = QObject::tr("Bundle %1").arg(mCollection.count() + 1);
+
+    // Construct the bundle
+    ResponseBundle bundle(name, responses);
+    bundle.freq = parseValue(name, "Гц");
+    bundle.force = parseValue(name, "Н");
 
     // Add to the collection
-    mCollection.add(responses, name);
+    mCollection.add(bundle);
     refresh();
     emit edited();
     qInfo() << tr("New response bundle is successfuly created. The number of responses is %1").arg(responses.size());
@@ -264,7 +292,7 @@ QLayout* ResponseEditor::createBundleLayout()
     mpBundleList = new QListWidget;
     mpBundleList->setFont(font());
     mpBundleList->setSelectionMode(QAbstractItemView::SingleSelection);
-    connect(mpBundleList, &QListWidget::currentRowChanged, this, &ResponseEditor::refresh);
+    connect(mpBundleList, &QListWidget::currentRowChanged, this, &ResponseEditor::processBundleSelected);
 
     // Create the frequency edit
     mpBundleFreqEdit = new Edit1d;
@@ -313,6 +341,13 @@ QLayout* ResponseEditor::createResponseLayout()
     pLayout->addWidget(mpResponseCountLabel);
     pLayout->addWidget(mpResponseList);
     return pLayout;
+}
+
+//! Process bundle selection
+void ResponseEditor::processBundleSelected()
+{
+    refresh();
+    emit selected();
 }
 
 //! Set the current bundle properties

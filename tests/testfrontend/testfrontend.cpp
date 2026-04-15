@@ -67,15 +67,20 @@ void TestFrontend::addResponseBundles()
 //! Set the imaginary/real page of the report
 void TestFrontend::setImRePage()
 {
-    QStringList points = {"W:1p22", "W:1p23"};
+    // Plottable settings
+    QStringList points = {"En:3p2", "En:3p7"};
     QList<QColor> colors = {Qt::red, Qt::blue};
+    QList<ReportMarkerShape> markerShapes = {ReportMarkerShape::kPlus, ReportMarkerShape::kDisc};
+
+    // Get the designer
     ReportDesigner* pDesigner = mpReportWorkspace->designer("Im-Re");
     QVERIFY(pDesigner);
 
-    // Get the plots
+    // Get the items
     ReportPage& page = pDesigner->page();
     GraphReportItem* pImag = (GraphReportItem*) page.get(0);
     GraphReportItem* pReal = (GraphReportItem*) page.get(1);
+    TextReportItem* pTitle = (TextReportItem*) page.get(2);
 
     // Add the curves
     int numPoints = points.size();
@@ -83,8 +88,12 @@ void TestFrontend::setImRePage()
     {
         GraphReportCurve& curve = pImag->addPoint(points[i]);
         curve.lineColor = colors[i];
+        curve.markerShape = markerShapes[i];
     }
     pReal->curves = pImag->curves;
+
+    // Set the title
+    pTitle->text = "Симметричные вертикальные колебания двигателей\nf = 3,37 Гц\nВозбуждение с двигателей";
 
     // Refresh the page
     pDesigner->refresh();

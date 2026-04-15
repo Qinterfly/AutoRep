@@ -167,6 +167,9 @@ public:
     QString yLabel;
     double scaleRange;
     int numTicks;
+    double gridWidth;
+    // Flags
+    bool showBundleFreq;
 };
 }
 

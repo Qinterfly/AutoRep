@@ -22,6 +22,7 @@ public:
     int count() const;
     ReportItem* get(int index);
     ReportItem const* get(int index) const;
+    ReportItem* get(QString const& name);
     void add(ReportItem* pItem);
     bool remove(ReportItem* pItem);
     void swap(int iFirst, int iSecond);

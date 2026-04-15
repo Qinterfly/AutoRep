@@ -11,6 +11,7 @@ class ReportItem;
 class TextReportItem;
 class GraphReportItem;
 class ResponseCollection;
+class ResponseBundle;
 class GraphReportCurve;
 }
 
@@ -97,7 +98,7 @@ private:
 class GraphReportSceneItem : public ReportSceneItem
 {
 public:
-    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ResponseCollection const& collection,
+    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ResponseCollection const& collection, int iSelectedBundle,
                          QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
@@ -106,8 +107,14 @@ protected:
 
 private:
     void setState();
+    void processReIm(Backend::Core::ResponseBundle const& bundle);
+    void processMultiReIm();
+    void processModeshape(Backend::Core::ResponseBundle const& bundle);
+
     void addPlottable(QList<double> const& xData, QList<double> const& yData, Backend::Core::GraphReportCurve const& curve,
                       QString const& name = QString());
+
+    // Rendering
     void drawPlot(QPainter* pPainter);
     void drawAsImage(QPainter* pPainter, QSize const& size);
     void renderToSvg(QString const& pathFile, QSize const& size);
@@ -115,6 +122,7 @@ private:
 
 private:
     Backend::Core::ResponseCollection const& mCollection;
+    int const mISelectedBundle;
     CustomPlot* mpPlot;
 };
 

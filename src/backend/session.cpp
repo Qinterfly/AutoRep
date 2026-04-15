@@ -13,8 +13,20 @@ ResponseBundle::ResponseBundle()
 {
 }
 
+ResponseBundle::ResponseBundle(QString const& uName, Responses const& uResponses)
+    : ResponseBundle()
+{
+    name = uName;
+    responses = uResponses;
+}
+
 ResponseCollection::ResponseCollection()
 {
+}
+
+bool ResponseCollection::isEmpty() const
+{
+    return mBundles.isEmpty();
 }
 
 int ResponseCollection::count() const
@@ -32,13 +44,13 @@ ResponseBundle const& ResponseCollection::get(int index) const
     return mBundles[index];
 }
 
-void ResponseCollection::add(Responses const& responses, QString name)
+ResponseBundle& ResponseCollection::add(Responses const& responses, QString const& name)
 {
-    if (name.isEmpty())
-        name = QObject::tr("Bundle %1").arg(mBundles.size() + 1);
-    ResponseBundle bundle;
-    bundle.name = name;
-    bundle.responses = responses;
+    return mBundles.emplace_back(name, responses);
+}
+
+void ResponseCollection::add(ResponseBundle const& bundle)
+{
     mBundles.push_back(bundle);
 }
 

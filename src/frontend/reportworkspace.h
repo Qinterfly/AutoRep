@@ -7,25 +7,20 @@
 
 QT_FORWARD_DECLARE_CLASS(QSettings)
 
-namespace Backend::Core
-{
-class ResponseCollection;
-}
-
 namespace Frontend
 {
 
 class CustomTabWidget;
 class ReportDesigner;
 class GeometryView;
+class ResponseEditor;
 
 class ReportWorkspace : public QWidget
 {
     Q_OBJECT
 
 public:
-    ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, Backend::Core::ResponseCollection const& collection,
-                    QWidget* pParent = nullptr);
+    ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent = nullptr);
     virtual ~ReportWorkspace() = default;
 
     QSize sizeHint() const;
@@ -48,7 +43,7 @@ private:
 private:
     QSettings& mSettings;
     GeometryView* mpGeometryView;
-    Backend::Core::ResponseCollection const& mCollection;
+    ResponseEditor* mpResponseEditor;
     Backend::Core::ReportDocument mDocument;
     CustomTabWidget* mpDesignerTabs;
 };

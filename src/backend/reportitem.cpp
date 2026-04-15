@@ -107,6 +107,8 @@ GraphReportItem::GraphReportItem()
     : subType(kNone)
     , scaleRange(1.1)
     , numTicks(5)
+    , showBundleFreq(false)
+    , gridWidth(1.0)
 {
 }
 
@@ -134,6 +136,9 @@ ReportItem* GraphReportItem::clone() const
     pResult->yLabel = yLabel;
     pResult->scaleRange = scaleRange;
     pResult->numTicks = numTicks;
+    pResult->gridWidth = gridWidth;
+    // Properties
+    pResult->showBundleFreq = showBundleFreq;
     return pResult;
 }
 

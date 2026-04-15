@@ -257,9 +257,11 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->restore();
 }
 
-GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ResponseCollection const& collection, QGraphicsItem* pParent)
+GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ResponseCollection const& collection, int iSelectedBundle,
+                                           QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
     , mCollection(collection)
+    , mISelectedBundle(iSelectedBundle)
     , mpPlot(new CustomPlot)
 {
 }
@@ -272,56 +274,34 @@ GraphReportSceneItem::~GraphReportSceneItem()
 //! Set the item state
 void GraphReportSceneItem::setState()
 {
+    // Constants
+    QColor const kGridColor(200, 200, 200);
+
     // Retrieve the item
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Clear the plot
     mpPlot->clear();
 
-    // Process all the curves
-    int numBundles = mCollection.count();
-    int numCurves = pItem->curves.size();
-    for (int iBundle = 0; iBundle != numBundles; ++iBundle)
+    // Add the plottables
+    if (!mCollection.isEmpty())
     {
-        ResponseBundle const& bundle = mCollection.get(iBundle);
-
-        // Show only the last bundle if multi mode is not enabled
-        if (iBundle < numBundles - 1 && pItem->subType != GraphReportItem::kMultiReal && pItem->subType != GraphReportItem::kMultiImag)
-            continue;
-
-        // Loop through all the curves
-        for (int iCurve = 0; iCurve != numCurves; ++iCurve)
+        ResponseBundle const& refBundle = mISelectedBundle >= 0 ? mCollection.get(mISelectedBundle) : mCollection.get(0);
+        switch (pItem->subType)
         {
-            GraphReportCurve const& curve = pItem->curves[iCurve];
-
-            // Loop through all the points belonged to the curve
-            int numPoints = curve.points.size();
-            for (int iPoint = 0; iPoint != numPoints; ++iPoint)
-            {
-                // Find the response associated with the point which has the same direction
-                GraphReportPoint const& point = curve.points[iPoint];
-                int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
-                if (iResponse < 0)
-                    continue;
-                Testlab::Response const& response = bundle.responses[iResponse];
-
-                // Set the X-data
-                QList<double> xData;
-                if (pItem->subType != GraphReportItem::kModeshape)
-                    xData = convert(response.keys);
-
-                // Set the Y-data
-                QList<double> yData;
-                if (pItem->subType == GraphReportItem::kReal || pItem->subType == GraphReportItem::kMultiReal)
-                    yData = convert(response.realValues);
-                else if (pItem->subType == GraphReportItem::kImag || pItem->subType == GraphReportItem::kMultiImag)
-                    yData = convert(response.imagValues);
-                if (xData.isEmpty() || xData.size() != yData.size())
-                    continue;
-
-                // Add the plottable
-                addPlottable(xData, yData, curve, point.node);
-            }
+        case GraphReportItem::kReal:
+        case GraphReportItem::kImag:
+            processReIm(refBundle);
+            break;
+        case GraphReportItem::kMultiReal:
+        case GraphReportItem::kMultiImag:
+            processMultiReIm();
+            break;
+        case GraphReportItem::kModeshape:
+            processModeshape(refBundle);
+            break;
+        default:
+            break;
         }
     }
 
@@ -336,6 +316,13 @@ void GraphReportSceneItem::setState()
     mpPlot->yAxis->setLabelFont(pItem->font);
     mpPlot->xAxis->setLabel(pItem->xLabel);
     mpPlot->yAxis->setLabel(pItem->yLabel);
+
+    // Set the grid options
+    QPen gridPen = QPen(kGridColor, pItem->gridWidth, Qt::DotLine);
+    mpPlot->xAxis->grid()->setPen(gridPen);
+    mpPlot->yAxis->grid()->setPen(gridPen);
+    mpPlot->xAxis->grid()->setZeroLinePen(gridPen);
+    mpPlot->yAxis->grid()->setZeroLinePen(gridPen);
 
     // Set the axes range
     mpPlot->rescaleAxes();
@@ -361,6 +348,61 @@ void GraphReportSceneItem::setState()
 
     // Render the plot
     mpPlot->replot();
+}
+
+//! Process the item of the real (imag) subtype
+void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
+{
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Loop through all the curves
+    int numCurves = pItem->curves.size();
+    for (int iCurve = 0; iCurve != numCurves; ++iCurve)
+    {
+        GraphReportCurve const& curve = pItem->curves[iCurve];
+
+        // Loop through all the points belonged to the curve
+        int numPoints = curve.points.size();
+        for (int iPoint = 0; iPoint != numPoints; ++iPoint)
+        {
+            // Find the response associated with the point which has the same direction
+            GraphReportPoint const& point = curve.points[iPoint];
+            int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
+            if (iResponse < 0)
+                continue;
+            Testlab::Response const& response = bundle.responses[iResponse];
+
+            // Set the data
+            QList<double> xData = convert(response.keys);
+            QList<double> yData = pItem->subType == GraphReportItem::kReal ? convert(response.realValues) : convert(response.imagValues);
+            if (xData.isEmpty() || xData.size() != yData.size())
+                continue;
+
+            // Add the plottable
+            addPlottable(xData, yData, curve, point.node);
+        }
+    }
+
+    // Display the bundle frequency
+    if (pItem->showBundleFreq)
+    {
+        QCPItemStraightLine* pLine = new QCPItemStraightLine(mpPlot);
+        pLine->setPen(QPen(Qt::black, 1.0, Qt::DashLine));
+        pLine->point1->setCoords(bundle.freq, 0);
+        pLine->point2->setCoords(bundle.freq, 1);
+    }
+}
+
+//! Process the item of the multi real (imag) subtype
+void GraphReportSceneItem::processMultiReIm()
+{
+    // TODO
+}
+
+//! Process the item of the modeshape subtype
+void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
+{
+    // TODO
 }
 
 //! Add the plottable to the plot

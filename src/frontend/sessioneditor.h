@@ -60,6 +60,8 @@ public:
     virtual ~ResponseEditor() = default;
 
     Backend::Core::ResponseCollection const& collection() const;
+    int iSelectedBundle() const;
+
     bool addBundle(Backend::Core::Responses const& responses);
     bool addBundle(QStringList const& paths);
     bool addSelectedBundle();
@@ -69,6 +71,7 @@ public:
 
 signals:
     void edited();
+    void selected();
 
 private:
     void refresh();
@@ -77,17 +80,22 @@ private:
     QLayout* createResponseLayout();
 
     // Slots
+    void processBundleSelected();
     void setBundleProperties();
 
 private:
     QSettings& mSettings;
     Backend::Core::Session& mSession;
     Backend::Core::ResponseCollection mCollection;
+
+    // Bundle
     QListWidget* mpBundleList;
-    QListWidget* mpResponseList;
-    QLabel* mpResponseCountLabel;
     Edit1d* mpBundleFreqEdit;
     Edit1d* mpBundleForceEdit;
+
+    // Response
+    QListWidget* mpResponseList;
+    QLabel* mpResponseCountLabel;
 };
 }
 
