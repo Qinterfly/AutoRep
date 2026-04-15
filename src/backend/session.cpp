@@ -8,7 +8,7 @@
 using namespace Backend::Core;
 
 ResponseBundle::ResponseBundle()
-    : frequency(0.0)
+    : freq(0.0)
     , force(0.0)
 {
 }
@@ -20,6 +20,11 @@ ResponseCollection::ResponseCollection()
 int ResponseCollection::count() const
 {
     return mBundles.size();
+}
+
+ResponseBundle& ResponseCollection::get(int index)
+{
+    return mBundles[index];
 }
 
 ResponseBundle const& ResponseCollection::get(int index) const

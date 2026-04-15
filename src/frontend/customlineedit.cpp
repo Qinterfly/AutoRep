@@ -187,6 +187,16 @@ void DoubleLineEdit::hideBorders()
     setStyleSheet(styleSheet().append("border: none;"));
 }
 
+//! Fit the width to the text width
+void DoubleLineEdit::fitContent()
+{
+    int kPadding = 10;
+    QFontMetrics fm(font());
+    int width = fm.horizontalAdvance(text());
+    setFixedWidth(width + kPadding);
+    adjustSize();
+}
+
 //! Fixup the input if it has been rejected after return pressed
 void DoubleLineEdit::keyPressEvent(QKeyEvent* pEvent)
 {

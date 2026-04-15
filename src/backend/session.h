@@ -23,7 +23,7 @@ struct ResponseBundle
 
     QString name;
     Responses responses;
-    double frequency;
+    double freq;
     double force;
 };
 
@@ -34,6 +34,7 @@ public:
     ~ResponseCollection() = default;
 
     int count() const;
+    ResponseBundle& get(int index);
     ResponseBundle const& get(int index) const;
     void add(Responses const& responses, QString name = QString());
     void merge(int index, Responses const& responses);

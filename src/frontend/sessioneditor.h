@@ -9,6 +9,7 @@
 
 QT_FORWARD_DECLARE_CLASS(QSettings)
 QT_FORWARD_DECLARE_CLASS(QListWidget)
+QT_FORWARD_DECLARE_CLASS(QDoubleSpinBox)
 
 namespace Frontend
 {
@@ -75,6 +76,9 @@ private:
     QLayout* createBundleLayout();
     QLayout* createResponseLayout();
 
+    // Slots
+    void setBundleProperties();
+
 private:
     QSettings& mSettings;
     Backend::Core::Session& mSession;
@@ -82,6 +86,8 @@ private:
     QListWidget* mpBundleList;
     QListWidget* mpResponseList;
     QLabel* mpResponseCountLabel;
+    Edit1d* mpBundleFreqEdit;
+    Edit1d* mpBundleForceEdit;
 };
 }
 

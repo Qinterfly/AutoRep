@@ -392,6 +392,7 @@ void ReportDesigner::createContent()
     pControlSplitter->setHandleWidth(kHandleWidth);
     pControlSplitter->addWidget(createListWidget());
     pControlSplitter->addWidget(createEditorWidget());
+    pControlSplitter->setStretchFactor(1, 1);
 
     // Combine the widgets
     QSplitter* pMainSplitter = new QSplitter(Qt::Horizontal);

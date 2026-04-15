@@ -65,6 +65,9 @@ public:
     void setDecimals(int number);
 
     void hideBorders();
+    void fitContent();
+
+protected:
     void keyPressEvent(QKeyEvent* pEvent) override;
 
 signals:

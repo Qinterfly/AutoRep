@@ -161,13 +161,13 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     QGridLayout* pLayout = new QGridLayout;
     pLayout->addWidget(new QLabel(tr("Type: ")), 0, 0);
     pLayout->addWidget(mpSubTypeSelector, 0, 1);
-    pLayout->addWidget(new QLabel(tr("Unit: ")), 0, 2);
-    pLayout->addWidget(mpUnitSelector, 0, 3);
-    pLayout->addWidget(new QLabel(tr("Coord dir: ")), 1, 0);
-    pLayout->addWidget(mpCoordDirSelector, 1, 1);
-    pLayout->addWidget(new QLabel(tr("Response dir: ")), 1, 2);
-    pLayout->addWidget(mpResponseDirSelector, 1, 3);
-    pLayout->addItem(new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Preferred), 0, 4);
+    pLayout->addWidget(new QLabel(tr("Unit: ")), 1, 0);
+    pLayout->addWidget(mpUnitSelector, 1, 1);
+    pLayout->addWidget(new QLabel(tr("Coord dir: ")), 2, 0);
+    pLayout->addWidget(mpCoordDirSelector, 2, 1);
+    pLayout->addWidget(new QLabel(tr("Response dir: ")), 3, 0);
+    pLayout->addWidget(mpResponseDirSelector, 3, 1);
+    pLayout->addItem(new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Preferred), 0, 2);
 
     return pLayout;
 }

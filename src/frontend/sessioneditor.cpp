@@ -1,3 +1,4 @@
+#include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QLabel>
 #include <QListWidget>
@@ -82,6 +83,7 @@ void SessionEditor::createContent()
     pTabWidget->setTabsClosable(false);
     pTabWidget->addTab(mpGeometryView, tr("Geometry"));
     pTabWidget->addTab(mpResponseEditor, tr("Responses"));
+    pTabWidget->setCurrentIndex(1);
 
     // Create the main layout
     QVBoxLayout* pMainLayout = new QVBoxLayout;
@@ -207,10 +209,22 @@ void ResponseEditor::refresh()
         iBundle = numBundles - 1;
     mpBundleList->setCurrentRow(iBundle);
 
+    // Set the bundle properties
+    QSignalBlocker blockerBundleFreq(mpBundleFreqEdit);
+    QSignalBlocker blockerBundleForce(mpBundleForceEdit);
+    mpBundleFreqEdit->setValue(0.0);
+    mpBundleForceEdit->setValue(0.0);
+    iBundle = mpBundleList->currentRow();
+    if (iBundle >= 0)
+    {
+        ResponseBundle const& bundle = mCollection.get(iBundle);
+        mpBundleFreqEdit->setValue(bundle.freq);
+        mpBundleForceEdit->setValue(bundle.force);
+    }
+
     // Add the responses
     QSignalBlocker blockerResponseList(mpResponseList);
     mpResponseList->clear();
-    iBundle = mpBundleList->currentRow();
     int numResponses = 0;
     if (iBundle >= 0)
     {
@@ -252,12 +266,34 @@ QLayout* ResponseEditor::createBundleLayout()
     mpBundleList->setSelectionMode(QAbstractItemView::SingleSelection);
     connect(mpBundleList, &QListWidget::currentRowChanged, this, &ResponseEditor::refresh);
 
+    // Create the frequency edit
+    mpBundleFreqEdit = new Edit1d;
+    mpBundleFreqEdit->setDecimals(2);
+    mpBundleFreqEdit->setMinimum(0.0);
+    mpBundleFreqEdit->setMaximumWidth(90);
+    connect(mpBundleFreqEdit, &Edit1d::valueChanged, this, &ResponseEditor::setBundleProperties);
+
+    // Create the force edit
+    mpBundleForceEdit = new Edit1d;
+    mpBundleForceEdit->setDecimals(2);
+    mpBundleForceEdit->setMaximumWidth(90);
+    connect(mpBundleForceEdit, &Edit1d::valueChanged, this, &ResponseEditor::setBundleProperties);
+
+    // Create the control layout
+    QHBoxLayout* pControlLayout = new QHBoxLayout;
+    pControlLayout->addWidget(new QLabel(tr("Freq.: ")));
+    pControlLayout->addWidget(mpBundleFreqEdit);
+    pControlLayout->addWidget(new QLabel(tr("Force: ")));
+    pControlLayout->addWidget(mpBundleForceEdit);
+    pControlLayout->addStretch();
+
     // Combine the widgets
-    QVBoxLayout* pLayout = new QVBoxLayout;
-    pLayout->setContentsMargins(0, 0, 0, 5);
-    pLayout->addWidget(pToolBar);
-    pLayout->addWidget(mpBundleList);
-    return pLayout;
+    QVBoxLayout* pMainLayout = new QVBoxLayout;
+    pMainLayout->setContentsMargins(0, 0, 0, 5);
+    pMainLayout->addWidget(pToolBar);
+    pMainLayout->addWidget(mpBundleList);
+    pMainLayout->addLayout(pControlLayout);
+    return pMainLayout;
 }
 
 //! Create response related widgets
@@ -271,10 +307,27 @@ QLayout* ResponseEditor::createResponseLayout()
     mpResponseList->setFont(font());
     mpResponseList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    // Combine the widgets
+    // Create the layout
     QVBoxLayout* pLayout = new QVBoxLayout;
-    pLayout->setContentsMargins(5, 20, 5, 5);
+    pLayout->setContentsMargins(0, 0, 0, 5);
     pLayout->addWidget(mpResponseCountLabel);
     pLayout->addWidget(mpResponseList);
     return pLayout;
+}
+
+//! Set the current bundle properties
+void ResponseEditor::setBundleProperties()
+{
+    // Get the current bundle
+    int iBundle = mpBundleList->currentRow();
+    if (iBundle < 0)
+        return;
+    ResponseBundle& bundle = mCollection.get(iBundle);
+
+    // Set the properties
+    bundle.freq = mpBundleFreqEdit->value();
+    bundle.force = mpBundleForceEdit->value();
+
+    // Finish up the editing
+    emit edited();
 }

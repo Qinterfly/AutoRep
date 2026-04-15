@@ -183,7 +183,7 @@ ReportPage createImagRealPage()
     pImag->subType = GraphReportItem::kImag;
     pImag->responseDir = ReportDirection::kY;
     pImag->unit = "m/s^2";
-    pImag->xLabel = QObject::tr("Frequency, Hz");
+    pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create a real graph
@@ -193,7 +193,7 @@ ReportPage createImagRealPage()
     pReal->subType = GraphReportItem::kReal;
     pReal->responseDir = ReportDirection::kY;
     pReal->unit = "m/s^2";
-    pReal->xLabel = QObject::tr("Frequency, Hz");
+    pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
 
     // Create title
