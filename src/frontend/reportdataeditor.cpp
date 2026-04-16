@@ -6,6 +6,11 @@
 #include <QListWidget>
 #include <QToolBar>
 
+#include <customvariantpropertymanager.h>
+#include <qttreepropertybrowser.h>
+#include <qtvariantproperty.h>
+
+#include "customplot.h"
 #include "geometryview.h"
 #include "reportdataeditor.h"
 #include "reportdocument.h"
@@ -83,11 +88,23 @@ void GraphReportDataEditor::refresh()
     for (int i = 0; i != numCurves; ++i)
     {
         GraphReportCurve const& curve = pItem->curves[i];
+
+        // Construct the name
         QString name = curve.name;
         if (name.isEmpty())
             name = curve.points.size() == 1 ? curve.points.first().name() : tr("Curve %1").arg(1 + i);
-        QListWidgetItem* pCurve = new QListWidgetItem(name);
-        mpCurveList->addItem(pCurve);
+
+        // Construct the icon
+        QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
+        QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
+        style.setPen(pen);
+        bool isLine = curve.lineStyle != Qt::NoPen;
+        bool isMarker = curve.markerShape != ReportMarkerShape::kNone;
+        QIcon icon = Utility::getIcon(style, mpCurveList->iconSize(), isLine, isMarker);
+
+        // Add the item to the list
+        QListWidgetItem* pListItem = new QListWidgetItem(icon, name);
+        mpCurveList->addItem(pListItem);
     }
     if (iCurve >= 0 && iCurve < numCurves)
         mpCurveList->setCurrentRow(iCurve);
@@ -134,7 +151,8 @@ void GraphReportDataEditor::createConnections()
     connect(mpUnitSelector, &QComboBox::currentIndexChanged, this, &GraphReportDataEditor::processHeaderChanged);
 
     // List
-    connect(mpCurveList, &QListWidget::currentItemChanged, this, &GraphReportDataEditor::processCurveSelected);
+    connect(mpCurveList, &QListWidget::itemSelectionChanged, this, &GraphReportDataEditor::processCurveSelected);
+    connect(mpCurveList, &QListWidget::itemDoubleClicked, this, &GraphReportDataEditor::editSelectedCurve);
 }
 
 //! Create the layout of header widgets
@@ -177,10 +195,14 @@ QWidget* GraphReportDataEditor::createToolBar()
 {
     QToolBar* pToolBar = new QToolBar;
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
-    pToolBar->addAction(QIcon(":/icons/data-add.svg"), tr("Add curve"), this, &GraphReportDataEditor::addCurve);
-    pToolBar->addAction(QIcon(":/icons/data-edit.svg"), tr("Edit curve"), this, &GraphReportDataEditor::editSelectedCurve);
-    pToolBar->addAction(QIcon(":/icons/data-rename.svg"), tr("Rename curve"), this, &GraphReportDataEditor::renameSelectedCurve);
-    pToolBar->addAction(QIcon(":/icons/data-remove.svg"), tr("Remove curve"), this, &GraphReportDataEditor::removeSelectedCurve);
+    pToolBar->addAction(QIcon(":/icons/data-add.svg"), tr("Add curve"), Qt::SHIFT | Qt::Key_A, this, &GraphReportDataEditor::addCurve);
+    pToolBar->addAction(QIcon(":/icons/data-edit.svg"), tr("Edit curve"), Qt::SHIFT | Qt::Key_E, this, &GraphReportDataEditor::editSelectedCurve);
+    pToolBar->addAction(QIcon(":/icons/data-replace.svg"), tr("Replace curve"), Qt::SHIFT | Qt::Key_Q, this,
+                        &GraphReportDataEditor::replaceSelectedCurve);
+    pToolBar->addAction(QIcon(":/icons/data-rename.svg"), tr("Rename curve"), Qt::SHIFT | Qt::Key_R, this,
+                        &GraphReportDataEditor::renameSelectedCurve);
+    pToolBar->addAction(QIcon(":/icons/data-remove.svg"), tr("Remove curve"), Qt::SHIFT | Qt::Key_D, this,
+                        &GraphReportDataEditor::removeSelectedCurve);
     Utility::setShortcutHints(pToolBar);
     return pToolBar;
 }
@@ -190,6 +212,7 @@ QLayout* GraphReportDataEditor::createCurveLayout()
 {
     // Constants
     QMargins const kMargins(3, 3, 3, 3);
+    QSize const kIconSize(32, 32);
 
     // Create the lists
     mpCurveList = new QListWidget;
@@ -200,6 +223,8 @@ QLayout* GraphReportDataEditor::createCurveLayout()
     mpPointList->setFont(font());
     mpCurveList->setSelectionMode(QListWidget::SingleSelection);
     mpPointList->setSelectionMode(QListWidget::NoSelection);
+    mpCurveList->setIconSize(kIconSize);
+    mpPointList->setIconSize(kIconSize);
 
     // Create the curve group box
     QGroupBox* pCurveGroupBox = new QGroupBox(tr("Curves"));
@@ -265,13 +290,40 @@ void GraphReportDataEditor::addCurve()
     emit edited();
 }
 
-//! Replace the selected curve with the new one
+//! Edit the selected curve
 void GraphReportDataEditor::editSelectedCurve()
 {
     // Retrieve the graph item
     if (!mpItem)
         return;
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Retrieve the selected curve
+    int iCurve = mpCurveList->currentRow();
+    if (iCurve < 0)
+        return;
+    GraphReportCurve& curve = pItem->curves[iCurve];
+
+    // Create the editor and show it as a dialog window
+    ReportCurvePropertyEditor* pEditor = new ReportCurvePropertyEditor(curve);
+    connect(pEditor, &ReportCurvePropertyEditor::edited, this, &GraphReportDataEditor::edited);
+    Utility::showAsDialog(pEditor, tr("Edit curve properties"), nullptr, false);
+}
+
+//! Replace the selected curve with the new one
+void GraphReportDataEditor::replaceSelectedCurve()
+{
+    // Retrieve the graph item
+    if (!mpItem)
+        return;
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Construct the dialog
+    auto reply = QMessageBox::question(this, tr("Replace Curve"),
+                                       tr("Are you sure that you want to replace all the curve points with the selectd ones?"),
+                                       QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes)
+        return;
 
     // Replace the current curve
     QList<GraphReportPoint> selectedPoints = getSelectedPoints();
@@ -280,15 +332,17 @@ void GraphReportDataEditor::editSelectedCurve()
     {
         if (!selectedPoints.isEmpty())
         {
+            GraphReportCurve curve;
             if (pItem->isMultiPointCurve())
-                pItem->curves[iCurve] = GraphReportCurve(selectedPoints);
+                curve = GraphReportCurve(selectedPoints);
             else
-                pItem->curves[iCurve] = GraphReportCurve({selectedPoints.first()});
-            qInfo() << tr("Curve is edited");
+                curve = GraphReportCurve({selectedPoints.first()});
+            pItem->curves[iCurve].points = curve.points;
+            qInfo() << tr("Curve is replaced");
         }
         else
         {
-            qWarning() << tr("Cannot edit the curve, since there are no selected points");
+            qWarning() << tr("Cannot replace the curve, since there are no selected points");
         }
     }
 
@@ -417,6 +471,124 @@ void GraphReportDataEditor::processHeaderChanged()
     refresh();
 
     // Finish up the editing
+    emit edited();
+}
+
+ReportCurvePropertyEditor::ReportCurvePropertyEditor(GraphReportCurve& curve, QWidget* pParent)
+    : mCurve(curve)
+{
+    setFont(Utility::getFont());
+    createContent();
+    createProperties();
+    createConnections();
+}
+
+QSize ReportCurvePropertyEditor::sizeHint() const
+{
+    return QSize(400, 300);
+}
+
+//! Create all the widgets
+void ReportCurvePropertyEditor::createContent()
+{
+    // Create the widgets
+    mpManager = new CustomVariantPropertyManager;
+    mpFactory = new QtVariantEditorFactory;
+    mpEditor = new QtTreePropertyBrowser;
+
+    // Initialize the widgets
+    mpEditor->setFactoryForManager((QtVariantPropertyManager*) mpManager, mpFactory);
+    mpEditor->setFont(font());
+    mpEditor->setTreeWidgetFont(font());
+
+    // Combine the widgets
+    QVBoxLayout* pLayout = new QVBoxLayout;
+    pLayout->addWidget(mpEditor);
+    setLayout(pLayout);
+}
+
+//! Create the plottable properties
+void ReportCurvePropertyEditor::createProperties()
+{
+    QStringList const kLineStyleNames = {QString(), tr("Solid"), tr("Dash"), tr("Dotted"), tr("Dash-dotted")};
+    QStringList const kMarkerShapeNames = {QString(),
+                                           tr("Dot"),
+                                           tr("Cross"),
+                                           tr("Plus"),
+                                           tr("Circle"),
+                                           tr("Disc"),
+                                           tr("Square"),
+                                           tr("Diamond"),
+                                           tr("Star"),
+                                           tr("Triangle"),
+                                           tr("Inverted Triangle"),
+                                           tr("Cross Square"),
+                                           tr("Plus Square"),
+                                           tr("Cross Circle"),
+                                           tr("Plus Circle"),
+                                           tr("Peace")};
+
+    // Remove the previous properties
+    QSignalBlocker blockerEditor(mpEditor);
+    QSignalBlocker blockerManager(mpManager);
+    mpEditor->clear();
+    mpManager->clear();
+
+    // Create the properties
+    QtVariantProperty* pLineStyleProperty = mpManager->addProperty(kLineStyle, QtVariantPropertyManager::enumTypeId(), tr("Line style"));
+    pLineStyleProperty->setAttribute("enumNames", kLineStyleNames);
+    pLineStyleProperty->setValue((int) mCurve.lineStyle);
+    mpEditor->addProperty(pLineStyleProperty);
+
+    QtVariantProperty* pLineWidthProperty = mpManager->addProperty(kLineWidth, QMetaType::Double, tr("Line width"));
+    pLineWidthProperty->setValue(mCurve.lineWidth);
+    mpEditor->addProperty(pLineWidthProperty);
+
+    QtVariantProperty* pLineColorProperty = mpManager->addProperty(kLineColor, QMetaType::QColor, tr("Line color"));
+    pLineColorProperty->setValue(mCurve.lineColor);
+    QtBrowserItem* pLineColorItem = mpEditor->addProperty(pLineColorProperty);
+    mpEditor->setExpanded(pLineColorItem, false);
+
+    QtVariantProperty* pMarkerShapeProperty = mpManager->addProperty(kMarkerShape, QtVariantPropertyManager::enumTypeId(), tr("Marker shape"));
+    pMarkerShapeProperty->setAttribute("enumNames", kMarkerShapeNames);
+    pMarkerShapeProperty->setValue((QCPScatterStyle::ScatterShape) mCurve.markerShape);
+    mpEditor->addProperty(pMarkerShapeProperty);
+
+    QtVariantProperty* pMarkerSizeProperty = mpManager->addProperty(kMarkerSize, QMetaType::Int, tr("Marker size"));
+    pMarkerSizeProperty->setValue(mCurve.markerSize);
+    mpEditor->addProperty(pMarkerSizeProperty);
+}
+
+//! Specify connections
+void ReportCurvePropertyEditor::createConnections()
+{
+    connect(mpManager, &CustomVariantPropertyManager::valueChanged, this, &ReportCurvePropertyEditor::setValue);
+}
+
+//! Change the plottable property value
+void ReportCurvePropertyEditor::setValue(QtProperty* pProperty, QVariant value)
+{
+    if (!mpManager->contains(pProperty))
+        return;
+    int id = mpManager->id(pProperty);
+    switch (id)
+    {
+    case kLineStyle:
+        mCurve.lineStyle = (Qt::PenStyle) value.toInt();
+        break;
+    case kLineWidth:
+        mCurve.lineWidth = value.toDouble();
+        break;
+    case kLineColor:
+        mCurve.lineColor = value.value<QColor>();
+        break;
+    case kMarkerShape:
+        mCurve.markerShape = (ReportMarkerShape) value.toInt();
+        break;
+    case kMarkerSize:
+        mCurve.markerSize = value.toInt();
+        break;
+    }
     emit edited();
 }
 

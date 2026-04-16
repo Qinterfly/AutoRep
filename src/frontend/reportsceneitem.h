@@ -3,6 +3,8 @@
 
 #include <QGraphicsItem>
 
+#include "reporttextparser.h"
+
 QT_FORWARD_DECLARE_CLASS(QBuffer)
 
 namespace Backend::Core
@@ -32,6 +34,8 @@ public:
 
     Backend::Core::ReportItem* item();
     bool isMovable() const;
+
+    void setTextParser(Backend::Core::ReportTextParser const& textParser);
 
     QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
@@ -73,6 +77,7 @@ private:
 
 protected:
     Backend::Core::ReportItem* mpItem;
+    Backend::Core::ReportTextParser mTextParser;
 
 private:
     Mode mMode;

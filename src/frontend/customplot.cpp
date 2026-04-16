@@ -768,22 +768,27 @@ void PlottablePropertyEditor::createProperties()
     mpManager->clear();
 
     // Create the properties
-    QtVariantProperty* pLineStyleProperty = mpManager->addProperty(kLineStyle, QMetaType::QVariantList, tr("Style"));
+    QtVariantProperty* pLineStyleProperty = mpManager->addProperty(kLineStyle, QtVariantPropertyManager::enumTypeId(), tr("Style"));
     pLineStyleProperty->setAttribute("enumNames", kLineStyleNames);
     pLineStyleProperty->setValue(lineStyle);
+    mpEditor->addProperty(pLineStyleProperty);
 
     QtVariantProperty* pLineColorProperty = mpManager->addProperty(kLineColor, QMetaType::QColor, tr("Line color"));
     pLineColorProperty->setValue(mpPlottable->pen().color());
+    mpEditor->addProperty(pLineColorProperty);
 
-    QtVariantProperty* pMarkerShapeProperty = mpManager->addProperty(kMarkerShape, QMetaType::QVariantList, tr("Marker shape"));
+    QtVariantProperty* pMarkerShapeProperty = mpManager->addProperty(kMarkerShape, QtVariantPropertyManager::enumTypeId(), tr("Marker shape"));
     pMarkerShapeProperty->setAttribute("enumNames", kMarkerShapeNames);
     pMarkerShapeProperty->setValue(scatterStyle.shape());
+    mpEditor->addProperty(pMarkerShapeProperty);
 
     QtVariantProperty* pMarkerSizeProperty = mpManager->addProperty(kMarkerSize, QMetaType::Int, tr("Marker size"));
     pMarkerSizeProperty->setValue(scatterStyle.size());
+    mpEditor->addProperty(pMarkerSizeProperty);
 
     QtVariantProperty* pMarkerColorProperty = mpManager->addProperty(kMarkerColor, QMetaType::QColor, tr("Marker color"));
     pMarkerColorProperty->setValue(scatterStyle.pen().color());
+    mpEditor->addProperty(pMarkerColorProperty);
 }
 
 //! Specify connections

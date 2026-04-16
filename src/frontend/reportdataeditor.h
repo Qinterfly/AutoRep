@@ -8,6 +8,11 @@
 QT_FORWARD_DECLARE_CLASS(QComboBox)
 QT_FORWARD_DECLARE_CLASS(QListWidget)
 
+class QtTreePropertyBrowser;
+class CustomVariantPropertyManager;
+class QtVariantEditorFactory;
+class QtProperty;
+
 namespace Frontend
 {
 
@@ -45,6 +50,7 @@ public:
 
     void addCurve();
     void editSelectedCurve();
+    void replaceSelectedCurve();
     void renameSelectedCurve();
     void removeSelectedCurve();
     QList<Backend::Core::GraphReportPoint> getSelectedPoints();
@@ -68,6 +74,43 @@ private:
     QComboBox* mpUnitSelector;
     QListWidget* mpCurveList;
     QListWidget* mpPointList;
+};
+
+class ReportCurvePropertyEditor : public QWidget
+{
+    Q_OBJECT
+
+public:
+    enum Type
+    {
+        kLineStyle,
+        kLineWidth,
+        kLineColor,
+        kMarkerShape,
+        kMarkerSize,
+    };
+
+    ReportCurvePropertyEditor(Backend::Core::GraphReportCurve& curve, QWidget* pParent = nullptr);
+    virtual ~ReportCurvePropertyEditor() = default;
+
+signals:
+    void edited();
+
+protected:
+    QSize sizeHint() const override;
+
+private:
+    void createContent();
+    void createProperties();
+    void createConnections();
+
+    void setValue(QtProperty* pProperty, QVariant value);
+
+private:
+    Backend::Core::GraphReportCurve& mCurve;
+    CustomVariantPropertyManager* mpManager;
+    QtVariantEditorFactory* mpFactory;
+    QtTreePropertyBrowser* mpEditor;
 };
 }
 

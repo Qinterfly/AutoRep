@@ -6,6 +6,7 @@
 #include "reportdocument.h"
 #include "reportitem.h"
 #include "reportsceneitem.h"
+#include "reporttextparser.h"
 #include "session.h"
 
 using namespace Backend::Core;
@@ -35,6 +36,11 @@ ReportItem* ReportSceneItem::item()
 bool ReportSceneItem::isMovable() const
 {
     return flags().testFlag(QGraphicsItem::ItemIsMovable);
+}
+
+void ReportSceneItem::setTextParser(ReportTextParser const& textParser)
+{
+    mTextParser = textParser;
 }
 
 QRectF ReportSceneItem::boundingRect() const
@@ -249,11 +255,12 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->save();
     QFont f = pItem->font;
     f.setPointSizeF(f.pointSize() / kPointFactor);
+    QString t = mTextParser.process(pItem->text);
     pPainter->setFont(f);
     pPainter->translate(pItem->rect.center());
     pPainter->rotate(pItem->angle);
     pPainter->translate(-pItem->rect.center());
-    pPainter->drawText(pItem->rect, pItem->alignment, pItem->text);
+    pPainter->drawText(pItem->rect, pItem->alignment, t);
     pPainter->restore();
 }
 
@@ -305,6 +312,9 @@ void GraphReportSceneItem::setState()
         }
     }
 
+    // Update the parser
+    mTextParser.setValue("unit", pItem->unit);
+
     // Set the legend visibility
     bool isPlottables = mpPlot->plottableCount() > 0;
     mpPlot->legend->setVisible(isPlottables);
@@ -314,8 +324,8 @@ void GraphReportSceneItem::setState()
     mpPlot->yAxis->setTickLabelFont(pItem->font);
     mpPlot->xAxis->setLabelFont(pItem->font);
     mpPlot->yAxis->setLabelFont(pItem->font);
-    mpPlot->xAxis->setLabel(pItem->xLabel);
-    mpPlot->yAxis->setLabel(pItem->yLabel);
+    mpPlot->xAxis->setLabel(mTextParser.process(pItem->xLabel));
+    mpPlot->yAxis->setLabel(mTextParser.process(pItem->yLabel));
 
     // Set the grid options
     QPen gridPen = QPen(kGridColor, pItem->gridWidth, Qt::DotLine);
@@ -410,13 +420,22 @@ void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double
                                         QString const& name)
 {
     // Define the style
-    QPen pen(curve.lineColor, curve.lineWidth, curve.penStyle);
+    QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
     QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
     QString label = name.isEmpty() ? curve.name : name;
+
+    // Modify the style, so that the markers are visible when the curve is not
+    auto lineStyle = QCPCurve::lsLine;
+    if (pen.style() == Qt::NoPen)
+    {
+        lineStyle = QCPCurve::lsNone;
+        pen.setStyle(Qt::SolidLine);
+    }
 
     // Create the plottable
     QCPCurve* pPlottable = new QCPCurve(mpPlot->xAxis, mpPlot->yAxis);
     pPlottable->setData(xData, yData);
+    pPlottable->setLineStyle(lineStyle);
     pPlottable->setPen(pen);
     pPlottable->setName(label);
     pPlottable->setScatterStyle(style);

@@ -178,6 +178,9 @@ void ReportDesigner::drawItems()
         if (!pSceneItem)
             continue;
 
+        // Set the parser
+        pSceneItem->setTextParser(createTextParser());
+
         // Set the item flags and connections
         if (mIsPrinting)
         {
@@ -566,6 +569,26 @@ QWidget* ReportDesigner::createEditorWidget()
     pTabWidget->setCurrentIndex(1);
 
     return pTabWidget;
+}
+
+//! Create the report text parser and initialize it
+ReportTextParser ReportDesigner::createTextParser()
+{
+    ReportTextParser result;
+
+    // Set common values
+    if (mpResponseEditor->iSelectedBundle() >= 0)
+    {
+        ResponseBundle const& bundle = mpResponseEditor->collection().get(mpResponseEditor->iSelectedBundle());
+        result.setValue("freq", QString::number(bundle.freq));
+        result.setValue("force", QString::number(bundle.force));
+    }
+
+    // Set common translations
+    result.setTranslation("m/s^2", tr("m/s%1").arg(QChar(0x00B2)));
+    result.setTranslation("(m/s^2)/N", tr("(m/s%1)/N").arg(QChar(0x00B2)));
+
+    return result;
 }
 
 ReportSceneView::ReportSceneView(QWidget* pParent)

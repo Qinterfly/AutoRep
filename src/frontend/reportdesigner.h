@@ -13,6 +13,11 @@ QT_FORWARD_DECLARE_CLASS(QListWidgetItem)
 QT_FORWARD_DECLARE_CLASS(QComboBox)
 QT_FORWARD_DECLARE_CLASS(QSettings)
 
+namespace Backend::Core
+{
+class ReportTextParser;
+}
+
 namespace Frontend
 {
 
@@ -74,6 +79,9 @@ private:
     void changeItemByList(QListWidgetItem* pListItem);
     void setScaleBySelector();
     void setDataEditor(Backend::Core::ReportItem* pItem);
+
+    // Helper
+    Backend::Core::ReportTextParser createTextParser();
 
 private:
     QSettings& mSettings;

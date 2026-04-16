@@ -184,7 +184,7 @@ ReportPage createImagRealPage()
     pImag->responseDir = ReportDirection::kY;
     pImag->unit = "m/s^2";
     pImag->xLabel = QObject::tr("f, Hz");
-    pImag->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
+    pImag->yLabel = QObject::tr("a, ${UNIT}");
     pImag->showBundleFreq = true;
 
     // Create a real graph
@@ -195,14 +195,14 @@ ReportPage createImagRealPage()
     pReal->responseDir = ReportDirection::kY;
     pReal->unit = "m/s^2";
     pReal->xLabel = QObject::tr("f, Hz");
-    pReal->yLabel = QObject::tr("a, m/s%1").arg(QChar(0x00B2));
+    pReal->yLabel = QObject::tr("a, ${UNIT}");
     pReal->showBundleFreq = true;
 
     // Create title
     TextReportItem* pTitle = new TextReportItem;
     pTitle->name = QObject::tr("Title");
     pTitle->rect = QRect(25, 10, 150, 20);
-    pTitle->text = QObject::tr("Mode name\nf = 1 Hz\nExcitation");
+    pTitle->text = QObject::tr("Mode name\nf = ${FREQ} Hz\nExcitation F = ${FORCE} N");
 
     // Create the caption
     TextReportItem* pCaption = new TextReportItem;

@@ -71,13 +71,11 @@ QString GraphReportPoint::name() const
 }
 
 GraphReportCurve::GraphReportCurve()
-    : penStyle(Qt::SolidLine)
-    , lineStyle(ReportLineStyle::kLine)
+    : lineStyle(Qt::SolidLine)
     , lineWidth(1.25)
     , lineColor(Qt::red)
     , markerShape(ReportMarkerShape::kDisc)
     , markerSize(6)
-    , markerColor(lineColor)
 {
 }
 

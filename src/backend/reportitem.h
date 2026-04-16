@@ -18,16 +18,6 @@ enum class ReportDirection
     kZ
 };
 
-enum class ReportLineStyle
-{
-    kNone,
-    kLine,
-    kStepLeft,
-    kStepRight,
-    kStepCenter,
-    kImpulse
-};
-
 enum class ReportMarkerShape
 {
     kNone,
@@ -117,16 +107,13 @@ public:
 public:
     QString name;
     QList<GraphReportPoint> points;
-    // Pen
-    Qt::PenStyle penStyle;
     // Line
-    ReportLineStyle lineStyle;
+    Qt::PenStyle lineStyle;
     double lineWidth;
     QColor lineColor;
     // Marker
     ReportMarkerShape markerShape;
     int markerSize;
-    QColor markerColor;
 };
 
 //! Class to define a layout of a graph element

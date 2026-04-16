@@ -292,7 +292,7 @@ QLayout* ResponseEditor::createBundleLayout()
     mpBundleList = new QListWidget;
     mpBundleList->setFont(font());
     mpBundleList->setSelectionMode(QAbstractItemView::SingleSelection);
-    connect(mpBundleList, &QListWidget::currentRowChanged, this, &ResponseEditor::processBundleSelected);
+    connect(mpBundleList, &QListWidget::itemSelectionChanged, this, &ResponseEditor::processBundleSelected);
 
     // Create the frequency edit
     mpBundleFreqEdit = new Edit1d;

@@ -93,7 +93,7 @@ void TestFrontend::setImRePage()
     pReal->curves = pImag->curves;
 
     // Set the title
-    pTitle->text = "Симметричные вертикальные колебания двигателей\nf = 3,37 Гц\nВозбуждение с двигателей";
+    pTitle->text = "Симметричные вертикальные колебания двигателей\nf = ${FREQ} Гц\nВозбуждение с двигателей, F = ${FORCE} Н";
 
     // Refresh the page
     pDesigner->refresh();
