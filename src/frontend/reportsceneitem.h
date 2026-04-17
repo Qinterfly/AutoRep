@@ -36,17 +36,20 @@ public:
     Backend::Core::ReportItem* item();
     bool isMovable() const;
 
+protected:
     QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
     void hoverMoveEvent(QGraphicsSceneHoverEvent* pEvent) override;
     void mousePressEvent(QGraphicsSceneMouseEvent* pEvent) override;
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* pEvent) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* pEvent) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent* pEvent) override;
 
 signals:
     void changed();
+    void requestEdit();
 
-private:
+protected:
     enum class Mode
     {
         kNone,
@@ -76,8 +79,6 @@ private:
 
 protected:
     Backend::Core::ReportItem* mpItem;
-
-private:
     Mode mMode;
     Handle mHandle;
     QPointF mLastPos;
@@ -91,6 +92,11 @@ class TextReportSceneItem : public ReportSceneItem
 public:
     TextReportSceneItem(Backend::Core::TextReportItem* pItem, Backend::Core::ReportTextEngine& textEngine, QGraphicsItem* pParent = nullptr);
     virtual ~TextReportSceneItem() = default;
+
+    QFont font() const;
+    QString rawText() const;
+    QString processedText() const;
+    Qt::Alignment textAlignment() const;
 
 protected:
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;

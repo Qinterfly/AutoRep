@@ -29,6 +29,7 @@ ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     setAcceptHoverEvents(true);
     setFlag(QGraphicsItem::ItemIsSelectable);
     setFlag(QGraphicsItem::ItemIsMovable);
+    setFlag(QGraphicsItem::ItemIsFocusable);
 }
 
 ReportItem* ReportSceneItem::item()
@@ -108,12 +109,20 @@ void ReportSceneItem::mousePressEvent(QGraphicsSceneMouseEvent* pEvent)
     QGraphicsItem::mousePressEvent(pEvent);
 }
 
+void ReportSceneItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* pEvent)
+{
+    emit requestEdit();
+    QGraphicsItem::mouseDoubleClickEvent(pEvent);
+}
+
 void ReportSceneItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* pEvent)
 {
-    if (mMode != Mode::kNone)
+    if (mMode == Mode::kMove || mMode == Mode::kResize)
+    {
         emit changed();
-    mMode = Mode::kNone;
-    setCursor(Qt::ArrowCursor);
+        mMode = Mode::kNone;
+        setCursor(Qt::ArrowCursor);
+    }
     QGraphicsItem::mouseReleaseEvent(pEvent);
 }
 
@@ -239,6 +248,35 @@ TextReportSceneItem::TextReportSceneItem(TextReportItem* pItem, ReportTextEngine
 {
 }
 
+//! Get the rendering font
+QFont TextReportSceneItem::font() const
+{
+    qreal kPointFactor = 4.0;
+    TextReportItem* pItem = (TextReportItem*) mpItem;
+    QFont f = pItem->font;
+    f.setPointSizeF(f.pointSize() / kPointFactor);
+    return f;
+}
+
+//! Retrieve the raw text
+QString TextReportSceneItem::rawText() const
+{
+    TextReportItem* pItem = (TextReportItem*) mpItem;
+    return pItem->text;
+}
+
+//! Retrieve the parsed text
+QString TextReportSceneItem::processedText() const
+{
+    return mTextEngine.process(rawText());
+}
+
+Qt::Alignment TextReportSceneItem::textAlignment() const
+{
+    TextReportItem* pItem = (TextReportItem*) mpItem;
+    return pItem->alignment;
+}
+
 //! Process paint event
 void TextReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
 {
@@ -249,17 +287,12 @@ void TextReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem con
 //! Render the text
 void TextReportSceneItem::drawText(QPainter* pPainter)
 {
-    qreal kPointFactor = 4.0;
-    TextReportItem* pItem = (TextReportItem*) mpItem;
     pPainter->save();
-    QFont f = pItem->font;
-    f.setPointSizeF(f.pointSize() / kPointFactor);
-    QString t = mTextEngine.process(pItem->text);
-    pPainter->setFont(f);
-    pPainter->translate(pItem->rect.center());
-    pPainter->rotate(pItem->angle);
-    pPainter->translate(-pItem->rect.center());
-    pPainter->drawText(pItem->rect, pItem->alignment, t);
+    pPainter->setFont(font());
+    pPainter->translate(mpItem->rect.center());
+    pPainter->rotate(mpItem->angle);
+    pPainter->translate(-mpItem->rect.center());
+    pPainter->drawText(mpItem->rect, textAlignment(), processedText());
     pPainter->restore();
 }
 

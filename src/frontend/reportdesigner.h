@@ -2,6 +2,7 @@
 #define REPORTDESIGNER_H
 
 #include <QGraphicsView>
+#include <QTextEdit>
 #include <QWidget>
 
 #include "reportdocument.h"
@@ -22,6 +23,8 @@ class ReportPropertyEditor;
 class ReportDataEditor;
 class GeometryView;
 class ResponseEditor;
+class ReportSceneItem;
+class ReportTextEditor;
 
 //! Designer options
 struct ReportDesignerOptions
@@ -75,6 +78,7 @@ private:
     void changeItemByList(QListWidgetItem* pListItem);
     void setScaleBySelector();
     void setDataEditor(Backend::Core::ReportItem* pItem);
+    void processEditItemRequest(ReportSceneItem* pSceneItem);
 
     // Helper
     void updateTextEngine();
@@ -90,6 +94,7 @@ private:
     // Scene
     QGraphicsScene* mpScene;
     ReportSceneView* mpSceneView;
+    ReportTextEditor* mpTextEditor;
     QComboBox* mpScaleSelector;
     bool mIsPrinting;
 
@@ -119,6 +124,28 @@ public:
 
 protected:
     void wheelEvent(QWheelEvent* pEvent) override;
+};
+
+//! Class to edit report text items
+class ReportTextEditor : public QTextEdit
+{
+    Q_OBJECT
+
+public:
+    ReportTextEditor(QWidget* pParent = nullptr);
+    virtual ~ReportTextEditor() = default;
+
+    void startEditing(QRect const& rect, Backend::Core::TextReportItem* pItem);
+
+signals:
+    void editingFinished();
+
+protected:
+    void focusOutEvent(QFocusEvent* pEvent) override;
+    void keyPressEvent(QKeyEvent* pEvent) override;
+
+private:
+    Backend::Core::TextReportItem* mpItem;
 };
 }
 

@@ -10,9 +10,7 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-#include "customlineedit.h"
 #include "customtabwidget.h"
-#include "fileutility.h"
 #include "reportdataeditor.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
@@ -195,6 +193,7 @@ void ReportDesigner::drawItems()
             pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, !mOptions.lockItems);
             pSceneItem->setFlag(QGraphicsItem::ItemIsSelectable, true);
             connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
+            connect(pSceneItem, &ReportSceneItem::requestEdit, this, [this, pSceneItem]() { processEditItemRequest(pSceneItem); });
             if (mSelectedItems.contains(pSceneItem->item()))
                 pSceneItem->setSelected(true);
         }
@@ -412,6 +411,22 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     }
 }
 
+void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
+{
+    // Edit only the text items
+    ReportItem* pReportItem = pSceneItem->item();
+
+    // Get the item geometry
+    QRectF sceneRect = pSceneItem->sceneBoundingRect();
+    QPoint viewTopLeft = mpSceneView->mapFromScene(sceneRect.topLeft());
+    QPoint viewBottomRight = mpSceneView->mapFromScene(sceneRect.bottomRight());
+    QRect viewRect(viewTopLeft, viewBottomRight);
+
+    // Show the editor
+    if (pReportItem->type() == ReportItem::kText)
+        mpTextEditor->startEditing(viewRect, (TextReportItem*) pReportItem);
+}
+
 //! Create all the widgets
 void ReportDesigner::createContent()
 {
@@ -452,6 +467,7 @@ void ReportDesigner::createConnections()
 
     // Editor
     connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
+    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::refresh);
 }
 
 //! Create the group of scene widgets
@@ -466,6 +482,9 @@ QWidget* ReportDesigner::createSceneWidget()
     // Create the scene and the view
     mpScene = new QGraphicsScene;
     mpSceneView = new ReportSceneView;
+
+    // Create the scene editors
+    mpTextEditor = new ReportTextEditor(mpSceneView);
 
     // Initialize the view
     mpSceneView->setScene(mpScene);
@@ -612,6 +631,59 @@ void ReportSceneView::wheelEvent(QWheelEvent* pEvent)
         scale(kScaleFactor, kScaleFactor);
     else
         scale(1.0 / kScaleFactor, 1.0 / kScaleFactor);
+}
+
+ReportTextEditor::ReportTextEditor(QWidget* pParent)
+    : QTextEdit(pParent)
+    , mpItem(nullptr)
+{
+    hide();
+}
+
+//! Start editing of a text report item
+void ReportTextEditor::startEditing(QRect const& rect, TextReportItem* pItem)
+{
+    // Store the item
+    mpItem = pItem;
+
+    // Set the geometry
+    setGeometry(rect);
+
+    // Set the text
+    setFont(mpItem->font);
+    setText(mpItem->text);
+
+    // Set the alignment
+    QTextCursor cursor(document());
+    cursor.select(QTextCursor::Document);
+    QTextBlockFormat format;
+    format.setAlignment(mpItem->alignment);
+    cursor.mergeBlockFormat(format);
+
+    // Show the editor
+    show();
+    setFocus();
+}
+
+//! Finish editing once the focus is lost
+void ReportTextEditor::focusOutEvent(QFocusEvent* pEvent)
+{
+    QTextEdit::focusOutEvent(pEvent);
+    mpItem->text = toPlainText();
+    this->hide();
+    mpItem = nullptr;
+    emit editingFinished();
+}
+
+//! Process the keys to lose focus
+void ReportTextEditor::keyPressEvent(QKeyEvent* pEvent)
+{
+    if (pEvent->key() == Qt::Key_Return || pEvent->key() == Qt::Key_Escape)
+    {
+        clearFocus();
+        return;
+    }
+    QTextEdit::keyPressEvent(pEvent);
 }
 
 //! Helper function to create a list item
