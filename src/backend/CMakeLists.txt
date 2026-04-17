@@ -8,7 +8,8 @@ set(BACKEND_HEADERS
     session.h
     reportitem.h
     reportdocument.h
-    reporttextparser.h
+    reporttextengine.h
+    reportsettings.h
 )
 
 set(BACKEND_SOURCES
@@ -16,7 +17,8 @@ set(BACKEND_SOURCES
     session.cpp
     reportitem.cpp
     reportdocument.cpp
-    reporttextparser.cpp
+    reporttextengine.cpp
+    reportsettings.cpp
 )
 
 qt_add_library(backend STATIC

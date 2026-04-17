@@ -20,6 +20,7 @@ private slots:
     void openProject();
     void addResponseBundles();
     void setImRePage();
+    void setMultiImRePage();
     void buildReport();
     void writeReport();
 

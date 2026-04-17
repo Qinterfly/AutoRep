@@ -15,6 +15,7 @@
 #include "reportdataeditor.h"
 #include "reportdocument.h"
 #include "reportitem.h"
+#include "reportsettings.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
@@ -88,22 +89,29 @@ void GraphReportDataEditor::refresh()
     for (int i = 0; i != numCurves; ++i)
     {
         GraphReportCurve const& curve = pItem->curves[i];
+        QListWidgetItem* pListItem = new QListWidgetItem;
 
         // Construct the name
         QString name = curve.name;
         if (name.isEmpty())
             name = curve.points.size() == 1 ? curve.points.first().name() : tr("Curve %1").arg(1 + i);
+        pListItem->setText(name);
 
         // Construct the icon
-        QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
-        QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
-        style.setPen(pen);
-        bool isLine = curve.lineStyle != Qt::NoPen;
-        bool isMarker = curve.markerShape != ReportMarkerShape::kNone;
-        QIcon icon = Utility::getIcon(style, mpCurveList->iconSize(), isLine, isMarker);
+        if (pItem->subType != GraphReportItem::kMultiReal && pItem->subType != GraphReportItem::kMultiImag)
+        {
+            QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
+            QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
+            if (curve.markerFill)
+                style.setBrush(curve.lineColor);
+            style.setPen(pen);
+            bool isLine = curve.lineStyle != Qt::NoPen;
+            bool isMarker = curve.markerShape != ReportMarkerShape::kNone;
+            QIcon icon = Utility::getIcon(style, mpCurveList->iconSize(), isLine, isMarker);
+            pListItem->setIcon(icon);
+        }
 
         // Add the item to the list
-        QListWidgetItem* pListItem = new QListWidgetItem(icon, name);
         mpCurveList->addItem(pListItem);
     }
     if (iCurve >= 0 && iCurve < numCurves)
@@ -256,21 +264,27 @@ void GraphReportDataEditor::addCurve()
         return;
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
+    // Helper function
+    auto createCurve = [pItem](QList<GraphReportPoint> const& points)
+    {
+        int iDefaultCurve = Utility::getRepeatedIndex(pItem->curves.count(), ReportSettings::curves.size());
+        GraphReportCurve curve = ReportSettings::curves[iDefaultCurve];
+        curve.points = points;
+        pItem->curves.push_back(curve);
+    };
+
     // Add the curve
     QList<GraphReportPoint> selectedPoints = getSelectedPoints();
     if (!selectedPoints.isEmpty())
     {
         if (pItem->isMultiPointCurve())
         {
-            pItem->curves.push_back(selectedPoints);
+            createCurve(selectedPoints);
         }
         else
         {
             for (GraphReportPoint const& p : std::as_const(selectedPoints))
-            {
-                GraphReportCurve curve({p});
-                pItem->curves.push_back(curve);
-            }
+                createCurve({p});
         }
         qInfo() << tr("Curve consisted of %1 points is added").arg(selectedPoints.size());
     }

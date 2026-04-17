@@ -3,6 +3,9 @@
 
 using namespace Backend::Core;
 
+// Helper functions
+QList<GraphReportCurve> generateDefaultCurves();
+
 ReportPage::ReportPage(QPageSize const& uSize, QString const& uName)
     : size(uSize)
     , name(uName)

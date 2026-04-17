@@ -29,6 +29,7 @@ public:
 
     QString title() const;
     void setTitle(QString const& title);
+    void setLegendAlignment(QFlags<Qt::AlignmentFlag> const& flags);
     QColor getAvailableColor() const;
 
 signals:

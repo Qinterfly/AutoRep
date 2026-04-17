@@ -8,6 +8,7 @@ namespace Backend::Core
 {
 
 class ReportItem;
+class GraphReportCurve;
 
 //! Class to define report page layout
 class ReportPage

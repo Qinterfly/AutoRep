@@ -6,17 +6,13 @@
 
 #include "reportdocument.h"
 #include "reportitem.h"
+#include "reporttextengine.h"
 
 QT_FORWARD_DECLARE_CLASS(QListWidget)
 QT_FORWARD_DECLARE_CLASS(QPrinter)
 QT_FORWARD_DECLARE_CLASS(QListWidgetItem)
 QT_FORWARD_DECLARE_CLASS(QComboBox)
 QT_FORWARD_DECLARE_CLASS(QSettings)
-
-namespace Backend::Core
-{
-class ReportTextParser;
-}
 
 namespace Frontend
 {
@@ -50,7 +46,7 @@ public:
     Backend::Core::ReportPage& page();
     void fit();
     void refresh();
-    bool print(QPrinter& printer);
+    bool print(QPrinter& printer, QPainter& painter);
     bool printDialog();
     void selectItem(int index);
 
@@ -81,7 +77,7 @@ private:
     void setDataEditor(Backend::Core::ReportItem* pItem);
 
     // Helper
-    Backend::Core::ReportTextParser createTextParser();
+    void updateTextEngine();
 
 private:
     QSettings& mSettings;
@@ -89,6 +85,7 @@ private:
     ResponseEditor* mpResponseEditor;
     Backend::Core::ReportPage& mPage;
     ReportDesignerOptions mOptions;
+    Backend::Core::ReportTextEngine mTextEngine;
 
     // Scene
     QGraphicsScene* mpScene;

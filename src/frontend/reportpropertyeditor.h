@@ -21,6 +21,13 @@ class ReportPropertyEditor : public QWidget
     Q_OBJECT
 
 public:
+    enum Alignment
+    {
+        kTopRight,
+        kBottomRight,
+        kBottomLeft,
+        kTopLeft,
+    };
     enum Type
     {
         kRect,
@@ -32,6 +39,8 @@ public:
         kScaleRange,
         kNumTicks,
         kGridWidth,
+        kLegendAlignment,
+        kShowLegend,
         kShowBundleFreq
     };
 
@@ -51,6 +60,7 @@ private:
     void addTextProperties();
     void addGraphProperties();
     void setValue(QtProperty* pProperty, QVariant value);
+    Qt::Alignment getAlignmentValue(Alignment key);
 
 private:
     Backend::Core::ReportItem* mpItem;

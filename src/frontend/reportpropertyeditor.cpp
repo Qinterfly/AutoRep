@@ -1,6 +1,7 @@
 #include <QVBoxLayout>
 
 #include <customvariantpropertymanager.h>
+#include <magic_enum/magic_enum.hpp>
 #include <qttreepropertybrowser.h>
 #include <qtvariantproperty.h>
 
@@ -110,6 +111,8 @@ void ReportPropertyEditor::addTextProperties()
 //! Create properties specific for graph items
 void ReportPropertyEditor::addGraphProperties()
 {
+    QStringList const kAlignmentNames = {tr("Top right"), tr("Bottom right"), tr("Bottom left"), tr("Top left")};
+
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     QtVariantProperty* pXLabelProperty = mpManager->addProperty(kXLabel, QMetaType::QString, tr("X label"));
@@ -131,6 +134,25 @@ void ReportPropertyEditor::addGraphProperties()
     QtVariantProperty* pGridWidthProperty = mpManager->addProperty(kGridWidth, QMetaType::Double, tr("Grid width"));
     pGridWidthProperty->setValue(pItem->gridWidth);
     mpEditor->addProperty(pGridWidthProperty);
+
+    QtVariantProperty* pLegendAlignmentProperty = mpManager->addProperty(kLegendAlignment, QtVariantPropertyManager::enumTypeId(),
+                                                                         tr("Legend alignment"));
+    pLegendAlignmentProperty->setAttribute("enumNames", kAlignmentNames);
+    auto alignments = magic_enum::enum_values<Alignment>();
+    int numAlignments = alignments.size();
+    for (int i = 0; i != numAlignments; ++i)
+    {
+        if (getAlignmentValue(alignments[i]) == pItem->legendAlignment)
+        {
+            pLegendAlignmentProperty->setValue(i);
+            break;
+        }
+    }
+    mpEditor->addProperty(pLegendAlignmentProperty);
+
+    QtVariantProperty* pShowLegendProperty = mpManager->addProperty(kShowLegend, QMetaType::Bool, tr("Legend"));
+    pShowLegendProperty->setValue(pItem->showLegend);
+    mpEditor->addProperty(pShowLegendProperty);
 
     QtVariantProperty* pShowBundleFreqProperty = mpManager->addProperty(kShowBundleFreq, QMetaType::Bool, tr("Bundle freq."));
     pShowBundleFreqProperty->setValue(pItem->showBundleFreq);
@@ -172,6 +194,12 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kGridWidth:
         static_cast<GraphReportItem*>(mpItem)->gridWidth = value.toDouble();
         break;
+    case kLegendAlignment:
+        static_cast<GraphReportItem*>(mpItem)->legendAlignment = getAlignmentValue((Alignment) value.toInt());
+        break;
+    case kShowLegend:
+        static_cast<GraphReportItem*>(mpItem)->showLegend = value.toBool();
+        break;
     case kShowBundleFreq:
         static_cast<GraphReportItem*>(mpItem)->showBundleFreq = value.toBool();
         break;
@@ -179,4 +207,23 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         return;
     }
     emit edited();
+}
+
+//! Get corner alignment value by enum key
+Qt::Alignment ReportPropertyEditor::getAlignmentValue(Alignment key)
+{
+    switch (key)
+    {
+    case kTopRight:
+        return Qt::AlignTop | Qt::AlignRight;
+    case kBottomRight:
+        return Qt::AlignBottom | Qt::AlignRight;
+    case kBottomLeft:
+        return Qt::AlignBottom | Qt::AlignLeft;
+    case kTopLeft:
+        return Qt::AlignTop | Qt::AlignLeft;
+    default:
+        break;
+    };
+    return Qt::Alignment();
 }

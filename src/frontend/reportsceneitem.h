@@ -3,7 +3,7 @@
 
 #include <QGraphicsItem>
 
-#include "reporttextparser.h"
+#include "reporttextengine.h"
 
 QT_FORWARD_DECLARE_CLASS(QBuffer)
 
@@ -15,6 +15,7 @@ class GraphReportItem;
 class ResponseCollection;
 class ResponseBundle;
 class GraphReportCurve;
+class ReportDefaults;
 }
 
 namespace Frontend
@@ -34,8 +35,6 @@ public:
 
     Backend::Core::ReportItem* item();
     bool isMovable() const;
-
-    void setTextParser(Backend::Core::ReportTextParser const& textParser);
 
     QRectF boundingRect() const override;
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
@@ -77,7 +76,6 @@ private:
 
 protected:
     Backend::Core::ReportItem* mpItem;
-    Backend::Core::ReportTextParser mTextParser;
 
 private:
     Mode mMode;
@@ -88,8 +86,10 @@ private:
 //! Class to render and manipulate text objects
 class TextReportSceneItem : public ReportSceneItem
 {
+    Q_OBJECT
+
 public:
-    TextReportSceneItem(Backend::Core::TextReportItem* pItem, QGraphicsItem* pParent = nullptr);
+    TextReportSceneItem(Backend::Core::TextReportItem* pItem, Backend::Core::ReportTextEngine& textEngine, QGraphicsItem* pParent = nullptr);
     virtual ~TextReportSceneItem() = default;
 
 protected:
@@ -97,14 +97,19 @@ protected:
 
 private:
     void drawText(QPainter* pPainter);
+
+private:
+    Backend::Core::ReportTextEngine& mTextEngine;
 };
 
 //! Class to render graphs
 class GraphReportSceneItem : public ReportSceneItem
 {
+    Q_OBJECT
+
 public:
-    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ResponseCollection const& collection, int iSelectedBundle,
-                         QGraphicsItem* pParent = nullptr);
+    GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ReportTextEngine& textEngine,
+                         Backend::Core::ResponseCollection const& collection, int iSelectedBundle, QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
 protected:
@@ -126,6 +131,7 @@ private:
     void renderToBuffer(QBuffer& buffer, QSize const& size);
 
 private:
+    Backend::Core::ReportTextEngine& mTextEngine;
     Backend::Core::ResponseCollection const& mCollection;
     int const mISelectedBundle;
     CustomPlot* mpPlot;

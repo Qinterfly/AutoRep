@@ -70,26 +70,20 @@ void ReportDesigner::refresh()
 }
 
 //! Print the page content to a pdf file
-bool ReportDesigner::print(QPrinter& printer)
+bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 {
     // Set up the printer
-    printer.setPageSize(mPage.size);
+    QPageLayout layout(mPage.size, QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
+    printer.setPageLayout(layout);
     printer.setFullPage(true);
-    printer.newPage();
 
     // Set the view
     mpSceneView->fitToPage();
-
-    // Start the painter
-    QPainter painter;
-    if (!painter.begin(&printer))
-        return false;
 
     // Render the scene to the painter
     mIsPrinting = true;
     drawAll();
     mpScene->render(&painter);
-    painter.end();
 
     // Restore the scene state
     mIsPrinting = false;
@@ -125,7 +119,18 @@ bool ReportDesigner::printDialog()
     printer.setOutputFileName(pathFile);
     printer.setOutputFormat(QPrinter::PdfFormat);
 
-    return print(printer);
+    // Start the painter
+    QPainter painter;
+    if (!painter.begin(&printer))
+        return false;
+
+    // Print
+    bool isPrint = print(printer, painter);
+
+    // Close the painter
+    painter.end();
+
+    return isPrint;
 }
 
 //! Select a report item by its index
@@ -146,6 +151,7 @@ void ReportDesigner::drawAll()
     QSignalBlocker blockerSceneView(mpSceneView);
     mpScene->clear();
     mpScene->setSceneRect(mPage.size.rect(QPageSize::Millimeter));
+    updateTextEngine();
 
     // Draw all the objects
     drawItems();
@@ -166,10 +172,10 @@ void ReportDesigner::drawItems()
         switch (pReportItem->type())
         {
         case ReportItem::kText:
-            pSceneItem = new TextReportSceneItem((TextReportItem*) pReportItem);
+            pSceneItem = new TextReportSceneItem((TextReportItem*) pReportItem, mTextEngine);
             break;
         case ReportItem::kGraph:
-            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mpResponseEditor->collection(),
+            pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mTextEngine, mpResponseEditor->collection(),
                                                   mpResponseEditor->iSelectedBundle());
             break;
         default:
@@ -177,9 +183,6 @@ void ReportDesigner::drawItems()
         }
         if (!pSceneItem)
             continue;
-
-        // Set the parser
-        pSceneItem->setTextParser(createTextParser());
 
         // Set the item flags and connections
         if (mIsPrinting)
@@ -572,23 +575,19 @@ QWidget* ReportDesigner::createEditorWidget()
 }
 
 //! Create the report text parser and initialize it
-ReportTextParser ReportDesigner::createTextParser()
+void ReportDesigner::updateTextEngine()
 {
-    ReportTextParser result;
-
     // Set common values
     if (mpResponseEditor->iSelectedBundle() >= 0)
     {
         ResponseBundle const& bundle = mpResponseEditor->collection().get(mpResponseEditor->iSelectedBundle());
-        result.setValue("freq", QString::number(bundle.freq));
-        result.setValue("force", QString::number(bundle.force));
+        mTextEngine.setVariable("freq", QString::number(bundle.freq));
+        mTextEngine.setVariable("force", QString::number(bundle.force));
     }
 
     // Set common translations
-    result.setTranslation("m/s^2", tr("m/s%1").arg(QChar(0x00B2)));
-    result.setTranslation("(m/s^2)/N", tr("(m/s%1)/N").arg(QChar(0x00B2)));
-
-    return result;
+    mTextEngine.setReplacement("m/s^2", tr("m/s%1").arg(QChar(0x00B2)));
+    mTextEngine.setReplacement("(m/s^2)/N", tr("(m/s%1)/N").arg(QChar(0x00B2)));
 }
 
 ReportSceneView::ReportSceneView(QWidget* pParent)

@@ -73,7 +73,7 @@ public:
     ReportItem* clone() const override;
 
 public:
-    QFlags<Qt::AlignmentFlag> alignment;
+    Qt::Alignment alignment;
     QString text;
 };
 
@@ -100,6 +100,7 @@ public:
     GraphReportCurve();
     GraphReportCurve(QList<GraphReportPoint> const& uPoints, QString const& uName = QString());
     GraphReportCurve(QList<QString> const& uPoints, QString const& uName = QString());
+    GraphReportCurve(QColor const& uLineColor, ReportMarkerShape const& uMarkerShape, bool uMarkerFill = false);
     ~GraphReportCurve() = default;
 
     bool isEmpty() const;
@@ -107,13 +108,16 @@ public:
 public:
     QString name;
     QList<GraphReportPoint> points;
+
     // Line
     Qt::PenStyle lineStyle;
     double lineWidth;
     QColor lineColor;
+
     // Marker
     ReportMarkerShape markerShape;
     int markerSize;
+    bool markerFill;
 };
 
 //! Class to define a layout of a graph element
@@ -144,18 +148,23 @@ public:
 
 public:
     QList<GraphReportCurve> curves;
+
     // Header
     SubType subType;
     ReportDirection coordDir;
     ReportDirection responseDir;
     QString unit;
+
     // Axes
     QString xLabel;
     QString yLabel;
     double scaleRange;
     int numTicks;
     double gridWidth;
+    Qt::Alignment legendAlignment;
+
     // Flags
+    bool showLegend;
     bool showBundleFreq;
 };
 }

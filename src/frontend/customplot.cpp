@@ -64,6 +64,11 @@ void CustomPlot::setTitle(QString const& title)
     mpTitle->setText(title);
 }
 
+void CustomPlot::setLegendAlignment(QFlags<Qt::AlignmentFlag> const& flags)
+{
+    axisRect()->insetLayout()->setInsetAlignment(0, flags);
+}
+
 //! Retrieve the next color which is available for plotting
 QColor CustomPlot::getAvailableColor() const
 {

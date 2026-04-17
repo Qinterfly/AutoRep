@@ -71,12 +71,13 @@ QString GraphReportPoint::name() const
 }
 
 GraphReportCurve::GraphReportCurve()
-    : lineStyle(Qt::SolidLine)
-    , lineWidth(1.25)
-    , lineColor(Qt::red)
-    , markerShape(ReportMarkerShape::kDisc)
-    , markerSize(6)
 {
+    lineStyle = Qt::SolidLine;
+    lineWidth = 1.25;
+    lineColor = Qt::red;
+    markerShape = ReportMarkerShape::kDisc;
+    markerSize = 6;
+    markerFill = false;
 }
 
 GraphReportCurve::GraphReportCurve(QList<GraphReportPoint> const& uPoints, QString const& uName)
@@ -96,18 +97,33 @@ GraphReportCurve::GraphReportCurve(QList<QString> const& uPoints, QString const&
         points[i] = GraphReportPoint(uPoints[i]);
 }
 
+GraphReportCurve::GraphReportCurve(QColor const& uLineColor, ReportMarkerShape const& uMarkerShape, bool uMarkerFill)
+    : GraphReportCurve()
+{
+    lineColor = uLineColor;
+    markerShape = uMarkerShape;
+    markerFill = uMarkerFill;
+}
+
 bool GraphReportCurve::isEmpty() const
 {
     return points.isEmpty();
 }
 
 GraphReportItem::GraphReportItem()
-    : subType(kNone)
-    , scaleRange(1.1)
-    , numTicks(5)
-    , showBundleFreq(false)
-    , gridWidth(1.0)
 {
+    // Header
+    subType = kNone;
+
+    // Axes
+    scaleRange = 1.1;
+    numTicks = 5;
+    gridWidth = 1.0;
+    legendAlignment = Qt::AlignRight | Qt::AlignTop;
+
+    // Flags
+    showLegend = true;
+    showBundleFreq = false;
 }
 
 GraphReportItem::GraphReportItem(ReportItem const* pAnother)
@@ -124,19 +140,25 @@ ReportItem* GraphReportItem::clone() const
 {
     GraphReportItem* pResult = new GraphReportItem(this);
     pResult->curves = curves;
+
     // Header
     pResult->subType = subType;
     pResult->coordDir = coordDir;
     pResult->responseDir = responseDir;
     pResult->unit = unit;
+
     // Axes
     pResult->xLabel = xLabel;
     pResult->yLabel = yLabel;
     pResult->scaleRange = scaleRange;
     pResult->numTicks = numTicks;
     pResult->gridWidth = gridWidth;
-    // Properties
+    pResult->legendAlignment = legendAlignment;
+
+    // Flags
+    pResult->showLegend = showLegend;
     pResult->showBundleFreq = showBundleFreq;
+
     return pResult;
 }
 

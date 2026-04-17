@@ -6,8 +6,10 @@
 #include "reportdocument.h"
 #include "reportitem.h"
 #include "reportsceneitem.h"
-#include "reporttextparser.h"
+#include "reportsettings.h"
+#include "reporttextengine.h"
 #include "session.h"
+#include "uiutility.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
@@ -16,6 +18,7 @@ using namespace Frontend;
 QRectF rotatedRect(QRectF const& rect, qreal angle);
 QVector<double> convert(std::vector<double> const& data);
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
+QList<GraphReportCurve> getDefaultCurves();
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
@@ -36,11 +39,6 @@ ReportItem* ReportSceneItem::item()
 bool ReportSceneItem::isMovable() const
 {
     return flags().testFlag(QGraphicsItem::ItemIsMovable);
-}
-
-void ReportSceneItem::setTextParser(ReportTextParser const& textParser)
-{
-    mTextParser = textParser;
 }
 
 QRectF ReportSceneItem::boundingRect() const
@@ -235,8 +233,9 @@ ReportSceneItem::Handle ReportSceneItem::detectHandle(QPointF const& pos) const
     return Handle::kNone;
 }
 
-TextReportSceneItem::TextReportSceneItem(TextReportItem* pItem, QGraphicsItem* pParent)
+TextReportSceneItem::TextReportSceneItem(TextReportItem* pItem, ReportTextEngine& textEngine, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
+    , mTextEngine(textEngine)
 {
 }
 
@@ -255,7 +254,7 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->save();
     QFont f = pItem->font;
     f.setPointSizeF(f.pointSize() / kPointFactor);
-    QString t = mTextParser.process(pItem->text);
+    QString t = mTextEngine.process(pItem->text);
     pPainter->setFont(f);
     pPainter->translate(pItem->rect.center());
     pPainter->rotate(pItem->angle);
@@ -264,9 +263,10 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->restore();
 }
 
-GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ResponseCollection const& collection, int iSelectedBundle,
-                                           QGraphicsItem* pParent)
+GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ReportTextEngine& textEngine, ResponseCollection const& collection,
+                                           int iSelectedBundle, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
+    , mTextEngine(textEngine)
     , mCollection(collection)
     , mISelectedBundle(iSelectedBundle)
     , mpPlot(new CustomPlot)
@@ -313,19 +313,20 @@ void GraphReportSceneItem::setState()
     }
 
     // Update the parser
-    mTextParser.setValue("unit", pItem->unit);
+    mTextEngine.setVariable("unit", pItem->unit);
 
     // Set the legend visibility
     bool isPlottables = mpPlot->plottableCount() > 0;
-    mpPlot->legend->setVisible(isPlottables);
+    mpPlot->legend->setVisible(pItem->showLegend && isPlottables);
+    mpPlot->setLegendAlignment(pItem->legendAlignment);
 
     // Set the axes labels
     mpPlot->xAxis->setTickLabelFont(pItem->font);
     mpPlot->yAxis->setTickLabelFont(pItem->font);
     mpPlot->xAxis->setLabelFont(pItem->font);
     mpPlot->yAxis->setLabelFont(pItem->font);
-    mpPlot->xAxis->setLabel(mTextParser.process(pItem->xLabel));
-    mpPlot->yAxis->setLabel(mTextParser.process(pItem->yLabel));
+    mpPlot->xAxis->setLabel(mTextEngine.process(pItem->xLabel));
+    mpPlot->yAxis->setLabel(mTextEngine.process(pItem->yLabel));
 
     // Set the grid options
     QPen gridPen = QPen(kGridColor, pItem->gridWidth, Qt::DotLine);
@@ -406,7 +407,53 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
 //! Process the item of the multi real (imag) subtype
 void GraphReportSceneItem::processMultiReIm()
 {
-    // TODO
+    QList<GraphReportCurve> const& defaultCurves = ReportSettings::curves;
+
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Process only the first curve
+    if (pItem->curves.isEmpty())
+        return;
+    GraphReportCurve const& baseCurve = pItem->curves.first();
+
+    // Process only the first curve point
+    if (baseCurve.points.isEmpty())
+        return;
+
+    // Set the variable
+    GraphReportPoint const& point = baseCurve.points.first();
+    mTextEngine.setVariable("point", point.name());
+
+    // Loop through all the bundles
+    int numBundles = mCollection.count();
+    for (int iBundle = 0; iBundle != numBundles; ++iBundle)
+    {
+        ResponseBundle const& bundle = mCollection.get(iBundle);
+
+        // Find the response associated with the point which has the same direction
+        int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
+        if (iResponse < 0)
+            continue;
+        Testlab::Response const& response = bundle.responses[iResponse];
+
+        // Set the data
+        QList<double> xData = convert(response.keys);
+        QList<double> yData = pItem->subType == GraphReportItem::kReal ? convert(response.realValues) : convert(response.imagValues);
+        if (xData.isEmpty() || xData.size() != yData.size())
+            continue;
+
+        // Set the curve for plotting
+        int iDefaultCurve = Utility::getRepeatedIndex(iBundle, defaultCurves.size());
+        GraphReportCurve currentCurve = defaultCurves[iDefaultCurve];
+        currentCurve.points = {point};
+        currentCurve.lineStyle = baseCurve.lineStyle;
+        currentCurve.lineWidth = baseCurve.lineWidth;
+        currentCurve.markerSize = baseCurve.markerSize;
+
+        // Add the plottable
+        QString name = tr("F = %1 N").arg(QString::number(bundle.force));
+        addPlottable(xData, yData, currentCurve, name);
+    }
 }
 
 //! Process the item of the modeshape subtype
@@ -422,6 +469,8 @@ void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double
     // Define the style
     QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
     QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
+    if (curve.markerFill)
+        style.setBrush(curve.lineColor);
     QString label = name.isEmpty() ? curve.name : name;
 
     // Modify the style, so that the markers are visible when the curve is not

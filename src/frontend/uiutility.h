@@ -25,7 +25,6 @@ QFont getMonospaceFont();
 // Ui
 QColor getColor(vtkColor3d color);
 vtkColor3d getColor(QColor color);
-// getStyle();
 void setShortcutHints(QToolBar* pToolBar);
 int getRepeatedIndex(int index, int size);
 

@@ -24,21 +24,23 @@ public:
     virtual ~ReportWorkspace() = default;
 
     QSize sizeHint() const;
+    ReportDesigner* currentDesigner();
     ReportDesigner* designer(int iPage);
     ReportDesigner* designer(QString const& name);
     void refresh();
 
-    bool print(QString const& pathFile, int iPage);
     bool print(QString const& pathFile);
     bool printDialog();
 
 private:
     void createContent();
+    void createConnections();
     void initialize();
     void rebuild();
 
     // Slots
     void setDefaultDocument();
+    void processDesignerSelected();
 
 private:
     QSettings& mSettings;

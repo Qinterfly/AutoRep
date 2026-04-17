@@ -14,7 +14,8 @@ using namespace Frontend;
 using namespace Backend::Core;
 
 // Helper function
-ReportPage createImagRealPage();
+ReportPage createImRePage();
+ReportPage createMultiImRePage();
 
 ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent)
     : QWidget(pParent)
@@ -24,6 +25,7 @@ ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryVie
 {
     setFont(Utility::getFont());
     createContent();
+    createConnections();
     initialize();
     rebuild();
 }
@@ -31,6 +33,12 @@ ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryVie
 QSize ReportWorkspace::sizeHint() const
 {
     return QSize(500, 1000);
+}
+
+//! Retrieve the current designer
+ReportDesigner* ReportWorkspace::currentDesigner()
+{
+    return designer(mpDesignerTabs->currentIndex());
 }
 
 //! Retrieve the designer associated with the page index
@@ -53,33 +61,36 @@ ReportDesigner* ReportWorkspace::designer(QString const& name)
     return nullptr;
 }
 
-//! Print the specified page to a pdf file
-bool ReportWorkspace::print(QString const& pathFile, int iPage)
-{
-    QPrinter printer;
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setOutputFileName(pathFile);
-    ReportDesigner* pDesigner = designer(iPage);
-    if (!pDesigner)
-        return false;
-    return pDesigner->print(printer);
-}
-
 //! Print all the pages to a pdf file
 bool ReportWorkspace::print(QString const& pathFile)
 {
+    // Create the printer
     QPrinter printer;
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(pathFile);
+
+    // Start the painter
+    QPainter painter;
+    if (!painter.begin(&printer))
+        return false;
+
     int numPages = mDocument.pages.size();
     for (int iPage = 0; iPage != numPages; ++iPage)
     {
         ReportDesigner* pDesigner = designer(iPage);
         if (!pDesigner)
             continue;
-        if (!pDesigner->print(printer))
+        if (!pDesigner->print(printer, painter))
             return false;
+
+        // Create the next page
+        if (iPage != numPages - 1)
+            printer.newPage();
     }
+
+    // Close the painter
+    painter.end();
+
     qInfo() << tr("Document is printed to the file %1").arg(pathFile);
     return true;
 }
@@ -130,10 +141,16 @@ void ReportWorkspace::createContent()
     setLayout(pLayout);
 }
 
+void ReportWorkspace::createConnections()
+{
+    connect(mpDesignerTabs, &CustomTabWidget::currentChanged, this, &ReportWorkspace::processDesignerSelected);
+}
+
 //! Initialize the editor
 void ReportWorkspace::initialize()
 {
-    mDocument.pages.push_back(createImagRealPage());
+    mDocument.pages.push_back(createImRePage());
+    mDocument.pages.push_back(createMultiImRePage());
 }
 
 //! Replot the designer tabs
@@ -161,6 +178,7 @@ void ReportWorkspace::rebuild()
         mpDesignerTabs->addTab(pDesigner, name);
         pDesigner->fit();
     }
+    mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
 }
 
 //! Set the default document
@@ -171,8 +189,16 @@ void ReportWorkspace::setDefaultDocument()
     rebuild();
 }
 
+//! Fit the designer on selection
+void ReportWorkspace::processDesignerSelected()
+{
+    ReportDesigner* pDesigner = currentDesigner();
+    if (pDesigner)
+        pDesigner->fit();
+}
+
 //! Helper function to create a default page with imaginary and real parts of a spectrum
-ReportPage createImagRealPage()
+ReportPage createImRePage()
 {
     ReportPage page(QPageSize::A4, QObject::tr("Im-Re"));
 
@@ -203,6 +229,59 @@ ReportPage createImagRealPage()
     pTitle->name = QObject::tr("Title");
     pTitle->rect = QRect(25, 10, 150, 20);
     pTitle->text = QObject::tr("Mode name\nf = ${FREQ} Hz\nExcitation F = ${FORCE} N");
+
+    // Create the caption
+    TextReportItem* pCaption = new TextReportItem;
+    pCaption->name = QObject::tr("Caption");
+    pCaption->rect = QRect(65, 265, 80, 10);
+    pCaption->text = QObject::tr("Figure X.YY");
+
+    // Create the page number
+    TextReportItem* pNumber = new TextReportItem;
+    pNumber->name = QObject::tr("Page number");
+    pNumber->rect = QRect(100, 280, 10, 10);
+    pNumber->text = QObject::tr("Z");
+
+    // Combine
+    page.add(pImag);
+    page.add(pReal);
+    page.add(pTitle);
+    page.add(pCaption);
+    page.add(pNumber);
+
+    return page;
+}
+
+//! Helper function to create a default page with multiple imaginary and real parts of a spectrum
+ReportPage createMultiImRePage()
+{
+    ReportPage page(QPageSize::A4, QObject::tr("Multi Im-Re"));
+
+    // Create an imaginary graph
+    GraphReportItem* pImag = new GraphReportItem;
+    pImag->name = QObject::tr("Imaginary");
+    pImag->rect = QRect(25, 35, 150, 110);
+    pImag->subType = GraphReportItem::kMultiImag;
+    pImag->responseDir = ReportDirection::kY;
+    pImag->unit = "m/s^2";
+    pImag->xLabel = QObject::tr("f, Hz");
+    pImag->yLabel = QObject::tr("a, ${UNIT}");
+
+    // Create a real graph
+    GraphReportItem* pReal = new GraphReportItem;
+    pReal->name = QObject::tr("Real");
+    pReal->rect = QRect(25, 150, 150, 110);
+    pReal->subType = GraphReportItem::kMultiReal;
+    pReal->responseDir = ReportDirection::kY;
+    pReal->unit = "m/s^2";
+    pReal->xLabel = QObject::tr("f, Hz");
+    pReal->yLabel = QObject::tr("a, ${UNIT}");
+
+    // Create title
+    TextReportItem* pTitle = new TextReportItem;
+    pTitle->name = QObject::tr("Title");
+    pTitle->rect = QRect(25, 10, 150, 20);
+    pTitle->text = QObject::tr("Mode name\nExcitation\nPoint ${POINT}");
 
     // Create the caption
     TextReportItem* pCaption = new TextReportItem;

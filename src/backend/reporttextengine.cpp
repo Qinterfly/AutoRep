@@ -1,56 +1,56 @@
 #include <QRegularExpression>
 
-#include "reporttextparser.h"
+#include "reporttextengine.h"
 
 using namespace Backend::Core;
 
 // Helper functions
 QString normalizeKey(QString const& rawKey);
 
-ReportTextParser::ReportTextParser()
+ReportTextEngine::ReportTextEngine()
 {
 }
 
 //! Check if there are any variables to process
-bool ReportTextParser::isEmpty() const
+bool ReportTextEngine::isEmpty() const
 {
     return mVariables.isEmpty();
 }
 
 //! Check if there is the variable with the requested name
-bool ReportTextParser::contains(QString const& rawKey) const
+bool ReportTextEngine::contains(QString const& rawKey) const
 {
     QString key = normalizeKey(rawKey);
     return mVariables.contains(key);
 }
 
 //! Get the variable value
-QString ReportTextParser::getValue(QString const& rawKey) const
+QString ReportTextEngine::getValue(QString const& rawKey) const
 {
     QString key = normalizeKey(rawKey);
     if (!contains(key))
         return QString();
     QString value = mVariables[key];
-    if (mTranslations.contains(value))
-        value = mTranslations[value];
+    if (mReplacements.contains(value))
+        value = mReplacements[value];
     return value;
 }
 
 //! Set the variable value
-void ReportTextParser::setValue(QString const& rawKey, QString const& value)
+void ReportTextEngine::setVariable(QString const& rawKey, QString const& value)
 {
     QString key = normalizeKey(rawKey);
     mVariables[key] = value;
 }
 
 //! Set the variable translation
-void ReportTextParser::setTranslation(QString const& value, QString const& translation)
+void ReportTextEngine::setReplacement(QString const& value, QString const& replacement)
 {
-    mTranslations[value] = translation;
+    mReplacements[value] = replacement;
 }
 
 //! Find and replace ${VARIABLE} in text
-QString ReportTextParser::process(QString const& input) const
+QString ReportTextEngine::process(QString const& input) const
 {
     // Matches ${VAR_NAME}
     QRegularExpression const re(R"(\$\{([A-Za-z0-9_]+)\})");

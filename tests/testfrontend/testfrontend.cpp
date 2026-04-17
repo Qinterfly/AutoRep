@@ -73,7 +73,7 @@ void TestFrontend::setImRePage()
     QList<ReportMarkerShape> markerShapes = {ReportMarkerShape::kPlus, ReportMarkerShape::kDisc};
 
     // Get the designer
-    ReportDesigner* pDesigner = mpReportWorkspace->designer("Im-Re");
+    ReportDesigner* pDesigner = mpReportWorkspace->designer(0);
     QVERIFY(pDesigner);
 
     // Get the items
@@ -94,6 +94,36 @@ void TestFrontend::setImRePage()
 
     // Set the title
     pTitle->text = "Симметричные вертикальные колебания двигателей\nf = ${FREQ} Гц\nВозбуждение с двигателей, F = ${FORCE} Н";
+
+    // Refresh the page
+    pDesigner->refresh();
+
+    // Select the first item
+    pDesigner->selectItem(0);
+}
+
+//! Set the multi imaginary/real page of the report
+void TestFrontend::setMultiImRePage()
+{
+    // Plottable settings
+    QString point = "En:3p7";
+
+    // Get the designer
+    ReportDesigner* pDesigner = mpReportWorkspace->designer(1);
+    QVERIFY(pDesigner);
+
+    // Get the items
+    ReportPage& page = pDesigner->page();
+    GraphReportItem* pImag = (GraphReportItem*) page.get(0);
+    GraphReportItem* pReal = (GraphReportItem*) page.get(1);
+    TextReportItem* pTitle = (TextReportItem*) page.get(2);
+
+    // Add the curves
+    pImag->addPoint(point);
+    pReal->curves = pImag->curves;
+
+    // Set the title
+    pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей\nТочка ${POINT}";
 
     // Refresh the page
     pDesigner->refresh();
