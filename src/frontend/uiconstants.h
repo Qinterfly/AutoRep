@@ -30,8 +30,16 @@ QList<QColor> const skStandardColors = {"red",    "green", "blue",      "orange"
 namespace Size
 {
 
-const QSize skToolBarIcon = QSize(25, 25);
-const uint skMaxRecentProjects = 5;
+QSize const skToolBarIcon = QSize(25, 25);
+uint const skMaxRecentProjects = 5;
+}
+
+namespace Units
+{
+
+QString const skM_S2 = "m/s^2";
+QString const skM_S2_N = "(m/s^2)/N";
+QString const skM = "m";
 
 }
 }

@@ -21,6 +21,7 @@
 
 using namespace Backend::Core;
 using namespace Frontend;
+using namespace Constants;
 
 // Helper function
 QComboBox* createDirComboBox();
@@ -65,7 +66,7 @@ void GraphReportDataEditor::refresh()
     int iUnit = -1;
     for (int i = 0; i != numUnits; ++i)
     {
-        if (mpUnitSelector->itemText(i) == pItem->unit)
+        if (mpUnitSelector->itemData(i).toString() == pItem->unit)
         {
             iUnit = i;
             break;
@@ -181,7 +182,10 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     mpSubTypeSelector->addItem(tr("Freq Re"), GraphReportItem::kFreqReal);
     mpSubTypeSelector->addItem(tr("Freq Im"), GraphReportItem::kFreqImag);
     mpSubTypeSelector->addItem(tr("Modeshape"), GraphReportItem::kModeshape);
-    mpUnitSelector->addItems({QString(), "m/s^2", "(m/s^2)/N"});
+    mpUnitSelector->addItem(QString());
+    mpUnitSelector->addItem(tr("m/s%1").arg(QChar(0x00B2)), Units::skM_S2);
+    mpUnitSelector->addItem(tr("(m/s%1)/N").arg(QChar(0x00B2)), Units::skM_S2_N);
+    mpUnitSelector->addItem(tr("m"), Units::skM);
 
     // Combine the widgets
     QGridLayout* pLayout = new QGridLayout;
@@ -479,7 +483,7 @@ void GraphReportDataEditor::processHeaderChanged()
     pItem->subType = (GraphReportItem::SubType) mpSubTypeSelector->currentData().toInt();
     pItem->coordDir = (ReportDirection) mpCoordDirSelector->currentData().toInt();
     pItem->responseDir = (ReportDirection) mpResponseDirSelector->currentData().toInt();
-    pItem->unit = mpUnitSelector->currentText();
+    pItem->unit = mpUnitSelector->currentData().toString();
 
     // Update the content
     refresh();

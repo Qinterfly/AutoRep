@@ -121,9 +121,14 @@ public:
     virtual ~ReportSceneView() = default;
 
     void fitToPage();
+    void zoomIn();
+    void zoomOut();
 
 protected:
     void wheelEvent(QWheelEvent* pEvent) override;
+
+private:
+    double mZoomFactor;
 };
 
 //! Class to edit report text items

@@ -21,6 +21,7 @@
 
 using namespace Backend::Core;
 using namespace Frontend;
+using namespace Constants;
 
 // Helper functions
 QListWidgetItem* createListItem(ReportPage const& page, int index);
@@ -524,9 +525,11 @@ QWidget* ReportDesigner::createSceneWidget()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addWidget(new QLabel(tr("Scale: ")));
     pToolBar->addWidget(mpScaleSelector);
+    pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), mpSceneView, &ReportSceneView::fitToPage);
+    pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), mpSceneView, &ReportSceneView::zoomIn);
+    pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
-    pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
@@ -605,12 +608,14 @@ void ReportDesigner::updateTextEngine()
     }
 
     // Set common translations
-    mTextEngine.setReplacement("m/s^2", tr("m/s%1").arg(QChar(0x00B2)));
-    mTextEngine.setReplacement("(m/s^2)/N", tr("(m/s%1)/N").arg(QChar(0x00B2)));
+    mTextEngine.setReplacement(Units::skM_S2, tr("m/s%1").arg(QChar(0x00B2)));
+    mTextEngine.setReplacement(Units::skM_S2_N, tr("(m/s%1)/N").arg(QChar(0x00B2)));
+    mTextEngine.setReplacement(Units::skM, tr("m"));
 }
 
 ReportSceneView::ReportSceneView(QWidget* pParent)
     : QGraphicsView(pParent)
+    , mZoomFactor(1.15)
 {
 }
 
@@ -623,14 +628,25 @@ void ReportSceneView::fitToPage()
     fitInView(scene()->sceneRect(), Qt::KeepAspectRatio);
 }
 
+//! Increase the view scale
+void ReportSceneView::zoomIn()
+{
+    scale(mZoomFactor, mZoomFactor);
+}
+
+//! Lower the view scale
+void ReportSceneView::zoomOut()
+{
+    scale(1.0 / mZoomFactor, 1.0 / mZoomFactor);
+}
+
 //! Enable scrolling and zooming
 void ReportSceneView::wheelEvent(QWheelEvent* pEvent)
 {
-    double const kScaleFactor = 1.15;
     if (pEvent->angleDelta().y() > 0)
-        scale(kScaleFactor, kScaleFactor);
+        zoomIn();
     else
-        scale(1.0 / kScaleFactor, 1.0 / kScaleFactor);
+        zoomOut();
 }
 
 ReportTextEditor::ReportTextEditor(QWidget* pParent)

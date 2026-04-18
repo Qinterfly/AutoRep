@@ -1,3 +1,4 @@
+#include <complex.h>
 #include <testlab/common.h>
 #include <QSvgGenerator>
 #include <QSvgRenderer>
@@ -9,15 +10,18 @@
 #include "reportsettings.h"
 #include "reporttextengine.h"
 #include "session.h"
+#include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
+using namespace Constants;
 
 // Helper function
 QRectF rotatedRect(QRectF const& rect, qreal angle);
 QVector<double> convert(std::vector<double> const& data);
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
+Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem);
 QList<GraphReportCurve> getDefaultCurves();
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
@@ -409,12 +413,9 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
         int numPoints = curve.points.size();
         for (int iPoint = 0; iPoint != numPoints; ++iPoint)
         {
-            // Find the response associated with the point which has the same direction
+            // Get the response which has the requested unit and direction
             GraphReportPoint const& point = curve.points[iPoint];
-            int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
-            if (iResponse < 0)
-                continue;
-            Testlab::Response const& response = bundle.responses[iResponse];
+            Testlab::Response response = getAcceleration(bundle, point, pItem);
 
             // Set the data
             QList<double> xData = convert(response.keys);
@@ -463,15 +464,12 @@ void GraphReportSceneItem::processMultiReIm()
     {
         ResponseBundle const& bundle = mCollection.get(iBundle);
 
-        // Find the response associated with the point which has the same direction
-        int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
-        if (iResponse < 0)
-            continue;
-        Testlab::Response const& response = bundle.responses[iResponse];
+        // Get the response which has the requested unit and direction
+        Testlab::Response response = getAcceleration(bundle, point, pItem);
 
         // Set the data
         QList<double> xData = convert(response.keys);
-        QList<double> yData = pItem->subType == GraphReportItem::kReal ? convert(response.realValues) : convert(response.imagValues);
+        QList<double> yData = pItem->subType == GraphReportItem::kMultiReal ? convert(response.realValues) : convert(response.imagValues);
         if (xData.isEmpty() || xData.size() != yData.size())
             continue;
 
@@ -654,4 +652,75 @@ int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, Re
             return i;
     }
     return iFound;
+}
+
+//! Helper function to retrieve acceleration response
+Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem)
+{
+    // Constants
+    double const kEps = std::numeric_limits<double>::epsilon();
+
+    // Find the acceleration response
+    Testlab::Response null;
+    int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
+    if (iResponse < 0)
+        return null;
+    Testlab::Response const accel = bundle.responses[iResponse];
+
+    // Check if the response has the requested unit or the units are not set
+    QString targetUnit = pItem->unit;
+    QString unit = QString::fromStdWString(accel.header.unit.name);
+    if (unit.isEmpty() || targetUnit.isEmpty() || unit == targetUnit)
+        return accel;
+
+    // Build up all the possible units as to choose from them later on
+    QMap<QString, Testlab::Response> responseSet;
+    responseSet[unit] = accel;
+
+    // Process the force, if presented
+    int numKeys = accel.keys.size();
+    int iForce = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kForce);
+    if (iForce >= 0)
+    {
+        Testlab::Response const force = bundle.responses[iForce];
+        Testlab::Response response = accel;
+        bool isFRF = unit == Units::skM_S2_N;
+        for (int i = 0; i != numKeys; ++i)
+        {
+            std::complex<double> a = {accel.realValues[i], accel.imagValues[i]};
+            std::complex<double> F = {force.realValues[i], force.imagValues[i]};
+            std::complex<double> r = {0.0, 0.0};
+            if (isFRF)
+                r = a * F;
+            else if (std::abs(F) > kEps)
+                r = a / F;
+            response.realValues[i] = r.real();
+            response.imagValues[i] = r.imag();
+        }
+        if (isFRF)
+            responseSet[Units::skM_S2] = response;
+        else
+            responseSet[Units::skM_S2_N] = response;
+    }
+
+    // Double integrate to compute displacements
+    if (responseSet.contains(Units::skM_S2))
+    {
+        Testlab::Response response = responseSet[Units::skM_S2];
+        for (int i = 0; i != numKeys; ++i)
+        {
+            std::complex<double> a = {response.realValues[i], response.imagValues[i]};
+            std::complex<double> r = {0.0, 0.0};
+            if (std::abs(response.keys[i]) > kEps)
+                r = -a / std::pow(2.0 * M_PI * response.keys[i], 2.0);
+            response.realValues[i] = r.real();
+            response.imagValues[i] = r.imag();
+        }
+        responseSet[Units::skM] = response;
+    }
+
+    // Return the result
+    if (responseSet.contains(targetUnit))
+        return responseSet[targetUnit];
+    return null;
 }
