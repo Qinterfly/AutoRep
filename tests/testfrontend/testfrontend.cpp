@@ -165,6 +165,12 @@ void TestFrontend::setFreqAmpPage()
     pDesigner->selectItem(0);
 }
 
+//! Set the modeshape page of the report
+void TestFrontend::setModeshapePage()
+{
+    // TODO
+}
+
 //! Make up the report
 void TestFrontend::buildReport()
 {

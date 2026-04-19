@@ -6,10 +6,18 @@ using namespace Backend::Core;
 // Helper functions
 QList<GraphReportCurve> generateDefaultCurves();
 
-ReportPage::ReportPage(QPageSize const& uSize, QString const& uName)
-    : size(uSize)
-    , name(uName)
+ReportPage::ReportPage()
 {
+    layout.setPageSize(QPageSize::A4);
+    layout.setMargins(QMargins(0, 0, 0, 0));
+    layout.setUnits(QPageLayout::Millimeter);
+    layout.setOrientation(QPageLayout::Portrait);
+}
+
+ReportPage::ReportPage(QString const& uName)
+    : ReportPage()
+{
+    name = uName;
 }
 
 ReportPage::ReportPage(ReportPage const& another)
@@ -22,7 +30,7 @@ ReportPage& ReportPage::operator=(ReportPage const& another)
     if (this == &another)
         return *this;
     clear();
-    size = another.size;
+    layout = another.layout;
     name = another.name;
     int numItems = another.mItems.size();
     mItems.resize(numItems);

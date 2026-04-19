@@ -2,7 +2,7 @@
 #define REPORTDOCUMENT_H
 
 #include <QList>
-#include <QPageSize>
+#include <QPageLayout>
 
 namespace Backend::Core
 {
@@ -14,7 +14,8 @@ class GraphReportCurve;
 class ReportPage
 {
 public:
-    ReportPage(QPageSize const& uSize = QPageSize::A4, QString const& uName = QString());
+    ReportPage();
+    ReportPage(QString const& uName);
     ReportPage(ReportPage const& another);
     ~ReportPage();
 
@@ -33,7 +34,7 @@ public:
     void clear();
 
 public:
-    QPageSize size;
+    QPageLayout layout;
     QString name;
 
 private:

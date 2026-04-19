@@ -72,9 +72,7 @@ void ReportDesigner::refresh()
 bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 {
     // Set up the printer
-    QPageLayout layout(mPage.size, QPageLayout::Portrait, QMarginsF(0, 0, 0, 0));
-    printer.setPageLayout(layout);
-    printer.setFullPage(true);
+    printer.setPageLayout(mPage.layout);
 
     // Set the view
     mpSceneView->fitToPage();
@@ -149,7 +147,7 @@ void ReportDesigner::drawAll()
     QSignalBlocker blockerScene(mpScene);
     QSignalBlocker blockerSceneView(mpSceneView);
     mpScene->clear();
-    mpScene->setSceneRect(mPage.size.rect(QPageSize::Millimeter));
+    mpScene->setSceneRect(mPage.layout.paintRect());
 
     // Set the text engine
     updateTextEngine();

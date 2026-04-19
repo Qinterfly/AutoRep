@@ -22,6 +22,7 @@ private slots:
     void setImRePage();
     void setMultiImRePage();
     void setFreqAmpPage();
+    void setModeshapePage();
     void buildReport();
     void writeReport();
 
