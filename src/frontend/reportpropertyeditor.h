@@ -39,6 +39,7 @@ public:
         kScaleRange,
         kNumTicks,
         kGridWidth,
+        kSwapAxes,
         kLegendAlignment,
         kShowLegend,
         kShowBundleFreq

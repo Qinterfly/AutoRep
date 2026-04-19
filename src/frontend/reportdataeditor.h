@@ -13,6 +13,11 @@ class CustomVariantPropertyManager;
 class QtVariantEditorFactory;
 class QtProperty;
 
+namespace Backend::Core
+{
+class ReportPage;
+}
+
 namespace Frontend
 {
 
@@ -42,7 +47,7 @@ class GraphReportDataEditor : public ReportDataEditor
     Q_OBJECT
 
 public:
-    GraphReportDataEditor(GeometryView* pGeometryView, QWidget* pParent = nullptr);
+    GraphReportDataEditor(GeometryView* pGeometryView, Backend::Core::ReportPage const& page, QWidget* pParent = nullptr);
     virtual ~GraphReportDataEditor() = default;
 
     Backend::Core::ReportItem::Type type() const override;
@@ -68,10 +73,15 @@ private:
 
 private:
     GeometryView* mpGeometryView;
+    Backend::Core::ReportPage const& mPage;
+
+    // Header
     QComboBox* mpSubTypeSelector;
     QComboBox* mpCoordDirSelector;
     QComboBox* mpResponseDirSelector;
     QComboBox* mpUnitSelector;
+    QComboBox* mpLinkSelector;
+
     QListWidget* mpCurveList;
     QListWidget* mpPointList;
 };

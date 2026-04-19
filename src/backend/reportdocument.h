@@ -24,6 +24,7 @@ public:
     ReportItem* get(int index);
     ReportItem const* get(int index) const;
     ReportItem* get(QString const& name);
+    ReportItem* get(QUuid const& id);
     void add(ReportItem* pItem);
     bool remove(ReportItem* pItem);
     void swap(int iFirst, int iSecond);

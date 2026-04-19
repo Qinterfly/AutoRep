@@ -135,6 +135,10 @@ void ReportPropertyEditor::addGraphProperties()
     pGridWidthProperty->setValue(pItem->gridWidth);
     mpEditor->addProperty(pGridWidthProperty);
 
+    QtVariantProperty* pSwapAxesProperty = mpManager->addProperty(kSwapAxes, QMetaType::Bool, tr("Swap axes"));
+    pSwapAxesProperty->setValue(pItem->swapAxes);
+    mpEditor->addProperty(pSwapAxesProperty);
+
     QtVariantProperty* pLegendAlignmentProperty = mpManager->addProperty(kLegendAlignment, QtVariantPropertyManager::enumTypeId(),
                                                                          tr("Legend alignment"));
     pLegendAlignmentProperty->setAttribute("enumNames", kAlignmentNames);
@@ -193,6 +197,9 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kGridWidth:
         static_cast<GraphReportItem*>(mpItem)->gridWidth = value.toDouble();
+        break;
+    case kSwapAxes:
+        static_cast<GraphReportItem*>(mpItem)->swapAxes = value.toBool();
         break;
     case kLegendAlignment:
         static_cast<GraphReportItem*>(mpItem)->legendAlignment = getAlignmentValue((Alignment) value.toInt());

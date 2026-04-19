@@ -67,6 +67,18 @@ ReportItem* ReportPage::get(QString const& name)
     return nullptr;
 }
 
+ReportItem* ReportPage::get(QUuid const& id)
+{
+    int numItems = mItems.size();
+    for (int i = 0; i != numItems; ++i)
+    {
+        ReportItem* pItem = mItems[i];
+        if (pItem->id == id)
+            return pItem;
+    }
+    return nullptr;
+}
+
 void ReportPage::add(ReportItem* pItem)
 {
     mItems.push_back(pItem);

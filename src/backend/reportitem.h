@@ -5,6 +5,7 @@
 #include <QFont>
 #include <QList>
 #include <QRect>
+#include <QUuid>
 
 namespace Backend::Core
 {
@@ -55,10 +56,12 @@ public:
     virtual ReportItem* clone() const = 0;
 
 public:
+    QUuid id;
     QString name;
     QRect rect;
     double angle;
     QFont font;
+    QUuid link;
 };
 
 //! Class to define a layout of a text element
@@ -131,8 +134,7 @@ public:
         kImag,
         kMultiReal,
         kMultiImag,
-        kFreqReal,
-        kFreqImag,
+        kFreqAmp,
         kModeshape
     };
     GraphReportItem();
@@ -161,9 +163,10 @@ public:
     double scaleRange;
     int numTicks;
     double gridWidth;
+    bool swapAxes;
     Qt::Alignment legendAlignment;
 
-    // Flags
+    // View
     bool showLegend;
     bool showBundleFreq;
 };

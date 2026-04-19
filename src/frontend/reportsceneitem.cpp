@@ -341,6 +341,9 @@ void GraphReportSceneItem::setState()
         case GraphReportItem::kMultiImag:
             processMultiReIm();
             break;
+        case GraphReportItem::kFreqAmp:
+            processFreqAmp();
+            break;
         case GraphReportItem::kModeshape:
             processModeshape(refBundle);
             break;
@@ -357,41 +360,47 @@ void GraphReportSceneItem::setState()
     mpPlot->legend->setVisible(pItem->showLegend && isPlottables);
     mpPlot->setLegendAlignment(pItem->legendAlignment);
 
+    // Get the axes
+    QCPAxis* pXAxis = mpPlot->xAxis;
+    QCPAxis* pYAxis = mpPlot->yAxis;
+    if (pItem->swapAxes)
+        std::swap(pXAxis, pYAxis);
+
     // Set the axes labels
-    mpPlot->xAxis->setTickLabelFont(pItem->font);
-    mpPlot->yAxis->setTickLabelFont(pItem->font);
-    mpPlot->xAxis->setLabelFont(pItem->font);
-    mpPlot->yAxis->setLabelFont(pItem->font);
-    mpPlot->xAxis->setLabel(mTextEngine.process(pItem->xLabel));
-    mpPlot->yAxis->setLabel(mTextEngine.process(pItem->yLabel));
+    pXAxis->setTickLabelFont(pItem->font);
+    pYAxis->setTickLabelFont(pItem->font);
+    pXAxis->setLabelFont(pItem->font);
+    pYAxis->setLabelFont(pItem->font);
+    pXAxis->setLabel(mTextEngine.process(pItem->xLabel));
+    pYAxis->setLabel(mTextEngine.process(pItem->yLabel));
 
     // Set the grid options
     QPen gridPen = QPen(kGridColor, pItem->gridWidth, Qt::DotLine);
-    mpPlot->xAxis->grid()->setPen(gridPen);
-    mpPlot->yAxis->grid()->setPen(gridPen);
-    mpPlot->xAxis->grid()->setZeroLinePen(gridPen);
-    mpPlot->yAxis->grid()->setZeroLinePen(gridPen);
+    pXAxis->grid()->setPen(gridPen);
+    pYAxis->grid()->setPen(gridPen);
+    pXAxis->grid()->setZeroLinePen(gridPen);
+    pYAxis->grid()->setZeroLinePen(gridPen);
 
     // Set the axes range
     mpPlot->rescaleAxes();
     if (isPlottables)
     {
-        mpPlot->xAxis->scaleRange(pItem->scaleRange);
-        mpPlot->yAxis->scaleRange(pItem->scaleRange);
+        pXAxis->scaleRange(pItem->scaleRange);
+        pYAxis->scaleRange(pItem->scaleRange);
     }
 
     // Set the axes ticks
     if (pItem->numTicks > 0)
     {
-        mpPlot->xAxis->ticker()->setTickCount(pItem->numTicks);
-        mpPlot->yAxis->ticker()->setTickCount(pItem->numTicks);
-        mpPlot->xAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
-        mpPlot->yAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
+        pXAxis->ticker()->setTickCount(pItem->numTicks);
+        pYAxis->ticker()->setTickCount(pItem->numTicks);
+        pXAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
+        pYAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
     }
     else
     {
-        mpPlot->xAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
-        mpPlot->yAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
+        pXAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
+        pYAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
     }
 
     // Render the plot
@@ -422,6 +431,8 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
             QList<double> yData = pItem->subType == GraphReportItem::kReal ? convert(response.realValues) : convert(response.imagValues);
             if (xData.isEmpty() || xData.size() != yData.size())
                 continue;
+            if (pItem->swapAxes)
+                std::swap(xData, yData);
 
             // Add the plottable
             addPlottable(xData, yData, curve, point.node);
@@ -472,6 +483,8 @@ void GraphReportSceneItem::processMultiReIm()
         QList<double> yData = pItem->subType == GraphReportItem::kMultiReal ? convert(response.realValues) : convert(response.imagValues);
         if (xData.isEmpty() || xData.size() != yData.size())
             continue;
+        if (pItem->swapAxes)
+            std::swap(xData, yData);
 
         // Set the curve for plotting
         int iDefaultCurve = Utility::getRepeatedIndex(iBundle, defaultCurves.size());
@@ -484,6 +497,68 @@ void GraphReportSceneItem::processMultiReIm()
         // Add the plottable
         QString name = tr("F = %1 N").arg(QString::number(bundle.force));
         addPlottable(xData, yData, currentCurve, name);
+    }
+}
+
+//! Process the item of the freq amplitude subtype
+void GraphReportSceneItem::processFreqAmp()
+{
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Loop through all the curves
+    int numCurves = pItem->curves.size();
+    int numBundles = mCollection.count();
+    for (int iCurve = 0; iCurve != numCurves; ++iCurve)
+    {
+        GraphReportCurve const& curve = pItem->curves[iCurve];
+
+        // Process only the first point
+        if (curve.isEmpty())
+            continue;
+        GraphReportPoint const& point = curve.points.first();
+
+        // Loop through all the bundles
+        QList<double> xData(numBundles, 0.0);
+        QList<double> yData(numBundles, 0.0);
+        for (int iBundle = 0; iBundle != numBundles; ++iBundle)
+        {
+            ResponseBundle const& bundle = mCollection.get(iBundle);
+            if (bundle.freq < std::numeric_limits<double>::epsilon())
+                continue;
+
+            // Get the response which has the requested unit and direction
+            Testlab::Response response = getAcceleration(bundle, point, pItem);
+            if (response.keys.size() == 0)
+                continue;
+
+            // Find the closest frequency to the resonance one
+            int iFound = -1;
+            double minDist = std::numeric_limits<double>::max();
+            int numKeys = response.keys.size();
+            for (int iKey = 0; iKey != numKeys; ++iKey)
+            {
+                double dist = std::abs(response.keys[iKey] - bundle.freq);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    iFound = iKey;
+                }
+            }
+
+            // Store the resonance frequency and response value
+            if (iFound > 0)
+            {
+                double re = response.imagValues[iFound];
+                double im = response.imagValues[iFound];
+                xData[iBundle] = response.keys[iFound];
+                yData[iBundle] = std::sqrt(std::pow(re, 2.0) + std::pow(im, 2.0));
+            }
+        }
+
+        // Add the curve
+        if (pItem->swapAxes)
+            std::swap(xData, yData);
+        addPlottable(xData, yData, curve, point.node);
     }
 }
 

@@ -39,9 +39,10 @@ void ReportDataEditor::setItem(ReportItem* pItem)
     refresh();
 }
 
-GraphReportDataEditor::GraphReportDataEditor(GeometryView* pGeometryView, QWidget* pParent)
+GraphReportDataEditor::GraphReportDataEditor(GeometryView* pGeometryView, ReportPage const& page, QWidget* pParent)
     : ReportDataEditor(pParent)
     , mpGeometryView(pGeometryView)
+    , mPage(page)
 {
     setFont(Utility::getFont());
     createContent();
@@ -82,8 +83,26 @@ void GraphReportDataEditor::refresh()
     QSignalBlocker blockerResponseDir(mpResponseDirSelector);
     Utility::setIndexByKey(mpResponseDirSelector, (int) pItem->responseDir);
 
+    // Set the link
+    QSignalBlocker blockerLink(mpLinkSelector);
+    mpLinkSelector->clear();
+    int numItems = mPage.count();
+    mpLinkSelector->addItem(QString(), QUuid());
+    for (int i = 0; i != numItems; ++i)
+    {
+        ReportItem const* pAnotherItem = mPage.get(i);
+        if (pAnotherItem->type() != ReportItem::kGraph)
+            continue;
+        if (pItem->id == pAnotherItem->id)
+            continue;
+        mpLinkSelector->addItem(pAnotherItem->name, pAnotherItem->id);
+        if (pItem->link == pAnotherItem->id)
+            mpLinkSelector->setCurrentIndex(mpLinkSelector->count() - 1);
+    }
+
     // Set the curve list
     QSignalBlocker blockerCurveList(mpCurveList);
+    mpCurveList->setEnabled(pItem->link.isNull());
     int iCurve = mpCurveList->currentRow();
     mpCurveList->clear();
     int numCurves = pItem->curves.size();
@@ -120,6 +139,7 @@ void GraphReportDataEditor::refresh()
 
     // Set the point list
     QSignalBlocker blockerPointList(mpPointList);
+    mpPointList->setEnabled(pItem->link.isNull());
     mpPointList->clear();
     mpPointList->parentWidget()->setVisible(pItem->subType == GraphReportItem::kModeshape);
     iCurve = mpCurveList->currentRow();
@@ -158,6 +178,7 @@ void GraphReportDataEditor::createConnections()
     connect(mpCoordDirSelector, &QComboBox::currentIndexChanged, this, &GraphReportDataEditor::processHeaderChanged);
     connect(mpResponseDirSelector, &QComboBox::currentIndexChanged, this, &GraphReportDataEditor::processHeaderChanged);
     connect(mpUnitSelector, &QComboBox::currentIndexChanged, this, &GraphReportDataEditor::processHeaderChanged);
+    connect(mpLinkSelector, &QComboBox::currentIndexChanged, this, &GraphReportDataEditor::processHeaderChanged);
 
     // List
     connect(mpCurveList, &QListWidget::itemSelectionChanged, this, &GraphReportDataEditor::processCurveSelected);
@@ -172,6 +193,7 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     mpCoordDirSelector = createDirComboBox();
     mpResponseDirSelector = createDirComboBox();
     mpUnitSelector = new QComboBox;
+    mpLinkSelector = new QComboBox;
 
     // Initialize the widgets
     mpSubTypeSelector->addItem(QString(), GraphReportItem::kNone);
@@ -179,8 +201,7 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     mpSubTypeSelector->addItem(tr("Im"), GraphReportItem::kImag);
     mpSubTypeSelector->addItem(tr("Multi Re"), GraphReportItem::kMultiReal);
     mpSubTypeSelector->addItem(tr("Multi Im"), GraphReportItem::kMultiImag);
-    mpSubTypeSelector->addItem(tr("Freq Re"), GraphReportItem::kFreqReal);
-    mpSubTypeSelector->addItem(tr("Freq Im"), GraphReportItem::kFreqImag);
+    mpSubTypeSelector->addItem(tr("Freq Amp"), GraphReportItem::kFreqAmp);
     mpSubTypeSelector->addItem(tr("Modeshape"), GraphReportItem::kModeshape);
     mpUnitSelector->addItem(QString());
     mpUnitSelector->addItem(tr("m/s%1").arg(QChar(0x00B2)), Units::skM_S2);
@@ -197,6 +218,8 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     pLayout->addWidget(mpCoordDirSelector, 2, 1);
     pLayout->addWidget(new QLabel(tr("Response dir: ")), 3, 0);
     pLayout->addWidget(mpResponseDirSelector, 3, 1);
+    pLayout->addWidget(new QLabel(tr("Link: ")), 4, 0);
+    pLayout->addWidget(mpLinkSelector, 4, 1);
     pLayout->addItem(new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Preferred), 0, 2);
 
     return pLayout;
@@ -484,6 +507,7 @@ void GraphReportDataEditor::processHeaderChanged()
     pItem->coordDir = (ReportDirection) mpCoordDirSelector->currentData().toInt();
     pItem->responseDir = (ReportDirection) mpResponseDirSelector->currentData().toInt();
     pItem->unit = mpUnitSelector->currentData().toString();
+    pItem->link = mpLinkSelector->currentData().toUuid();
 
     // Update the content
     refresh();

@@ -3,19 +3,23 @@
 using namespace Backend::Core;
 
 ReportItem::ReportItem()
-    : name(QString())
+    : id(QUuid::createUuid())
+    , name(QString())
     , rect(0, 0, 0, 0)
     , angle(0)
     , font("Times New Roman", 12)
+    , link(QUuid())
 {
 }
 
 ReportItem::ReportItem(ReportItem const* pAnother)
 {
+    id = pAnother->id;
     name = pAnother->name;
     rect = pAnother->rect;
     angle = pAnother->angle;
     font = pAnother->font;
+    link = pAnother->link;
 }
 
 TextReportItem::TextReportItem()
@@ -119,6 +123,7 @@ GraphReportItem::GraphReportItem()
     scaleRange = 1.1;
     numTicks = 5;
     gridWidth = 1.0;
+    swapAxes = false;
     legendAlignment = Qt::AlignRight | Qt::AlignTop;
 
     // Flags
@@ -153,6 +158,7 @@ ReportItem* GraphReportItem::clone() const
     pResult->scaleRange = scaleRange;
     pResult->numTicks = numTicks;
     pResult->gridWidth = gridWidth;
+    pResult->swapAxes = swapAxes;
     pResult->legendAlignment = legendAlignment;
 
     // Flags

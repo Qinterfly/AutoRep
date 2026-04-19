@@ -21,6 +21,7 @@ private slots:
     void addResponseBundles();
     void setImRePage();
     void setMultiImRePage();
+    void setFreqAmpPage();
     void buildReport();
     void writeReport();
 

@@ -150,7 +150,12 @@ void ReportDesigner::drawAll()
     QSignalBlocker blockerSceneView(mpSceneView);
     mpScene->clear();
     mpScene->setSceneRect(mPage.size.rect(QPageSize::Millimeter));
+
+    // Set the text engine
     updateTextEngine();
+
+    // Resolve item links
+    resolveItemLinks();
 
     // Draw all the objects
     drawItems();
@@ -270,6 +275,27 @@ void ReportDesigner::addItem(ReportItem::Type type)
     // Update the content of the widgets
     refresh();
     qInfo() << tr("The item is added to the report");
+}
+
+//! Duplicate the currently selected item
+void ReportDesigner::duplicateSelectedItems()
+{
+    // Check if there are any selected items
+    if (mSelectedItems.isEmpty())
+        return;
+
+    // Duplicate the selected items
+    int numSelected = mSelectedItems.size();
+    for (int i = 0; i != numSelected; ++i)
+    {
+        ReportItem* pCopyItem = mSelectedItems[i]->clone();
+        pCopyItem->name.append(tr(" (Copy)"));
+        mPage.add(pCopyItem);
+    }
+
+    // Update the designer
+    refresh();
+    qInfo() << tr("Items are duplicated and added to the report");
 }
 
 //! Remove the currently selected items
@@ -401,7 +427,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     {
         if (pItem->type() == ReportItem::kGraph)
         {
-            mpDataEditor = new GraphReportDataEditor(mpGeometryView);
+            mpDataEditor = new GraphReportDataEditor(mpGeometryView, mPage);
             connect(mpDataEditor, &ReportDataEditor::edited, this, &ReportDesigner::refresh);
         }
         if (mpDataEditor)
@@ -558,6 +584,8 @@ QWidget* ReportDesigner::createListWidget()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addAction(QIcon(":/icons/item-text.svg"), tr("Add text"), this, [this]() { addItem(ReportItem::kText); });
     pToolBar->addAction(QIcon(":/icons/item-graph.svg"), tr("Add graph"), this, [this]() { addItem(ReportItem::kGraph); });
+    pToolBar->addSeparator();
+    pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate"), this, &ReportDesigner::duplicateSelectedItems);
     pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/arrow-up.svg"), tr("Move up"), this, [this]() { moveSelectedItems(-1); });
@@ -611,6 +639,25 @@ void ReportDesigner::updateTextEngine()
     mTextEngine.setReplacement(Units::skM_S2, tr("m/s%1").arg(QChar(0x00B2)));
     mTextEngine.setReplacement(Units::skM_S2_N, tr("(m/s%1)/N").arg(QChar(0x00B2)));
     mTextEngine.setReplacement(Units::skM, tr("m"));
+}
+
+//! Resolve item dependencies
+void ReportDesigner::resolveItemLinks()
+{
+    int numItems = mPage.count();
+    for (int i = 0; i != numItems; ++i)
+    {
+        ReportItem* pSlaveItem = mPage.get(i);
+        if (!pSlaveItem->link.isNull())
+        {
+            ReportItem* pMasterItem = mPage.get(pSlaveItem->link);
+            if (pMasterItem && pMasterItem->type() == pSlaveItem->type())
+            {
+                if (pMasterItem->type() == GraphReportItem::kGraph)
+                    static_cast<GraphReportItem*>(pSlaveItem)->curves = static_cast<GraphReportItem*>(pMasterItem)->curves;
+            }
+        }
+    }
 }
 
 ReportSceneView::ReportSceneView(QWidget* pParent)

@@ -71,6 +71,7 @@ private:
 
     // Slots
     void addItem(Backend::Core::ReportItem::Type type);
+    void duplicateSelectedItems();
     void removeSelectedItems();
     void moveSelectedItems(int iShift);
     void selectByList();
@@ -82,6 +83,7 @@ private:
 
     // Helper
     void updateTextEngine();
+    void resolveItemLinks();
 
 private:
     QSettings& mSettings;

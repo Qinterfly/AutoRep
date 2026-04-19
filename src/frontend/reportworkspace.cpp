@@ -12,10 +12,12 @@
 
 using namespace Frontend;
 using namespace Backend::Core;
+using namespace Constants;
 
 // Helper function
 ReportPage createImRePage();
 ReportPage createMultiImRePage();
+ReportPage createFreqAmpPage();
 
 ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent)
     : QWidget(pParent)
@@ -151,6 +153,7 @@ void ReportWorkspace::initialize()
 {
     mDocument.pages.push_back(createImRePage());
     mDocument.pages.push_back(createMultiImRePage());
+    mDocument.pages.push_back(createFreqAmpPage());
 }
 
 //! Replot the designer tabs
@@ -208,7 +211,7 @@ ReportPage createImRePage()
     pImag->rect = QRect(25, 35, 150, 110);
     pImag->subType = GraphReportItem::kImag;
     pImag->responseDir = ReportDirection::kY;
-    pImag->unit = "m/s^2";
+    pImag->unit = Units::skM_S2;
     pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, ${UNIT}");
     pImag->showBundleFreq = true;
@@ -219,7 +222,8 @@ ReportPage createImRePage()
     pReal->rect = QRect(25, 150, 150, 110);
     pReal->subType = GraphReportItem::kReal;
     pReal->responseDir = ReportDirection::kY;
-    pReal->unit = "m/s^2";
+    pReal->unit = Units::skM_S2;
+    pReal->link = pImag->id;
     pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, ${UNIT}");
     pReal->showBundleFreq = true;
@@ -263,7 +267,7 @@ ReportPage createMultiImRePage()
     pImag->rect = QRect(25, 35, 150, 110);
     pImag->subType = GraphReportItem::kMultiImag;
     pImag->responseDir = ReportDirection::kY;
-    pImag->unit = "m/s^2";
+    pImag->unit = Units::skM_S2;
     pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, ${UNIT}");
 
@@ -273,7 +277,8 @@ ReportPage createMultiImRePage()
     pReal->rect = QRect(25, 150, 150, 110);
     pReal->subType = GraphReportItem::kMultiReal;
     pReal->responseDir = ReportDirection::kY;
-    pReal->unit = "m/s^2";
+    pReal->unit = Units::skM_S2;
+    pReal->link = pImag->id;
     pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, ${UNIT}");
 
@@ -298,6 +303,49 @@ ReportPage createMultiImRePage()
     // Combine
     page.add(pImag);
     page.add(pReal);
+    page.add(pTitle);
+    page.add(pCaption);
+    page.add(pNumber);
+
+    return page;
+}
+
+//! Helper function to create a default page with freq imaginary and real parts of a spectrum
+ReportPage createFreqAmpPage()
+{
+    ReportPage page(QPageSize::A4, QObject::tr("Freq Amp"));
+
+    // Create an imaginary graph
+    GraphReportItem* pAmp = new GraphReportItem;
+    pAmp->name = QObject::tr("Amplitude");
+    pAmp->rect = QRect(25, 35, 150, 110);
+    pAmp->subType = GraphReportItem::kFreqAmp;
+    pAmp->responseDir = ReportDirection::kY;
+    pAmp->unit = Units::skM;
+    pAmp->xLabel = QObject::tr("f, Hz");
+    pAmp->yLabel = QObject::tr("a, ${UNIT}");
+    pAmp->swapAxes = true;
+
+    // Create title
+    TextReportItem* pTitle = new TextReportItem;
+    pTitle->name = QObject::tr("Title");
+    pTitle->rect = QRect(25, 10, 150, 20);
+    pTitle->text = QObject::tr("Mode name\nExcitation");
+
+    // Create the caption
+    TextReportItem* pCaption = new TextReportItem;
+    pCaption->name = QObject::tr("Caption");
+    pCaption->rect = QRect(65, 265, 80, 10);
+    pCaption->text = QObject::tr("Figure X.YY");
+
+    // Create the page number
+    TextReportItem* pNumber = new TextReportItem;
+    pNumber->name = QObject::tr("Page number");
+    pNumber->rect = QRect(100, 280, 10, 10);
+    pNumber->text = QObject::tr("Z");
+
+    // Combine
+    page.add(pAmp);
     page.add(pTitle);
     page.add(pCaption);
     page.add(pNumber);

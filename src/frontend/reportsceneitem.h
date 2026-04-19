@@ -125,6 +125,7 @@ private:
     void setState();
     void processReIm(Backend::Core::ResponseBundle const& bundle);
     void processMultiReIm();
+    void processFreqAmp();
     void processModeshape(Backend::Core::ResponseBundle const& bundle);
 
     void addPlottable(QList<double> const& xData, QList<double> const& yData, Backend::Core::GraphReportCurve const& curve,
