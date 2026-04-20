@@ -748,6 +748,41 @@ void GraphReportSceneItem::renderToBuffer(QBuffer& buffer, QSize const& size)
     painter.end();
 }
 
+PictureReportSceneItem::PictureReportSceneItem(PictureReportItem* pItem, QGraphicsItem* pParent)
+    : ReportSceneItem(pItem, pParent)
+{
+}
+
+//! Render the vector picture content
+void PictureReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
+{
+    PictureReportItem* pItem = (PictureReportItem*) mpItem;
+    QSvgRenderer renderer(pItem->content);
+    if (renderer.isValid())
+    {
+        pPainter->save();
+        renderer.render(pPainter, mpItem->rect);
+        pPainter->restore();
+    }
+    else
+    {
+        pPainter->setPen(Qt::black);
+        pPainter->fillRect(mpItem->rect, Qt::lightGray);
+    }
+    ReportSceneItem::paint(pPainter, pOption, pWidget);
+}
+
+TableReportSceneItem::TableReportSceneItem(TableReportItem* pItem, QGraphicsItem* pParent)
+    : ReportSceneItem(pItem, pParent)
+{
+}
+
+//! Render the table content
+void TableReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
+{
+    // TODO
+}
+
 //! Helper function to compute rotated rectangle
 QRectF rotatedRect(QRectF const& rect, qreal angle)
 {

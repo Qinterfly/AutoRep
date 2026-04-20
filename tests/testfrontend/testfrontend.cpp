@@ -144,7 +144,8 @@ void TestFrontend::setFreqAmpPage()
     // Get the items
     ReportPage& page = pDesigner->page();
     GraphReportItem* pAmp = (GraphReportItem*) page.get(0);
-    TextReportItem* pTitle = (TextReportItem*) page.get(1);
+    PictureReportItem* pPic = (PictureReportItem*) page.get(1);
+    TextReportItem* pTitle = (TextReportItem*) page.get(2);
 
     // Add the curves
     int numPoints = points.size();
@@ -154,6 +155,9 @@ void TestFrontend::setFreqAmpPage()
         curve.lineColor = colors[i];
         curve.markerShape = markerShapes[i];
     }
+
+    // Set the picture
+    pPic->load(Utility::combineFilePath(INPUT_DIR, "picture.svg"));
 
     // Set the title
     pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей";

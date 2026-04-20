@@ -46,7 +46,9 @@ public:
     enum Type
     {
         kText,
-        kGraph
+        kGraph,
+        kPicture,
+        kTable
     };
     ReportItem();
     ReportItem(ReportItem const* pAnother);
@@ -171,6 +173,40 @@ public:
     // View
     bool showLegend;
     bool showBundleFreq;
+};
+
+//! Class to define a layout of a picture element
+class PictureReportItem : public ReportItem
+{
+public:
+    PictureReportItem();
+    PictureReportItem(ReportItem const* pAnother);
+    virtual ~PictureReportItem() = default;
+
+    Type type() const override;
+    ReportItem* clone() const override;
+
+    bool load(QString const& pathFile);
+
+public:
+    QByteArray content;
+};
+
+//! Class to define a layout of a table element
+class TableReportItem : public ReportItem
+{
+public:
+    TableReportItem();
+    TableReportItem(ReportItem const* pAnother);
+    virtual ~TableReportItem() = default;
+
+    Type type() const override;
+    ReportItem* clone() const override;
+
+public:
+    QStringList horizLabels;
+    QStringList vertLabels;
+    QList<QStringList> content;
 };
 }
 

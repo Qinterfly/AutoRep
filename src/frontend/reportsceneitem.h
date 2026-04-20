@@ -21,6 +21,8 @@ class ResponseCollection;
 class ResponseBundle;
 class GraphReportCurve;
 class ReportDefaults;
+class PictureReportItem;
+class TableReportItem;
 }
 
 namespace Frontend
@@ -151,6 +153,31 @@ private:
     CustomPlot* mpPlot;
 };
 
+//! Class to render pictures
+class PictureReportSceneItem : public ReportSceneItem
+{
+    Q_OBJECT
+
+public:
+    PictureReportSceneItem(Backend::Core::PictureReportItem* pItem, QGraphicsItem* pParent = nullptr);
+    virtual ~PictureReportSceneItem() = default;
+
+protected:
+    void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
+};
+
+//! Class to render tables
+class TableReportSceneItem : public ReportSceneItem
+{
+    Q_OBJECT
+
+public:
+    TableReportSceneItem(Backend::Core::TableReportItem* pItem, QGraphicsItem* pParent = nullptr);
+    virtual ~TableReportSceneItem() = default;
+
+protected:
+    void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
+};
 }
 
 #endif // REPORTSCENEITEM_H

@@ -328,6 +328,11 @@ ReportPage createFreqAmpPage()
     pAmp->yLabel = QObject::tr("a, ${UNIT}");
     pAmp->swapAxes = true;
 
+    // Create a picture
+    PictureReportItem* pPic = new PictureReportItem;
+    pPic->name = QObject::tr("Picture");
+    pPic->rect = QRect(25, 150, 150, 110);
+
     // Create title
     TextReportItem* pTitle = new TextReportItem;
     pTitle->name = QObject::tr("Title");
@@ -348,6 +353,7 @@ ReportPage createFreqAmpPage()
 
     // Combine
     page.add(pAmp);
+    page.add(pPic);
     page.add(pTitle);
     page.add(pCaption);
     page.add(pNumber);

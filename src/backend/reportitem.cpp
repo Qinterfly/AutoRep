@@ -1,3 +1,5 @@
+#include <QFile>
+
 #include "reportitem.h"
 
 using namespace Backend::Core;
@@ -196,4 +198,58 @@ GraphReportCurve& GraphReportItem::addCurve(QStringList const& points, QString c
 GraphReportCurve& GraphReportItem::addPoint(QString const& point, QString const& name)
 {
     return addCurve({point}, name);
+}
+
+PictureReportItem::PictureReportItem()
+{
+}
+
+PictureReportItem::PictureReportItem(ReportItem const* pAnother)
+    : ReportItem(pAnother)
+{
+}
+
+ReportItem::Type PictureReportItem::type() const
+{
+    return ReportItem::kPicture;
+}
+
+ReportItem* PictureReportItem::clone() const
+{
+    PictureReportItem* pResult = new PictureReportItem(this);
+    pResult->content = content;
+    return pResult;
+}
+
+bool PictureReportItem::load(QString const& pathFile)
+{
+    QFile file(pathFile);
+    if (!file.open(QIODevice::ReadOnly))
+        return false;
+    content = file.readAll();
+    file.close();
+    return true;
+}
+
+TableReportItem::TableReportItem()
+{
+}
+
+TableReportItem::TableReportItem(ReportItem const* pAnother)
+    : ReportItem(pAnother)
+{
+}
+
+ReportItem::Type TableReportItem::type() const
+{
+    return ReportItem::kTable;
+}
+
+ReportItem* TableReportItem::clone() const
+{
+    TableReportItem* pResult = new TableReportItem(this);
+    pResult->horizLabels = horizLabels;
+    pResult->vertLabels = vertLabels;
+    pResult->content = content;
+    return pResult;
 }

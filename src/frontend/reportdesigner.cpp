@@ -204,6 +204,12 @@ void ReportDesigner::drawItems()
             pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mTextEngine, mpResponseEditor->collection(),
                                                   mpResponseEditor->iSelectedBundle(), mpGeometryView->getGeometry());
             break;
+        case ReportItem::kPicture:
+            pSceneItem = new PictureReportSceneItem((PictureReportItem*) pReportItem);
+            break;
+        case ReportItem::kTable:
+            pSceneItem = new TableReportSceneItem((TableReportItem*) pReportItem);
+            break;
         default:
             break;
         }
@@ -281,6 +287,14 @@ void ReportDesigner::addItem(ReportItem::Type type)
     case ReportItem::kGraph:
         pItem = new GraphReportItem;
         pItem->rect = QRect(50, 80, 100, 100);
+        break;
+    case ReportItem::kPicture:
+        pItem = new PictureReportItem;
+        pItem->rect = QRect(50, 130, 100, 100);
+        break;
+    case ReportItem::kTable:
+        pItem = new TableReportItem;
+        pItem->rect = QRect(50, 150, 100, 100);
         break;
     default:
         break;
@@ -473,6 +487,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     }
 }
 
+//! Process editing items on the scene
 void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
 {
     // Edit only the text items
@@ -486,7 +501,16 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
 
     // Show the editor
     if (pReportItem->type() == ReportItem::kText)
+    {
         mpTextEditor->startEditing(viewRect, (TextReportItem*) pReportItem);
+    }
+    else if (pReportItem->type() == ReportItem::kPicture)
+    {
+        QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Picture"), Utility::getLastDirectory(mSettings).path(),
+                                                        tr("Picture file format (*.svg)"));
+        if (!pathFile.isEmpty())
+            static_cast<PictureReportItem*>(pReportItem)->load(pathFile);
+    }
 }
 
 //! Create all the widgets
@@ -620,6 +644,8 @@ QWidget* ReportDesigner::createListWidget()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addAction(QIcon(":/icons/item-text.svg"), tr("Add text"), this, [this]() { addItem(ReportItem::kText); });
     pToolBar->addAction(QIcon(":/icons/item-graph.svg"), tr("Add graph"), this, [this]() { addItem(ReportItem::kGraph); });
+    pToolBar->addAction(QIcon(":/icons/item-picture.svg"), tr("Add picture"), this, [this]() { addItem(ReportItem::kPicture); });
+    pToolBar->addAction(QIcon(":/icons/item-table.svg"), tr("Add table"), this, [this]() { addItem(ReportItem::kTable); });
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate"), this, &ReportDesigner::duplicateSelectedItems);
     pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
@@ -802,6 +828,14 @@ QListWidgetItem* createListItem(ReportPage const& page, int index)
     case ReportItem::kGraph:
         icon = QIcon(":/icons/item-graph.svg");
         prefix = QObject::tr("Graph");
+        break;
+    case ReportItem::kPicture:
+        icon = QIcon(":/icons/item-picture.svg");
+        prefix = QObject::tr("Picture");
+        break;
+    case ReportItem::kTable:
+        icon = QIcon(":/icons/item-table.svg");
+        prefix = QObject::tr("Table");
         break;
     default:
         break;
