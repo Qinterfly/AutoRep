@@ -244,7 +244,7 @@ ReportPage createImRePage()
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page number");
+    pNumber->name = QObject::tr("Page");
     pNumber->rect = QRect(100, 280, 10, 10);
     pNumber->text = QObject::tr("Z");
 
@@ -298,7 +298,7 @@ ReportPage createMultiImRePage()
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page number");
+    pNumber->name = QObject::tr("Page");
     pNumber->rect = QRect(100, 280, 10, 10);
     pNumber->text = QObject::tr("Z");
 
@@ -342,7 +342,7 @@ ReportPage createFreqAmpPage()
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page number");
+    pNumber->name = QObject::tr("Page");
     pNumber->rect = QRect(100, 280, 10, 10);
     pNumber->text = QObject::tr("Z");
 
@@ -424,7 +424,7 @@ ReportPage createModeshapePage()
 
     // Create the page number
     TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page number");
+    pNumber->name = QObject::tr("Page");
     pNumber->rect = QRect(5, 100, 10, 10);
     pNumber->text = QObject::tr("Z");
     pNumber->angle = 90;

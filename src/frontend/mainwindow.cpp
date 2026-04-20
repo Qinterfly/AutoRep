@@ -74,7 +74,7 @@ void MainWindow::createContent()
     pSplitter->addWidget(mpReportWorkspace);
     pSplitter->setHandleWidth(3);
     pSplitter->setStretchFactor(0, 4);
-    pSplitter->setStretchFactor(1, 5);
+    pSplitter->setStretchFactor(1, 7);
     setCentralWidget(pSplitter);
 
     // Create the status bar
@@ -88,7 +88,6 @@ void MainWindow::createConnections()
     // Response editor
     connect(mpSessionEditor->responseEditor(), &ResponseEditor::edited, mpReportWorkspace, &ReportWorkspace::refresh);
     connect(mpSessionEditor->responseEditor(), &ResponseEditor::selected, mpReportWorkspace, &ReportWorkspace::refresh);
-    // TODO
 }
 
 //! Create the action to change the application language

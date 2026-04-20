@@ -72,14 +72,37 @@ void ReportDesigner::refresh()
 bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 {
     // Set up the printer
-    printer.setPageLayout(mPage.layout);
+    QPageLayout printLayout = mPage.layout;
+    printLayout.setOrientation(QPageLayout::Portrait); // Force the portrait orientation for printing
+    printer.setPageLayout(printLayout);
 
     // Set the view
     mpSceneView->fitToPage();
 
-    // Render the scene to the painter
+    // Render the scene
     mIsPrinting = true;
     drawAll();
+
+    // Change the orientation, if necessary
+    if (mPage.layout.orientation() == QPageLayout::Landscape)
+    {
+        QRectF target = printer.pageRect(QPrinter::Millimeter);
+        QRectF source = mpScene->sceneRect();
+
+        // Rotate coordinate system
+        painter.translate(0, target.height());
+        painter.rotate(-90);
+
+        // Scale to fit
+        qreal scale = target.height() / source.height();
+        painter.scale(scale, scale);
+
+        // Center it
+        painter.translate(-scale * target.height(), 0.0);
+        painter.translate(-source.width() / 2.0, 0.0);
+    }
+
+    // Render to the painter
     mpScene->render(&painter);
 
     // Restore the scene state
