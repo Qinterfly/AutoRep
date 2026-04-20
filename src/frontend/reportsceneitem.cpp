@@ -26,7 +26,7 @@ QVector<double> convert(std::vector<double> const& data);
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
 Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem);
 int findClosestKey(Testlab::Response const& response, double searchKey);
-std::vector<double> getCoordinates(Testlab::Geometry const& geometry, GraphReportPoint const& point);
+std::vector<double> getCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point);
 QString getDirLabel(ReportDirection dir);
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
@@ -612,7 +612,7 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
                 continue;
 
             // Get the point coordinates
-            std::vector<double> coords = getCoordinates(mGeometry, point);
+            std::vector<double> coords = getCoords(mGeometry, point);
             if (coords.empty())
                 continue;
 
@@ -876,7 +876,7 @@ int findClosestKey(Testlab::Response const& response, double searchKey)
 }
 
 //! Helper function to get point location
-std::vector<double> getCoordinates(Testlab::Geometry const& geometry, GraphReportPoint const& point)
+std::vector<double> getCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point)
 {
     int numComponents = geometry.components.size();
     for (int iComponent = 0; iComponent != numComponents; ++iComponent)

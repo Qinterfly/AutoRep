@@ -6,7 +6,7 @@
 #include "reportitem.h"
 
 QT_FORWARD_DECLARE_CLASS(QComboBox)
-QT_FORWARD_DECLARE_CLASS(QListWidget)
+QT_FORWARD_DECLARE_CLASS(QTreeWidget)
 
 class QtTreePropertyBrowser;
 class CustomVariantPropertyManager;
@@ -59,7 +59,7 @@ public:
     void editSelectedCurve();
     void replaceSelectedCurve();
     void renameSelectedCurve();
-    void removeSelectedCurve();
+    void removeSelected();
     QList<Backend::Core::GraphReportPoint> getSelectedPoints();
 
 private:
@@ -67,10 +67,16 @@ private:
     void createConnections();
     QLayout* createHeaderLayout();
     QWidget* createToolBar();
-    QLayout* createCurveLayout();
+    QLayout* createTreeLayout();
+
+    // Widgets
+    void refreshHeader();
+    void refreshTree();
 
     // Slots
-    void processCurveSelected();
+    QPair<int, int> getTreeSelected();
+    void setTreeSelected(int iCurve, int iPoint = -1);
+    void processTreeSelected();
     void processHeaderChanged();
 
 private:
@@ -85,7 +91,7 @@ private:
     QComboBox* mpLinkSelector;
 
     // Curves
-    QListWidget* mpCurveList;
+    QTreeWidget* mpCurveTree;
 };
 
 class ReportCurvePropertyEditor : public QWidget
@@ -100,6 +106,7 @@ public:
         kLineColor,
         kMarkerShape,
         kMarkerSize,
+        kMarkerFill
     };
 
     ReportCurvePropertyEditor(Backend::Core::GraphReportCurve& curve, QWidget* pParent = nullptr);

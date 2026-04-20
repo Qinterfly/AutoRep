@@ -83,7 +83,7 @@ void SessionEditor::createContent()
     pTabWidget->setTabsClosable(false);
     pTabWidget->addTab(mpGeometryView, tr("Geometry"));
     pTabWidget->addTab(mpResponseEditor, tr("Responses"));
-    pTabWidget->setCurrentIndex(1);
+    pTabWidget->setCurrentIndex(0);
 
     // Create the main layout
     QVBoxLayout* pMainLayout = new QVBoxLayout;
