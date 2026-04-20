@@ -136,23 +136,6 @@ void GraphReportDataEditor::refresh()
     }
     if (iCurve >= 0 && iCurve < numCurves)
         mpCurveList->setCurrentRow(iCurve);
-
-    // Set the point list
-    QSignalBlocker blockerPointList(mpPointList);
-    mpPointList->setEnabled(pItem->link.isNull());
-    mpPointList->clear();
-    mpPointList->parentWidget()->setVisible(pItem->subType == GraphReportItem::kModeshape);
-    iCurve = mpCurveList->currentRow();
-    if (iCurve >= 0 && iCurve < numCurves)
-    {
-        GraphReportCurve const& curve = pItem->curves[iCurve];
-        int numPoints = curve.points.size();
-        for (int i = 0; i != numPoints; ++i)
-        {
-            QListWidgetItem* pPoint = new QListWidgetItem(curve.points[i].name());
-            mpPointList->addItem(pPoint);
-        }
-    }
 }
 
 ReportItem::Type GraphReportDataEditor::type() const
@@ -246,41 +229,21 @@ QWidget* GraphReportDataEditor::createToolBar()
 QLayout* GraphReportDataEditor::createCurveLayout()
 {
     // Constants
-    QMargins const kMargins(3, 3, 3, 3);
     QSize const kIconSize(32, 32);
 
     // Create the lists
     mpCurveList = new QListWidget;
-    mpPointList = new QListWidget;
 
     // Initialize the lists
     mpCurveList->setFont(font());
-    mpPointList->setFont(font());
     mpCurveList->setSelectionMode(QListWidget::SingleSelection);
-    mpPointList->setSelectionMode(QListWidget::NoSelection);
     mpCurveList->setIconSize(kIconSize);
-    mpPointList->setIconSize(kIconSize);
-
-    // Create the curve group box
-    QGroupBox* pCurveGroupBox = new QGroupBox(tr("Curves"));
-    QVBoxLayout* pCurveLayout = new QVBoxLayout;
-    pCurveLayout->setContentsMargins(kMargins);
-    pCurveLayout->addWidget(mpCurveList);
-    pCurveGroupBox->setLayout(pCurveLayout);
-
-    // Create the point group box
-    QGroupBox* pPointGroupBox = new QGroupBox(tr("Points"));
-    QVBoxLayout* pPointLayout = new QVBoxLayout;
-    pPointLayout->setContentsMargins(kMargins);
-    pPointLayout->addWidget(mpPointList);
-    pPointGroupBox->setLayout(pPointLayout);
 
     // Combine the widgets
-    QHBoxLayout* pMainLayout = new QHBoxLayout;
-    pMainLayout->addWidget(pCurveGroupBox);
-    pMainLayout->addWidget(pPointGroupBox);
+    QVBoxLayout* pLayout = new QVBoxLayout;
+    pLayout->addWidget(mpCurveList);
 
-    return pMainLayout;
+    return pLayout;
 }
 
 //! Add a new curve

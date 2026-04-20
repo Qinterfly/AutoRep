@@ -78,6 +78,7 @@ private:
     void selectByScene();
     void changeItemByList(QListWidgetItem* pListItem);
     void setScaleBySelector();
+    void changePageOrientation();
     void setDataEditor(Backend::Core::ReportItem* pItem);
     void processEditItemRequest(ReportSceneItem* pSceneItem);
 

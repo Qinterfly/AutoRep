@@ -104,6 +104,7 @@ public:
     GraphReportCurve(QList<GraphReportPoint> const& uPoints, QString const& uName = QString());
     GraphReportCurve(QList<QString> const& uPoints, QString const& uName = QString());
     GraphReportCurve(QColor const& uLineColor, ReportMarkerShape const& uMarkerShape, bool uMarkerFill = false);
+    GraphReportCurve(QList<QString> const& uPoints, QColor const& uLineColor, ReportMarkerShape const& uMarkerShape, bool uMarkerFill = false);
     ~GraphReportCurve() = default;
 
     bool isEmpty() const;
@@ -145,6 +146,7 @@ public:
     ReportItem* clone() const override;
 
     bool isMultiPointCurve() const;
+    void addCurve(GraphReportCurve const& curve);
     GraphReportCurve& addCurve(QStringList const& points, QString const& name = QString());
     GraphReportCurve& addPoint(QString const& point, QString const& name = QString());
 

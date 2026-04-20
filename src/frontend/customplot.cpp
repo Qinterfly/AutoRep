@@ -59,9 +59,22 @@ QString CustomPlot::title() const
     return mpTitle->text();
 }
 
+//! Add the title to the layout
+void CustomPlot::addTitle()
+{
+    if (mpTitle)
+        return;
+    plotLayout()->insertRow(0);
+    mpTitle = new QCPTextElement(this, QString());
+    plotLayout()->addElement(0, 0, mpTitle);
+    connect(mpTitle, &QCPTextElement::doubleClicked, this, &CustomPlot::renameTitle);
+}
+
+//! Set the title text
 void CustomPlot::setTitle(QString const& title)
 {
-    mpTitle->setText(title);
+    if (mpTitle)
+        mpTitle->setText(title);
 }
 
 void CustomPlot::setLegendAlignment(QFlags<Qt::AlignmentFlag> const& flags)
@@ -114,11 +127,8 @@ void CustomPlot::initializePlot()
     QFont font = Utility::getFont();
     setFont(font);
 
-    // Create the title
-    plotLayout()->insertRow(0);
-    font.setBold(true);
-    mpTitle = new QCPTextElement(this, QString(), font);
-    plotLayout()->addElement(0, 0, mpTitle);
+    // Set the title
+    mpTitle = nullptr;
 }
 
 void CustomPlot::createActions()
@@ -148,7 +158,6 @@ void CustomPlot::specifyConnections()
     // Rename text elements
     connect(this, &CustomPlot::axisDoubleClick, this, &CustomPlot::renameAxis);
     connect(this, &CustomPlot::legendDoubleClick, this, &CustomPlot::renamePlottable);
-    connect(mpTitle, &QCPTextElement::doubleClicked, this, &CustomPlot::renameTitle);
 
     // Drag and zoom axes
     connect(this, &CustomPlot::mousePress, this, &CustomPlot::processMousePress);

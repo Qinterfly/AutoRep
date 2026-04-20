@@ -109,6 +109,16 @@ GraphReportCurve::GraphReportCurve(QColor const& uLineColor, ReportMarkerShape c
     markerFill = uMarkerFill;
 }
 
+GraphReportCurve::GraphReportCurve(QList<QString> const& uPoints, QColor const& uLineColor, ReportMarkerShape const& uMarkerShape,
+                                   bool uMarkerFill)
+    : GraphReportCurve(uLineColor, uMarkerShape, uMarkerFill)
+{
+    int numPoints = uPoints.size();
+    points.resize(numPoints);
+    for (int i = 0; i != numPoints; ++i)
+        points[i] = GraphReportPoint(uPoints[i]);
+}
+
 bool GraphReportCurve::isEmpty() const
 {
     return points.isEmpty();
@@ -171,6 +181,11 @@ ReportItem* GraphReportItem::clone() const
 bool GraphReportItem::isMultiPointCurve() const
 {
     return subType == GraphReportItem::kModeshape;
+}
+
+void GraphReportItem::addCurve(GraphReportCurve const& curve)
+{
+    curves.push_back(curve);
 }
 
 GraphReportCurve& GraphReportItem::addCurve(QStringList const& points, QString const& name)

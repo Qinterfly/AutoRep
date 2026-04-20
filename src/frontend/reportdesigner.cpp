@@ -11,6 +11,7 @@
 #include <QWheelEvent>
 
 #include "customtabwidget.h"
+#include "geometryview.h"
 #include "reportdataeditor.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
@@ -201,7 +202,7 @@ void ReportDesigner::drawItems()
             break;
         case ReportItem::kGraph:
             pSceneItem = new GraphReportSceneItem((GraphReportItem*) pReportItem, mTextEngine, mpResponseEditor->collection(),
-                                                  mpResponseEditor->iSelectedBundle());
+                                                  mpResponseEditor->iSelectedBundle(), mpGeometryView->getGeometry());
             break;
         default:
             break;
@@ -424,6 +425,19 @@ void ReportDesigner::setScaleBySelector()
     mpSceneView->scale(scale, scale);
 }
 
+//! Change page orientation to portrait (landscape)
+void ReportDesigner::changePageOrientation()
+{
+    // Change the orientation
+    if (mPage.layout.orientation() == QPageLayout::Portrait)
+        mPage.layout.setOrientation(QPageLayout::Landscape);
+    else
+        mPage.layout.setOrientation(QPageLayout::Portrait);
+
+    // Redraw the scene
+    drawAll();
+}
+
 //! Set the editor for item data
 void ReportDesigner::setDataEditor(ReportItem* pItem)
 {
@@ -577,6 +591,7 @@ QWidget* ReportDesigner::createSceneWidget()
     pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
+    pToolBar->addAction(QIcon(":/icons/page-orientation.svg"), tr("Change page orientation"), this, &ReportDesigner::changePageOrientation);
     pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);

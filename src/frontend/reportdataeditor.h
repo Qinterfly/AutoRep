@@ -23,6 +23,7 @@ namespace Frontend
 
 class GeometryView;
 
+//! General class to edit report item data
 class ReportDataEditor : public QWidget
 {
     Q_OBJECT
@@ -42,6 +43,7 @@ protected:
     Backend::Core::ReportItem* mpItem;
 };
 
+//! Class to edit graph item data
 class GraphReportDataEditor : public ReportDataEditor
 {
     Q_OBJECT
@@ -82,8 +84,8 @@ private:
     QComboBox* mpUnitSelector;
     QComboBox* mpLinkSelector;
 
+    // Curves
     QListWidget* mpCurveList;
-    QListWidget* mpPointList;
 };
 
 class ReportCurvePropertyEditor : public QWidget

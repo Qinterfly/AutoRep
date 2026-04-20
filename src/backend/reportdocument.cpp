@@ -3,9 +3,6 @@
 
 using namespace Backend::Core;
 
-// Helper functions
-QList<GraphReportCurve> generateDefaultCurves();
-
 ReportPage::ReportPage()
 {
     layout.setPageSize(QPageSize::A4);

@@ -7,6 +7,11 @@
 
 QT_FORWARD_DECLARE_CLASS(QBuffer)
 
+namespace Testlab
+{
+class Geometry;
+}
+
 namespace Backend::Core
 {
 class ReportItem;
@@ -115,7 +120,8 @@ class GraphReportSceneItem : public ReportSceneItem
 
 public:
     GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ReportTextEngine& textEngine,
-                         Backend::Core::ResponseCollection const& collection, int iSelectedBundle, QGraphicsItem* pParent = nullptr);
+                         Backend::Core::ResponseCollection const& collection, int iSelectedBundle, Testlab::Geometry const& geometry,
+                         QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
 protected:
@@ -141,6 +147,7 @@ private:
     Backend::Core::ReportTextEngine& mTextEngine;
     Backend::Core::ResponseCollection const& mCollection;
     int const mISelectedBundle;
+    Testlab::Geometry const& mGeometry;
     CustomPlot* mpPlot;
 };
 

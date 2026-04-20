@@ -17,12 +17,17 @@ using namespace Backend::Core;
 using namespace Frontend;
 using namespace Constants;
 
+static double const skEps = std::numeric_limits<double>::epsilon();
+static double const skInf = std::numeric_limits<double>::infinity();
+
 // Helper function
 QRectF rotatedRect(QRectF const& rect, qreal angle);
 QVector<double> convert(std::vector<double> const& data);
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
 Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem);
-QList<GraphReportCurve> getDefaultCurves();
+int findClosestKey(Testlab::Response const& response, double searchKey);
+std::vector<double> getCoordinates(Testlab::Geometry const& geometry, GraphReportPoint const& point);
+QString getDirLabel(ReportDirection dir);
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
@@ -301,11 +306,12 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
 }
 
 GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ReportTextEngine& textEngine, ResponseCollection const& collection,
-                                           int iSelectedBundle, QGraphicsItem* pParent)
+                                           int iSelectedBundle, Testlab::Geometry const& geometry, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
     , mTextEngine(textEngine)
     , mCollection(collection)
     , mISelectedBundle(iSelectedBundle)
+    , mGeometry(geometry)
     , mpPlot(new CustomPlot)
 {
 }
@@ -354,6 +360,8 @@ void GraphReportSceneItem::setState()
 
     // Update the parser
     mTextEngine.setVariable("unit", pItem->unit);
+    mTextEngine.setVariable("cdir", getDirLabel(pItem->coordDir));
+    mTextEngine.setVariable("rdir", getDirLabel(pItem->responseDir));
 
     // Set the legend visibility
     bool isPlottables = mpPlot->plottableCount() > 0;
@@ -401,6 +409,14 @@ void GraphReportSceneItem::setState()
     {
         pXAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
         pYAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
+    }
+
+    // Force symmetrical y range for modeshapes
+    if (pItem->subType == GraphReportItem::kModeshape)
+    {
+        double limit = std::max(std::abs(pYAxis->range().lower), std::abs(pYAxis->range().upper));
+        pYAxis->setRangeLower(-limit);
+        pYAxis->setRangeUpper(limit);
     }
 
     // Render the plot
@@ -523,7 +539,7 @@ void GraphReportSceneItem::processFreqAmp()
         for (int iBundle = 0; iBundle != numBundles; ++iBundle)
         {
             ResponseBundle const& bundle = mCollection.get(iBundle);
-            if (bundle.freq < std::numeric_limits<double>::epsilon())
+            if (bundle.freq < skEps)
                 continue;
 
             // Get the response which has the requested unit and direction
@@ -532,27 +548,15 @@ void GraphReportSceneItem::processFreqAmp()
                 continue;
 
             // Find the closest frequency to the resonance one
-            int iFound = -1;
-            double minDist = std::numeric_limits<double>::max();
-            int numKeys = response.keys.size();
-            for (int iKey = 0; iKey != numKeys; ++iKey)
-            {
-                double dist = std::abs(response.keys[iKey] - bundle.freq);
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    iFound = iKey;
-                }
-            }
+            int iFound = findClosestKey(response, bundle.freq);
+            if (iFound < 0)
+                continue;
 
             // Store the resonance frequency and response value
-            if (iFound > 0)
-            {
-                double re = response.imagValues[iFound];
-                double im = response.imagValues[iFound];
-                xData[iBundle] = response.keys[iFound];
-                yData[iBundle] = std::sqrt(std::pow(re, 2.0) + std::pow(im, 2.0));
-            }
+            double re = response.realValues[iFound];
+            double im = response.imagValues[iFound];
+            xData[iBundle] = response.keys[iFound];
+            yData[iBundle] = std::sqrt(std::pow(re, 2.0) + std::pow(im, 2.0));
         }
 
         // Add the curve
@@ -565,7 +569,63 @@ void GraphReportSceneItem::processFreqAmp()
 //! Process the item of the modeshape subtype
 void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
 {
-    // TODO
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Check if the resonance frequency specified for the bundle
+    if (bundle.freq < skEps)
+    {
+        qWarning() << tr("Resonance frequency for bundle %1 is zero");
+        return;
+    }
+
+    // Check if the coordinates direction is specified
+    if (pItem->coordDir == ReportDirection::kNone)
+    {
+        qWarning() << tr("Coordinate direction is not specified for a modeshape");
+        return;
+    }
+
+    // Loop through all the curves
+    int numCurves = pItem->curves.size();
+    for (int iCurve = 0; iCurve != numCurves; ++iCurve)
+    {
+        GraphReportCurve const& curve = pItem->curves[iCurve];
+        if (curve.isEmpty())
+            continue;
+        int numPoints = curve.points.size();
+
+        // Loop through all the points
+        QList<double> xData(numPoints, 0.0);
+        QList<double> yData(numPoints, 0.0);
+        for (int iPoint = 0; iPoint != numPoints; ++iPoint)
+        {
+            GraphReportPoint const& point = curve.points[iPoint];
+
+            // Get the response which has the requested unit and direction
+            Testlab::Response response = getAcceleration(bundle, point, pItem);
+            if (response.keys.size() == 0)
+                continue;
+
+            // Find the closest frequency to the resonance one
+            int iFound = findClosestKey(response, bundle.freq);
+            if (iFound < 0)
+                continue;
+
+            // Get the point coordinates
+            std::vector<double> coords = getCoordinates(mGeometry, point);
+            if (coords.empty())
+                continue;
+
+            // Set the data
+            xData[iPoint] = coords[(int) pItem->coordDir - 1];
+            yData[iPoint] = response.imagValues[iFound] * response.header.point.sign;
+        }
+
+        // Add the curve
+        if (pItem->swapAxes)
+            std::swap(xData, yData);
+        addPlottable(xData, yData, curve, curve.name);
+    }
 }
 
 //! Add the plottable to the plot
@@ -732,9 +792,6 @@ int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, Re
 //! Helper function to retrieve acceleration response
 Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem)
 {
-    // Constants
-    double const kEps = std::numeric_limits<double>::epsilon();
-
     // Find the acceleration response
     Testlab::Response null;
     int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
@@ -767,7 +824,7 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
             std::complex<double> r = {0.0, 0.0};
             if (isFRF)
                 r = a * F;
-            else if (std::abs(F) > kEps)
+            else if (std::abs(F) > skEps)
                 r = a / F;
             response.realValues[i] = r.real();
             response.imagValues[i] = r.imag();
@@ -786,7 +843,7 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
         {
             std::complex<double> a = {response.realValues[i], response.imagValues[i]};
             std::complex<double> r = {0.0, 0.0};
-            if (std::abs(response.keys[i]) > kEps)
+            if (std::abs(response.keys[i]) > skEps)
                 r = -a / std::pow(2.0 * M_PI * response.keys[i], 2.0);
             response.realValues[i] = r.real();
             response.imagValues[i] = r.imag();
@@ -798,4 +855,61 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
     if (responseSet.contains(targetUnit))
         return responseSet[targetUnit];
     return null;
+}
+
+//! Helper function find closest key to the requested one
+int findClosestKey(Testlab::Response const& response, double searchKey)
+{
+    int iFound = -1;
+    double minDist = skInf;
+    int numKeys = response.keys.size();
+    for (int iKey = 0; iKey != numKeys; ++iKey)
+    {
+        double dist = std::abs(response.keys[iKey] - searchKey);
+        if (dist < minDist)
+        {
+            minDist = dist;
+            iFound = iKey;
+        }
+    }
+    return iFound;
+}
+
+//! Helper function to get point location
+std::vector<double> getCoordinates(Testlab::Geometry const& geometry, GraphReportPoint const& point)
+{
+    int numComponents = geometry.components.size();
+    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
+    {
+        Testlab::Component const& component = geometry.components[iComponent];
+        QString componentName = QString::fromStdWString(component.name);
+        if (componentName != point.component)
+            continue;
+        int numNodes = component.nodes.size();
+        for (int iNode = 0; iNode != numNodes; ++iNode)
+        {
+            Testlab::Node const& node = component.nodes[iNode];
+            QString nodeName = QString::fromStdWString(node.name);
+            if (nodeName == point.node)
+                return node.coordinates;
+        }
+    }
+    return {};
+}
+
+//! Get direction label
+QString getDirLabel(ReportDirection dir)
+{
+    switch (dir)
+    {
+    case ReportDirection::kX:
+        return "X";
+    case ReportDirection::kY:
+        return "Y";
+    case ReportDirection::kZ:
+        return "Z";
+    default:
+        break;
+    }
+    return QString();
 }

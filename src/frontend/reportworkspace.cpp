@@ -362,16 +362,16 @@ ReportPage createModeshapePage()
     page.layout.setOrientation(QPageLayout::Landscape);
 
     // Create an fuselage graph
-    GraphReportItem* pFuselage = new GraphReportItem;
-    pFuselage->name = QObject::tr("Fuselage");
-    pFuselage->rect = QRect(20, 30, 170, 50);
-    pFuselage->subType = GraphReportItem::kModeshape;
-    pFuselage->coordDir = ReportDirection::kX;
-    pFuselage->responseDir = ReportDirection::kZ;
-    pFuselage->unit = Units::skM_S2;
-    pFuselage->xLabel = QObject::tr("X");
-    pFuselage->yLabel = QObject::tr("Z; a, ${UNIT}");
-    pFuselage->showLegend = false;
+    GraphReportItem* pFus = new GraphReportItem;
+    pFus->name = QObject::tr("Fuselage");
+    pFus->rect = QRect(20, 30, 170, 50);
+    pFus->subType = GraphReportItem::kModeshape;
+    pFus->coordDir = ReportDirection::kX;
+    pFus->responseDir = ReportDirection::kY;
+    pFus->unit = Units::skM_S2;
+    pFus->xLabel = QObject::tr("${CDIR}, m");
+    pFus->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
+    pFus->showLegend = false;
 
     // Create a wing graph
     GraphReportItem* pWing = new GraphReportItem;
@@ -379,10 +379,10 @@ ReportPage createModeshapePage()
     pWing->rect = QRect(20, 80, 170, 50);
     pWing->subType = GraphReportItem::kModeshape;
     pWing->coordDir = ReportDirection::kZ;
-    pWing->responseDir = ReportDirection::kX;
+    pWing->responseDir = ReportDirection::kY;
     pWing->unit = Units::skM_S2;
-    pWing->xLabel = QObject::tr("Z");
-    pWing->yLabel = QObject::tr("X; a, ${UNIT}");
+    pWing->xLabel = QObject::tr("${CDIR}, m");
+    pWing->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pWing->showLegend = false;
 
     // Create a horizontal stabilizer graph
@@ -391,10 +391,10 @@ ReportPage createModeshapePage()
     pHStab->rect = QRect(45, 130, 120, 50);
     pHStab->subType = GraphReportItem::kModeshape;
     pHStab->coordDir = ReportDirection::kZ;
-    pHStab->responseDir = ReportDirection::kX;
+    pHStab->responseDir = ReportDirection::kY;
     pHStab->unit = Units::skM_S2;
-    pHStab->xLabel = QObject::tr("Z");
-    pHStab->yLabel = QObject::tr("X; a, ${UNIT}");
+    pHStab->xLabel = QObject::tr("${CDIR}, m");
+    pHStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pHStab->showLegend = false;
 
     // Create a vertical stabilizer graph
@@ -403,10 +403,10 @@ ReportPage createModeshapePage()
     pVStab->rect = QRect(200, 75, 70, 110);
     pVStab->subType = GraphReportItem::kModeshape;
     pVStab->coordDir = ReportDirection::kY;
-    pVStab->responseDir = ReportDirection::kX;
+    pVStab->responseDir = ReportDirection::kZ;
     pVStab->unit = Units::skM_S2;
-    pVStab->xLabel = QObject::tr("Z");
-    pVStab->yLabel = QObject::tr("X; a, ${UNIT}");
+    pVStab->xLabel = QObject::tr("${CDIR}, m");
+    pVStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pVStab->swapAxes = true;
     pVStab->showLegend = false;
 
@@ -430,7 +430,7 @@ ReportPage createModeshapePage()
     pNumber->angle = 90;
 
     // Combine
-    page.add(pFuselage);
+    page.add(pFus);
     page.add(pWing);
     page.add(pHStab);
     page.add(pVStab);
