@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 
 #include "customtabwidget.h"
+#include "reportdefaults.h"
 #include "reportdesigner.h"
 #include "reportworkspace.h"
 #include "uiconstants.h"
@@ -13,12 +14,6 @@
 using namespace Frontend;
 using namespace Backend::Core;
 using namespace Constants;
-
-// Helper function
-ReportPage createImRePage();
-ReportPage createMultiImRePage();
-ReportPage createFreqAmpPage();
-ReportPage createModeshapePage();
 
 ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent)
     : QWidget(pParent)
@@ -129,7 +124,7 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import template"));
     pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export template"));
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
-    pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+    pToolBar->setIconSize(Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
 
     // Create the tab widget
@@ -152,10 +147,10 @@ void ReportWorkspace::createConnections()
 //! Initialize the editor
 void ReportWorkspace::initialize()
 {
-    mDocument.pages.push_back(createImRePage());
-    mDocument.pages.push_back(createMultiImRePage());
-    mDocument.pages.push_back(createFreqAmpPage());
-    mDocument.pages.push_back(createModeshapePage());
+    mDocument.pages.push_back(ReportDefaults::imRePage());
+    mDocument.pages.push_back(ReportDefaults::multiImRePage());
+    mDocument.pages.push_back(ReportDefaults::freqAmpPage());
+    mDocument.pages.push_back(ReportDefaults::modeshapePage());
 }
 
 //! Replot the designer tabs
@@ -202,247 +197,3 @@ void ReportWorkspace::processDesignerSelected()
         pDesigner->fit();
 }
 
-//! Helper function to create a default page with imaginary and real parts of a spectrum
-ReportPage createImRePage()
-{
-    ReportPage page(QObject::tr("Im-Re"));
-
-    // Create an imaginary graph
-    GraphReportItem* pImag = new GraphReportItem;
-    pImag->name = QObject::tr("Imaginary");
-    pImag->rect = QRect(25, 35, 150, 110);
-    pImag->subType = GraphReportItem::kImag;
-    pImag->responseDir = ReportDirection::kY;
-    pImag->unit = Units::skM_S2;
-    pImag->xLabel = QObject::tr("f, Hz");
-    pImag->yLabel = QObject::tr("a, ${UNIT}");
-    pImag->showBundleFreq = true;
-
-    // Create a real graph
-    GraphReportItem* pReal = new GraphReportItem;
-    pReal->name = QObject::tr("Real");
-    pReal->rect = QRect(25, 150, 150, 110);
-    pReal->subType = GraphReportItem::kReal;
-    pReal->responseDir = ReportDirection::kY;
-    pReal->unit = Units::skM_S2;
-    pReal->link = pImag->id;
-    pReal->xLabel = QObject::tr("f, Hz");
-    pReal->yLabel = QObject::tr("a, ${UNIT}");
-    pReal->showBundleFreq = true;
-
-    // Create title
-    TextReportItem* pTitle = new TextReportItem;
-    pTitle->name = QObject::tr("Title");
-    pTitle->rect = QRect(25, 10, 150, 20);
-    pTitle->text = QObject::tr("Mode name\nf = ${FREQ} Hz\nExcitation F = ${FORCE} N");
-
-    // Create the caption
-    TextReportItem* pCaption = new TextReportItem;
-    pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(65, 265, 80, 10);
-    pCaption->text = QObject::tr("Figure X.YY");
-
-    // Create the page number
-    TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page");
-    pNumber->rect = QRect(100, 280, 10, 10);
-    pNumber->text = QObject::tr("PP");
-
-    // Combine
-    page.add(pImag);
-    page.add(pReal);
-    page.add(pTitle);
-    page.add(pCaption);
-    page.add(pNumber);
-
-    return page;
-}
-
-//! Helper function to create a default page with multiple imaginary and real parts of a spectrum
-ReportPage createMultiImRePage()
-{
-    ReportPage page(QObject::tr("Multi Im-Re"));
-
-    // Create an imaginary graph
-    GraphReportItem* pImag = new GraphReportItem;
-    pImag->name = QObject::tr("Imaginary");
-    pImag->rect = QRect(25, 35, 150, 110);
-    pImag->subType = GraphReportItem::kMultiImag;
-    pImag->responseDir = ReportDirection::kY;
-    pImag->unit = Units::skM_S2;
-    pImag->xLabel = QObject::tr("f, Hz");
-    pImag->yLabel = QObject::tr("a, ${UNIT}");
-
-    // Create a real graph
-    GraphReportItem* pReal = new GraphReportItem;
-    pReal->name = QObject::tr("Real");
-    pReal->rect = QRect(25, 150, 150, 110);
-    pReal->subType = GraphReportItem::kMultiReal;
-    pReal->responseDir = ReportDirection::kY;
-    pReal->unit = Units::skM_S2;
-    pReal->link = pImag->id;
-    pReal->xLabel = QObject::tr("f, Hz");
-    pReal->yLabel = QObject::tr("a, ${UNIT}");
-
-    // Create title
-    TextReportItem* pTitle = new TextReportItem;
-    pTitle->name = QObject::tr("Title");
-    pTitle->rect = QRect(25, 10, 150, 20);
-    pTitle->text = QObject::tr("Mode name\nExcitation\nPoint ${POINT}");
-
-    // Create the caption
-    TextReportItem* pCaption = new TextReportItem;
-    pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(65, 265, 80, 10);
-    pCaption->text = QObject::tr("Figure X.YY");
-
-    // Create the page number
-    TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page");
-    pNumber->rect = QRect(100, 280, 10, 10);
-    pNumber->text = QObject::tr("PP");
-
-    // Combine
-    page.add(pImag);
-    page.add(pReal);
-    page.add(pTitle);
-    page.add(pCaption);
-    page.add(pNumber);
-
-    return page;
-}
-
-//! Helper function to create a default page with freq imaginary and real parts of a spectrum
-ReportPage createFreqAmpPage()
-{
-    ReportPage page(QObject::tr("Freq Amp"));
-
-    // Create an imaginary graph
-    GraphReportItem* pAmp = new GraphReportItem;
-    pAmp->name = QObject::tr("Amplitude");
-    pAmp->rect = QRect(25, 35, 150, 110);
-    pAmp->subType = GraphReportItem::kFreqAmp;
-    pAmp->responseDir = ReportDirection::kY;
-    pAmp->unit = Units::skM;
-    pAmp->xLabel = QObject::tr("f, Hz");
-    pAmp->yLabel = QObject::tr("a, ${UNIT}");
-    pAmp->swapAxes = true;
-
-    // Create a picture
-    PictureReportItem* pPic = new PictureReportItem;
-    pPic->name = QObject::tr("Picture");
-    pPic->rect = QRect(25, 150, 150, 110);
-
-    // Create title
-    TextReportItem* pTitle = new TextReportItem;
-    pTitle->name = QObject::tr("Title");
-    pTitle->rect = QRect(25, 10, 150, 20);
-    pTitle->text = QObject::tr("Mode name\nExcitation");
-
-    // Create the caption
-    TextReportItem* pCaption = new TextReportItem;
-    pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(65, 265, 80, 10);
-    pCaption->text = QObject::tr("Figure X.YY");
-
-    // Create the page number
-    TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page");
-    pNumber->rect = QRect(100, 280, 10, 10);
-    pNumber->text = QObject::tr("PP");
-
-    // Combine
-    page.add(pAmp);
-    page.add(pPic);
-    page.add(pTitle);
-    page.add(pCaption);
-    page.add(pNumber);
-
-    return page;
-}
-
-//! Helper function to create a default page with modeshape
-ReportPage createModeshapePage()
-{
-    ReportPage page(QObject::tr("Modeshape"));
-    page.layout.setOrientation(QPageLayout::Landscape);
-
-    // Create an fuselage graph
-    GraphReportItem* pFus = new GraphReportItem;
-    pFus->name = QObject::tr("Fuselage");
-    pFus->rect = QRect(20, 30, 170, 50);
-    pFus->subType = GraphReportItem::kModeshape;
-    pFus->coordDir = ReportDirection::kX;
-    pFus->responseDir = ReportDirection::kY;
-    pFus->unit = Units::skM_S2;
-    pFus->xLabel = QObject::tr("${CDIR}, m");
-    pFus->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
-    pFus->showLegend = false;
-
-    // Create a wing graph
-    GraphReportItem* pWing = new GraphReportItem;
-    pWing->name = QObject::tr("Wing");
-    pWing->rect = QRect(20, 80, 170, 50);
-    pWing->subType = GraphReportItem::kModeshape;
-    pWing->coordDir = ReportDirection::kZ;
-    pWing->responseDir = ReportDirection::kY;
-    pWing->unit = Units::skM_S2;
-    pWing->xLabel = QObject::tr("${CDIR}, m");
-    pWing->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
-    pWing->showLegend = false;
-
-    // Create a horizontal stabilizer graph
-    GraphReportItem* pHStab = new GraphReportItem;
-    pHStab->name = QObject::tr("Hor. stab.");
-    pHStab->rect = QRect(45, 130, 120, 50);
-    pHStab->subType = GraphReportItem::kModeshape;
-    pHStab->coordDir = ReportDirection::kZ;
-    pHStab->responseDir = ReportDirection::kY;
-    pHStab->unit = Units::skM_S2;
-    pHStab->xLabel = QObject::tr("${CDIR}, m");
-    pHStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
-    pHStab->showLegend = false;
-
-    // Create a vertical stabilizer graph
-    GraphReportItem* pVStab = new GraphReportItem;
-    pVStab->name = QObject::tr("Vert. stab.");
-    pVStab->rect = QRect(200, 75, 70, 110);
-    pVStab->subType = GraphReportItem::kModeshape;
-    pVStab->coordDir = ReportDirection::kY;
-    pVStab->responseDir = ReportDirection::kZ;
-    pVStab->unit = Units::skM_S2;
-    pVStab->xLabel = QObject::tr("${CDIR}, m");
-    pVStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
-    pVStab->swapAxes = true;
-    pVStab->showLegend = false;
-
-    // Create title
-    TextReportItem* pTitle = new TextReportItem;
-    pTitle->name = QObject::tr("Title");
-    pTitle->rect = QRect(65, 15, 150, 20);
-    pTitle->text = QObject::tr("Mode name\nExcitation");
-
-    // Create the caption
-    TextReportItem* pCaption = new TextReportItem;
-    pCaption->name = QObject::tr("Caption");
-    pCaption->rect = QRect(100, 190, 80, 10);
-    pCaption->text = QObject::tr("Figure X.YY");
-
-    // Create the page number
-    TextReportItem* pNumber = new TextReportItem;
-    pNumber->name = QObject::tr("Page");
-    pNumber->rect = QRect(5, 100, 10, 10);
-    pNumber->text = QObject::tr("PP");
-    pNumber->angle = 90;
-
-    // Combine
-    page.add(pFus);
-    page.add(pWing);
-    page.add(pHStab);
-    page.add(pVStab);
-    page.add(pTitle);
-    page.add(pCaption);
-    page.add(pNumber);
-
-    return page;
-}

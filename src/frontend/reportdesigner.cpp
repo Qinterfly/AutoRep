@@ -31,6 +31,7 @@ ReportDesignerOptions::ReportDesignerOptions()
 {
     // Flags
     lockItems = false;
+    uniteModeshapeRange = true;
 }
 
 ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, ReportPage& page,
@@ -183,6 +184,10 @@ void ReportDesigner::drawAll()
     drawItems();
     if (!mIsPrinting)
         drawBorder();
+
+    // Set the unite modeshape range
+    if (mOptions.uniteModeshapeRange)
+        setUniteModeshapeRange();
 }
 
 //! Draw the report items
@@ -208,7 +213,7 @@ void ReportDesigner::drawItems()
             pSceneItem = new PictureReportSceneItem((PictureReportItem*) pReportItem);
             break;
         case ReportItem::kTable:
-            pSceneItem = new TableReportSceneItem((TableReportItem*) pReportItem);
+            pSceneItem = new TableReportSceneItem((TableReportItem*) pReportItem, mTextEngine);
             break;
         default:
             break;
@@ -507,7 +512,7 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
     else if (pReportItem->type() == ReportItem::kPicture)
     {
         QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Picture"), Utility::getLastDirectory(mSettings).path(),
-                                                        tr("Picture file format (*.svg)"));
+                                                        tr("Picture file format (*.svg *.png *.jpg *.jpeg)"));
         if (!pathFile.isEmpty())
             static_cast<PictureReportItem*>(pReportItem)->load(pathFile);
     }
@@ -719,6 +724,47 @@ void ReportDesigner::resolveItemLinks()
                     static_cast<GraphReportItem*>(pSlaveItem)->curves = static_cast<GraphReportItem*>(pMasterItem)->curves;
             }
         }
+    }
+}
+
+//! Unite range for all modeshape items
+void ReportDesigner::setUniteModeshapeRange()
+{
+    QList<QGraphicsItem*> sceneItems = mpScene->items();
+
+    // Find all the modeshape items
+    QList<GraphReportSceneItem*> modeItems;
+    int numItems = sceneItems.size();
+    double limit = 0.0;
+    for (int i = 0; i != numItems; ++i)
+    {
+        // Check if the item of the report type
+        if (sceneItems[i]->type() <= QGraphicsItem::UserType)
+            continue;
+
+        // Check if the item is graph
+        ReportSceneItem* pSceneItem = (ReportSceneItem*) sceneItems[i];
+        ReportItem* pReportItem = pSceneItem->item();
+        if (pReportItem->type() == ReportItem::kGraph)
+        {
+            // Check if the item is modeshape
+            GraphReportItem* pGraphReportItem = (GraphReportItem*) pReportItem;
+            if (pGraphReportItem->subType == GraphReportItem::kModeshape)
+            {
+                // Find the limit among all the modeshapes
+                GraphReportSceneItem* pGraphSceneItem = (GraphReportSceneItem*) pSceneItem;
+                limit = std::max(limit, std::abs(pGraphSceneItem->yRange().first));
+                limit = std::max(limit, std::abs(pGraphSceneItem->yRange().second));
+                modeItems.push_back(pGraphSceneItem);
+            }
+        }
+    }
+
+    // Distribute the limit among all the modeshapes on the page
+    if (limit > std::numeric_limits<double>::epsilon())
+    {
+        for (auto pItem : modeItems)
+            pItem->setYRange(-limit, limit);
     }
 }
 

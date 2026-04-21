@@ -34,6 +34,7 @@ struct ReportDesignerOptions
 
     // Flags
     bool lockItems;
+    bool uniteModeshapeRange;
 };
 
 //! Class to design page content
@@ -85,6 +86,7 @@ private:
     // Helper
     void updateTextEngine();
     void resolveItemLinks();
+    void setUniteModeshapeRange();
 
 private:
     QSettings& mSettings;

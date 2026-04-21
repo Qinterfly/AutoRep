@@ -9,7 +9,7 @@ set(BACKEND_HEADERS
     reportitem.h
     reportdocument.h
     reporttextengine.h
-    reportsettings.h
+    reportdefaults.h
 )
 
 set(BACKEND_SOURCES
@@ -18,7 +18,7 @@ set(BACKEND_SOURCES
     reportitem.cpp
     reportdocument.cpp
     reporttextengine.cpp
-    reportsettings.cpp
+    reportdefaults.cpp
 )
 
 qt_add_library(backend STATIC

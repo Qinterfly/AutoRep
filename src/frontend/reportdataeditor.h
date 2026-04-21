@@ -74,7 +74,7 @@ private:
     void refreshTree();
 
     // Slots
-    QPair<int, int> getTreeSelected();
+    PairInt getTreeSelected();
     void setTreeSelected(int iCurve, int iPoint = -1);
     void processTreeSelected();
     void processHeaderChanged();

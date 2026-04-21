@@ -53,7 +53,7 @@ void ReportTextEngine::setReplacement(QString const& value, QString const& repla
 QString ReportTextEngine::process(QString const& input) const
 {
     // Matches ${VAR_NAME}
-    QRegularExpression const re(R"(\$\{([A-Za-z0-9_]+)\})");
+    QRegularExpression const re(R"(\$\{([^}]+)\})");
 
     // Check if there are any variables to use
     if (mVariables.isEmpty())

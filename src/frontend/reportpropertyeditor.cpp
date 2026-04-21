@@ -12,6 +12,10 @@
 using namespace Backend::Core;
 using namespace Frontend;
 
+// Helper function
+PairDouble convert(QString text);
+QString convert(PairDouble const& data);
+
 ReportPropertyEditor::ReportPropertyEditor(QWidget* pParent)
     : QWidget(pParent)
     , mpItem(nullptr)
@@ -76,6 +80,9 @@ void ReportPropertyEditor::refresh()
     case ReportItem::kGraph:
         addGraphProperties();
         break;
+    case ReportItem::kTable:
+        addTableProperties();
+        break;
     default:
         break;
     }
@@ -115,6 +122,14 @@ void ReportPropertyEditor::addGraphProperties()
 
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
+    QtVariantProperty* pXRangeProperty = mpManager->addProperty(kXRange, QMetaType::QString, tr("X range"));
+    pXRangeProperty->setValue(convert(pItem->xRange));
+    mpEditor->addProperty(pXRangeProperty);
+
+    QtVariantProperty* pYRangeProperty = mpManager->addProperty(kYRange, QMetaType::QString, tr("Y range"));
+    pYRangeProperty->setValue(convert(pItem->yRange));
+    mpEditor->addProperty(pYRangeProperty);
+
     QtVariantProperty* pXLabelProperty = mpManager->addProperty(kXLabel, QMetaType::QString, tr("X label"));
     pXLabelProperty->setValue(pItem->xLabel);
     mpEditor->addProperty(pXLabelProperty);
@@ -139,20 +154,20 @@ void ReportPropertyEditor::addGraphProperties()
     pSwapAxesProperty->setValue(pItem->swapAxes);
     mpEditor->addProperty(pSwapAxesProperty);
 
-    QtVariantProperty* pLegendAlignmentProperty = mpManager->addProperty(kLegendAlignment, QtVariantPropertyManager::enumTypeId(),
-                                                                         tr("Legend alignment"));
-    pLegendAlignmentProperty->setAttribute("enumNames", kAlignmentNames);
-    auto alignments = magic_enum::enum_values<Alignment>();
-    int numAlignments = alignments.size();
-    for (int i = 0; i != numAlignments; ++i)
+    QtVariantProperty* pLegendAlignProperty = mpManager->addProperty(kLegendAlign, QtVariantPropertyManager::enumTypeId(),
+                                                                     tr("Legend alignment"));
+    pLegendAlignProperty->setAttribute("enumNames", kAlignmentNames);
+    auto aligns = magic_enum::enum_values<Align>();
+    int numAligns = aligns.size();
+    for (int i = 0; i != numAligns; ++i)
     {
-        if (getAlignmentValue(alignments[i]) == pItem->legendAlignment)
+        if (getAlignValue(aligns[i]) == pItem->legendAlign)
         {
-            pLegendAlignmentProperty->setValue(i);
+            pLegendAlignProperty->setValue(i);
             break;
         }
     }
-    mpEditor->addProperty(pLegendAlignmentProperty);
+    mpEditor->addProperty(pLegendAlignProperty);
 
     QtVariantProperty* pShowLegendProperty = mpManager->addProperty(kShowLegend, QMetaType::Bool, tr("Legend"));
     pShowLegendProperty->setValue(pItem->showLegend);
@@ -163,6 +178,20 @@ void ReportPropertyEditor::addGraphProperties()
     mpEditor->addProperty(pShowBundleFreqProperty);
 }
 
+//! Create properties specific for table items
+void ReportPropertyEditor::addTableProperties()
+{
+    TableReportItem* pItem = (TableReportItem*) mpItem;
+
+    QtVariantProperty* pNumRowsProperty = mpManager->addProperty(kNumRows, QMetaType::Int, tr("Number of rows"));
+    pNumRowsProperty->setValue(pItem->numRows());
+    mpEditor->addProperty(pNumRowsProperty);
+
+    QtVariantProperty* pNumColsProperty = mpManager->addProperty(kNumCols, QMetaType::Int, tr("Number of columns"));
+    pNumColsProperty->setValue(pItem->numCols());
+    mpEditor->addProperty(pNumColsProperty);
+}
+
 //! Change the item property value
 void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
 {
@@ -171,6 +200,7 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     int id = mpManager->id(pProperty);
     switch (id)
     {
+    // Base
     case kRect:
         mpItem->rect = value.toRect();
         break;
@@ -180,8 +210,18 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kFont:
         mpItem->font = value.value<QFont>();
         break;
+
+    // Text
     case kText:
         static_cast<TextReportItem*>(mpItem)->text = value.toString();
+        break;
+
+    // Graph
+    case kXRange:
+        static_cast<GraphReportItem*>(mpItem)->xRange = convert(value.toString());
+        break;
+    case kYRange:
+        static_cast<GraphReportItem*>(mpItem)->yRange = convert(value.toString());
         break;
     case kXLabel:
         static_cast<GraphReportItem*>(mpItem)->xLabel = value.toString();
@@ -201,8 +241,8 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kSwapAxes:
         static_cast<GraphReportItem*>(mpItem)->swapAxes = value.toBool();
         break;
-    case kLegendAlignment:
-        static_cast<GraphReportItem*>(mpItem)->legendAlignment = getAlignmentValue((Alignment) value.toInt());
+    case kLegendAlign:
+        static_cast<GraphReportItem*>(mpItem)->legendAlign = getAlignValue((Align) value.toInt());
         break;
     case kShowLegend:
         static_cast<GraphReportItem*>(mpItem)->showLegend = value.toBool();
@@ -210,6 +250,15 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kShowBundleFreq:
         static_cast<GraphReportItem*>(mpItem)->showBundleFreq = value.toBool();
         break;
+
+    // Table
+    case kNumRows:
+        static_cast<TableReportItem*>(mpItem)->setNumRows(value.toInt());
+        break;
+    case kNumCols:
+        static_cast<TableReportItem*>(mpItem)->setNumCols(value.toInt());
+        break;
+
     default:
         return;
     }
@@ -217,7 +266,7 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
 }
 
 //! Get corner alignment value by enum key
-Qt::Alignment ReportPropertyEditor::getAlignmentValue(Alignment key)
+Qt::Alignment ReportPropertyEditor::getAlignValue(Align key)
 {
     switch (key)
     {
@@ -233,4 +282,24 @@ Qt::Alignment ReportPropertyEditor::getAlignmentValue(Alignment key)
         break;
     };
     return Qt::Alignment();
+}
+
+//! Helper function to convert text to pair of double values
+PairDouble convert(QString text)
+{
+    PairDouble result(0.0, 0.0);
+    text.replace(',', '.');
+    QStringList tokens = text.split(' ');
+    if (tokens.size() == 2)
+    {
+        result.first = tokens.first().toDouble();
+        result.second = tokens.last().toDouble();
+    }
+    return result;
+}
+
+//! Helper function to convert pair of double values to text
+QString convert(PairDouble const& data)
+{
+    return QString("%1 %2").arg(QString::number(data.first), QString::number(data.second));
 }

@@ -7,6 +7,9 @@
 #include <QRect>
 #include <QUuid>
 
+using PairInt = QPair<int, int>;
+using PairDouble = QPair<double, double>;
+
 namespace Backend::Core
 {
 
@@ -162,13 +165,15 @@ public:
     QString unit;
 
     // Axes
+    PairDouble xRange;
+    PairDouble yRange;
     QString xLabel;
     QString yLabel;
     double scaleRange;
     int numTicks;
     double gridWidth;
     bool swapAxes;
-    Qt::Alignment legendAlignment;
+    Qt::Alignment legendAlign;
 
     // View
     bool showLegend;
@@ -189,7 +194,8 @@ public:
     bool load(QString const& pathFile);
 
 public:
-    QByteArray content;
+    QByteArray data;
+    QString format;
 };
 
 //! Class to define a layout of a table element
@@ -203,10 +209,20 @@ public:
     Type type() const override;
     ReportItem* clone() const override;
 
+    bool isEmpty() const;
+    int numRows() const;
+    int numCols() const;
+    void resize(int nRows, int nCols);
+    void setNumRows(int nRows);
+    void setNumCols(int nCols);
+
 public:
-    QStringList horizLabels;
-    QStringList vertLabels;
-    QList<QStringList> content;
+    QList<QStringList> data;
+    QString midLabel;
+    QStringList horLabels;
+    QStringList verLabels;
+    double gridWidth;
+    bool showLabels;
 };
 }
 

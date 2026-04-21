@@ -1,4 +1,5 @@
 #include <QFile>
+#include <QFileInfo>
 
 #include "reportitem.h"
 
@@ -132,11 +133,13 @@ GraphReportItem::GraphReportItem()
     subType = kNone;
 
     // Axes
+    xRange = {0.0, 0.0};
+    yRange = {0.0, 0.0};
     scaleRange = 1.1;
     numTicks = 5;
     gridWidth = 1.0;
     swapAxes = false;
-    legendAlignment = Qt::AlignRight | Qt::AlignTop;
+    legendAlign = Qt::AlignRight | Qt::AlignTop;
 
     // Flags
     showLegend = true;
@@ -165,13 +168,15 @@ ReportItem* GraphReportItem::clone() const
     pResult->unit = unit;
 
     // Axes
+    pResult->xRange = xRange;
+    pResult->yRange = yRange;
     pResult->xLabel = xLabel;
     pResult->yLabel = yLabel;
     pResult->scaleRange = scaleRange;
     pResult->numTicks = numTicks;
     pResult->gridWidth = gridWidth;
     pResult->swapAxes = swapAxes;
-    pResult->legendAlignment = legendAlignment;
+    pResult->legendAlign = legendAlign;
 
     // Flags
     pResult->showLegend = showLegend;
@@ -217,7 +222,8 @@ ReportItem::Type PictureReportItem::type() const
 ReportItem* PictureReportItem::clone() const
 {
     PictureReportItem* pResult = new PictureReportItem(this);
-    pResult->content = content;
+    pResult->data = data;
+    pResult->format = format;
     return pResult;
 }
 
@@ -226,13 +232,16 @@ bool PictureReportItem::load(QString const& pathFile)
     QFile file(pathFile);
     if (!file.open(QIODevice::ReadOnly))
         return false;
-    content = file.readAll();
+    data = file.readAll();
+    format = QFileInfo(pathFile).suffix();
     file.close();
     return true;
 }
 
 TableReportItem::TableReportItem()
 {
+    gridWidth = 0.0;
+    showLabels = true;
 }
 
 TableReportItem::TableReportItem(ReportItem const* pAnother)
@@ -248,8 +257,47 @@ ReportItem::Type TableReportItem::type() const
 ReportItem* TableReportItem::clone() const
 {
     TableReportItem* pResult = new TableReportItem(this);
-    pResult->horizLabels = horizLabels;
-    pResult->vertLabels = vertLabels;
-    pResult->content = content;
+    pResult->data = data;
+    pResult->midLabel = midLabel;
+    pResult->horLabels = horLabels;
+    pResult->verLabels = verLabels;
+    pResult->gridWidth = gridWidth;
+    pResult->showLabels = showLabels;
     return pResult;
+}
+
+bool TableReportItem::isEmpty() const
+{
+    return numRows() == 0 || numCols() == 0;
+}
+
+int TableReportItem::numRows() const
+{
+    return data.size();
+}
+
+int TableReportItem::numCols() const
+{
+    if (data.isEmpty())
+        return 0;
+    return data.first().size();
+}
+
+void TableReportItem::resize(int nRows, int nCols)
+{
+    data.resize(nRows);
+    for (int i = 0; i != nRows; ++i)
+        data[i].resize(nCols);
+    horLabels.resize(nCols);
+    verLabels.resize(nRows);
+}
+
+void TableReportItem::setNumRows(int nRows)
+{
+    resize(nRows, numCols());
+}
+
+void TableReportItem::setNumCols(int nCols)
+{
+    resize(numRows(), nCols);
 }

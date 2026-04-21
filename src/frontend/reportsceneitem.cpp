@@ -7,7 +7,7 @@
 #include "reportdocument.h"
 #include "reportitem.h"
 #include "reportsceneitem.h"
-#include "reportsettings.h"
+#include "reportdefaults.h"
 #include "reporttextengine.h"
 #include "session.h"
 #include "uiconstants.h"
@@ -21,6 +21,7 @@ static double const skEps = std::numeric_limits<double>::epsilon();
 static double const skInf = std::numeric_limits<double>::infinity();
 
 // Helper function
+QFont sceneFont(ReportItem* pItem);
 QRectF rotatedRect(QRectF const& rect, qreal angle);
 QVector<double> convert(std::vector<double> const& data);
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
@@ -39,6 +40,11 @@ ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     setFlag(QGraphicsItem::ItemIsSelectable);
     setFlag(QGraphicsItem::ItemIsMovable);
     setFlag(QGraphicsItem::ItemIsFocusable);
+}
+
+int ReportSceneItem::type() const
+{
+    return QGraphicsItem::UserType + 1 + (int) mpItem->type();
 }
 
 ReportItem* ReportSceneItem::item()
@@ -257,16 +263,6 @@ TextReportSceneItem::TextReportSceneItem(TextReportItem* pItem, ReportTextEngine
 {
 }
 
-//! Get the rendering font
-QFont TextReportSceneItem::font() const
-{
-    qreal kPointFactor = 4.0;
-    TextReportItem* pItem = (TextReportItem*) mpItem;
-    QFont f = pItem->font;
-    f.setPointSizeF(f.pointSize() / kPointFactor);
-    return f;
-}
-
 //! Retrieve the raw text
 QString TextReportSceneItem::rawText() const
 {
@@ -297,7 +293,7 @@ void TextReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem con
 void TextReportSceneItem::drawText(QPainter* pPainter)
 {
     pPainter->save();
-    pPainter->setFont(font());
+    pPainter->setFont(sceneFont(mpItem));
     pPainter->translate(mpItem->rect.center());
     pPainter->rotate(mpItem->angle);
     pPainter->translate(-mpItem->rect.center());
@@ -314,11 +310,30 @@ GraphReportSceneItem::GraphReportSceneItem(GraphReportItem* pItem, ReportTextEng
     , mGeometry(geometry)
     , mpPlot(new CustomPlot)
 {
+    setState();
 }
 
 GraphReportSceneItem::~GraphReportSceneItem()
 {
     delete mpPlot;
+}
+
+//! Get Y-axis range
+QPair<double, double> GraphReportSceneItem::yRange()
+{
+    auto [pXAxis, pYAxis] = axes();
+    QCPRange range = pYAxis->range();
+    return {range.lower, range.upper};
+}
+
+//! Set Y-axis range
+void GraphReportSceneItem::setYRange(double lower, double upper)
+{
+    auto [pXAxis, pYAxis] = axes();
+    pYAxis->setRangeLower(lower);
+    pYAxis->setRangeUpper(upper);
+    mpPlot->replot();
+    update();
 }
 
 //! Set the item state
@@ -363,16 +378,14 @@ void GraphReportSceneItem::setState()
     mTextEngine.setVariable("cdir", getDirLabel(pItem->coordDir));
     mTextEngine.setVariable("rdir", getDirLabel(pItem->responseDir));
 
-    // Set the legend visibility
+    // Set the legend
     bool isPlottables = mpPlot->plottableCount() > 0;
     mpPlot->legend->setVisible(pItem->showLegend && isPlottables);
-    mpPlot->setLegendAlignment(pItem->legendAlignment);
+    mpPlot->legend->setFont(pItem->font);
+    mpPlot->setLegendAlignment(pItem->legendAlign);
 
     // Get the axes
-    QCPAxis* pXAxis = mpPlot->xAxis;
-    QCPAxis* pYAxis = mpPlot->yAxis;
-    if (pItem->swapAxes)
-        std::swap(pXAxis, pYAxis);
+    auto [pXAxis, pYAxis] = axes();
 
     // Set the axes labels
     pXAxis->setTickLabelFont(pItem->font);
@@ -391,6 +404,10 @@ void GraphReportSceneItem::setState()
 
     // Set the axes range
     mpPlot->rescaleAxes();
+    if (std::abs(pItem->xRange.second - pItem->xRange.first) > skEps)
+        pXAxis->setRange(pItem->xRange.first, pItem->xRange.second);
+    if (std::abs(pItem->yRange.second - pItem->yRange.first) > skEps)
+        pYAxis->setRange(pItem->yRange.first, pItem->yRange.second);
     if (isPlottables)
     {
         pXAxis->scaleRange(pItem->scaleRange);
@@ -409,14 +426,6 @@ void GraphReportSceneItem::setState()
     {
         pXAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
         pYAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
-    }
-
-    // Force symmetrical y range for modeshapes
-    if (pItem->subType == GraphReportItem::kModeshape)
-    {
-        double limit = std::max(std::abs(pYAxis->range().lower), std::abs(pYAxis->range().upper));
-        pYAxis->setRangeLower(-limit);
-        pYAxis->setRangeUpper(limit);
     }
 
     // Render the plot
@@ -468,7 +477,7 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
 //! Process the item of the multi real (imag) subtype
 void GraphReportSceneItem::processMultiReIm()
 {
-    QList<GraphReportCurve> const& defaultCurves = ReportSettings::curves;
+    QList<GraphReportCurve> const kDefaultCurves = ReportDefaults::curves();
 
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
@@ -503,8 +512,8 @@ void GraphReportSceneItem::processMultiReIm()
             std::swap(xData, yData);
 
         // Set the curve for plotting
-        int iDefaultCurve = Utility::getRepeatedIndex(iBundle, defaultCurves.size());
-        GraphReportCurve currentCurve = defaultCurves[iDefaultCurve];
+        int iDefaultCurve = Utility::getRepeatedIndex(iBundle, kDefaultCurves.size());
+        GraphReportCurve currentCurve = kDefaultCurves[iDefaultCurve];
         currentCurve.points = {point};
         currentCurve.lineStyle = baseCurve.lineStyle;
         currentCurve.lineWidth = baseCurve.lineWidth;
@@ -619,6 +628,11 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
             // Set the data
             xData[iPoint] = coords[(int) pItem->coordDir - 1];
             yData[iPoint] = response.imagValues[iFound] * response.header.point.sign;
+
+            // Add the variable
+            QString varName = QString("%1:%2").arg(point.name(), getDirLabel(pItem->responseDir));
+            QString varValue = QString::number(yData[iPoint], 'f', 3);
+            mTextEngine.setVariable(varName, varValue);
         }
 
         // Add the curve
@@ -656,10 +670,20 @@ void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double
     pPlottable->setScatterStyle(style);
 }
 
+//! Retrieve the axes, taking into account the swap flag
+QPair<QCPAxis*, QCPAxis*> GraphReportSceneItem::axes()
+{
+    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+    QCPAxis* pXAxis = mpPlot->xAxis;
+    QCPAxis* pYAxis = mpPlot->yAxis;
+    if (pItem->swapAxes)
+        std::swap(pXAxis, pYAxis);
+    return {pXAxis, pYAxis};
+}
+
 //! Process paint event
 void GraphReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
 {
-    setState();
     drawPlot(pPainter);
     ReportSceneItem::paint(pPainter, pOption, pWidget);
 }
@@ -757,30 +781,137 @@ PictureReportSceneItem::PictureReportSceneItem(PictureReportItem* pItem, QGraphi
 void PictureReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
 {
     PictureReportItem* pItem = (PictureReportItem*) mpItem;
-    QSvgRenderer renderer(pItem->content);
-    if (renderer.isValid())
+    bool isValid = false;
+
+    // Set the painter
+    pPainter->save();
+    pPainter->setFont(sceneFont(pItem));
+    pPainter->translate(pItem->rect.center());
+    pPainter->rotate(pItem->angle);
+    pPainter->translate(-pItem->rect.center());
+
+    // Draw the picture
+    if (pItem->format == "svg")
     {
-        pPainter->save();
-        renderer.render(pPainter, mpItem->rect);
-        pPainter->restore();
+        QSvgRenderer renderer(pItem->data);
+        isValid = renderer.isValid();
+        if (isValid)
+            renderer.render(pPainter, pItem->rect);
     }
     else
     {
+        QPixmap pixmap;
+        pixmap.loadFromData(pItem->data, pItem->format.toStdString().data());
+        isValid = !pixmap.isNull();
+        if (isValid)
+            pPainter->drawPixmap(pItem->rect, pixmap);
+    }
+
+    // Restore the painter
+    pPainter->restore();
+
+    // Draw the default image, if the picture data could not be resolved
+    if (!isValid)
+    {
+        pPainter->save();
         pPainter->setPen(Qt::black);
         pPainter->fillRect(mpItem->rect, Qt::lightGray);
+        pPainter->restore();
     }
     ReportSceneItem::paint(pPainter, pOption, pWidget);
 }
 
-TableReportSceneItem::TableReportSceneItem(TableReportItem* pItem, QGraphicsItem* pParent)
+TableReportSceneItem::TableReportSceneItem(TableReportItem* pItem, ReportTextEngine& textEngine, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
+    , mTextEngine(textEngine)
 {
 }
 
 //! Render the table content
 void TableReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
 {
-    // TODO
+    TableReportItem* pItem = (TableReportItem*) mpItem;
+
+    // Check if there is any tabular data to display
+    if (pItem->isEmpty())
+        return;
+
+    // Set the transformation
+    pPainter->save();
+    pPainter->setFont(sceneFont(pItem));
+    pPainter->translate(pItem->rect.center());
+    pPainter->rotate(pItem->angle);
+    pPainter->translate(-pItem->rect.center());
+    pPainter->translate(pItem->rect.topLeft());
+
+    // Get dimensions
+    int numRows = pItem->numRows();
+    int numCols = pItem->numCols();
+    int iHeader = pItem->showLabels;
+    qreal cellWidth = (qreal) pItem->rect.width() / (numCols + iHeader);
+    qreal cellHeight = (qreal) pItem->rect.height() / (numRows + iHeader);
+
+    // Set the data style
+    QPen pen(Qt::black);
+    pen.setWidthF(pItem->gridWidth);
+    pPainter->setPen(pen);
+    QTextOption textOption;
+    textOption.setAlignment(Qt::AlignCenter);
+
+    // Set the table data
+    QRectF cell;
+    for (int iRow = 0; iRow != numRows; ++iRow)
+    {
+        for (int iCol = 0; iCol != numCols; ++iCol)
+        {
+            cell = QRectF((iHeader + iCol) * cellWidth, (iHeader + iRow) * cellHeight, cellWidth, cellHeight);
+            pPainter->drawRect(cell);
+            pPainter->drawText(cell, mTextEngine.process(pItem->data[iRow][iCol]), textOption);
+        }
+    }
+
+    // Set the header
+    if (iHeader > 0)
+    {
+        // Mid label
+        cell = QRectF(0, 0, cellWidth, cellHeight);
+        pPainter->drawRect(cell);
+        pPainter->drawText(cell, mTextEngine.process(pItem->midLabel), textOption);
+
+        // Horizontal labels
+        for (int iCol = 1; iCol <= numCols; ++iCol)
+        {
+            cell = QRectF(iCol * cellWidth, 0, cellWidth, cellHeight);
+            int iLabel = iCol - 1;
+            pPainter->drawRect(cell);
+            if (iLabel < pItem->horLabels.size())
+                pPainter->drawText(cell, mTextEngine.process(pItem->horLabels[iLabel]), textOption);
+        }
+
+        // Vertical labels
+        for (int iRow = 1; iRow <= numRows; ++iRow)
+        {
+            cell = QRectF(0, iRow * cellHeight, cellWidth, cellHeight);
+            int iLabel = iRow - 1;
+            pPainter->drawRect(cell);
+            if (iLabel < pItem->verLabels.size())
+                pPainter->drawText(cell, mTextEngine.process(pItem->verLabels[iLabel]), textOption);
+        }
+    }
+
+    // Restore the painter
+    pPainter->restore();
+
+    ReportSceneItem::paint(pPainter, pOption, pWidget);
+}
+
+//! Helper function to get scene related font
+QFont sceneFont(ReportItem* pItem)
+{
+    qreal kPointFactor = 4.0;
+    QFont f = pItem->font;
+    f.setPointSizeF(f.pointSize() / kPointFactor);
+    return f;
 }
 
 //! Helper function to compute rotated rectangle

@@ -25,6 +25,8 @@ class PictureReportItem;
 class TableReportItem;
 }
 
+class QCPAxis;
+
 namespace Frontend
 {
 
@@ -40,6 +42,7 @@ public:
     ReportSceneItem(Backend::Core::ReportItem* pItem, QGraphicsItem* pParent = nullptr);
     virtual ~ReportSceneItem() = default;
 
+    int type() const override;
     Backend::Core::ReportItem* item();
     bool isMovable() const;
 
@@ -100,7 +103,6 @@ public:
     TextReportSceneItem(Backend::Core::TextReportItem* pItem, Backend::Core::ReportTextEngine& textEngine, QGraphicsItem* pParent = nullptr);
     virtual ~TextReportSceneItem() = default;
 
-    QFont font() const;
     QString rawText() const;
     QString processedText() const;
     Qt::Alignment textAlignment() const;
@@ -126,6 +128,9 @@ public:
                          QGraphicsItem* pParent = nullptr);
     virtual ~GraphReportSceneItem();
 
+    QPair<double, double> yRange();
+    void setYRange(double lower, double upper);
+
 protected:
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
 
@@ -138,6 +143,7 @@ private:
 
     void addPlottable(QList<double> const& xData, QList<double> const& yData, Backend::Core::GraphReportCurve const& curve,
                       QString const& name = QString());
+    QPair<QCPAxis*, QCPAxis*> axes();
 
     // Rendering
     void drawPlot(QPainter* pPainter);
@@ -172,11 +178,14 @@ class TableReportSceneItem : public ReportSceneItem
     Q_OBJECT
 
 public:
-    TableReportSceneItem(Backend::Core::TableReportItem* pItem, QGraphicsItem* pParent = nullptr);
+    TableReportSceneItem(Backend::Core::TableReportItem* pItem, Backend::Core::ReportTextEngine& textEngine, QGraphicsItem* pParent = nullptr);
     virtual ~TableReportSceneItem() = default;
 
 protected:
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
+
+private:
+    Backend::Core::ReportTextEngine& mTextEngine;
 };
 }
 

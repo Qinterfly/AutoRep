@@ -182,7 +182,8 @@ void TestFrontend::setModeshapePage()
     GraphReportItem* pWing = (GraphReportItem*) page.get(1);
     GraphReportItem* pHStab = (GraphReportItem*) page.get(2);
     GraphReportItem* pVStab = (GraphReportItem*) page.get(3);
-    TextReportItem* pTitle = (TextReportItem*) page.get(4);
+    TableReportItem* pTable = (TableReportItem*) page.get(4);
+    TextReportItem* pTitle = (TextReportItem*) page.get(5);
 
     // clang-format off
     
@@ -228,6 +229,17 @@ void TestFrontend::setModeshapePage()
     pVStab->addCurve(GraphReportCurve({"Rd:4p3", "Rd:4p6"}, "red", ReportMarkerShape::kSquare, true));
 
     // clang-format on
+
+    // Set the tabular data
+    pTable->midLabel = "Y; a, ${UNIT}";
+    pTable->horLabels = {"Шток", "Гильза"};
+    pTable->verLabels = {"ПОШ", "ЛООШ", "ПООШ"};
+    pTable->data[0][0] = "${POSh:5p10:Y}";
+    pTable->data[0][1] = "${POSh:5p13:Y}";
+    pTable->data[1][0] = "${OOSh:3p17:Y}";
+    pTable->data[1][1] = "${OOSh:3p20:Y}";
+    pTable->data[2][0] = "${OOSh:3p21:Y}";
+    pTable->data[2][1] = "${OOSh:3p24:Y}";
 
     // Set the title
     pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей";

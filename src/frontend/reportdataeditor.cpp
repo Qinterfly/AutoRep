@@ -14,7 +14,7 @@
 #include "reportdataeditor.h"
 #include "reportdocument.h"
 #include "reportitem.h"
-#include "reportsettings.h"
+#include "reportdefaults.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
@@ -284,16 +284,19 @@ void GraphReportDataEditor::refreshTree()
 //! Add a new curve
 void GraphReportDataEditor::addCurve()
 {
+    // Constants
+    QList<GraphReportCurve> const kDefaultCurves = ReportDefaults::curves();
+
     // Retrieve the graph item
     if (!mpItem)
         return;
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Helper function
-    auto createCurve = [pItem](QList<GraphReportPoint> const& points)
+    auto createCurve = [pItem, &kDefaultCurves](QList<GraphReportPoint> const& points)
     {
-        int iDefaultCurve = Utility::getRepeatedIndex(pItem->curves.count(), ReportSettings::curves.size());
-        GraphReportCurve curve = ReportSettings::curves[iDefaultCurve];
+        int iDefaultCurve = Utility::getRepeatedIndex(pItem->curves.count(), kDefaultCurves.size());
+        GraphReportCurve curve = kDefaultCurves[iDefaultCurve];
         curve.points = points;
         pItem->curves.push_back(curve);
     };
@@ -513,9 +516,9 @@ void GraphReportDataEditor::processTreeSelected()
 }
 
 //! Retrieve the selected tree entity: curve or point
-QPair<int, int> GraphReportDataEditor::getTreeSelected()
+PairInt GraphReportDataEditor::getTreeSelected()
 {
-    QPair<int, int> const null(-1, -1);
+    PairInt const null(-1, -1);
     QTreeWidgetItem* pCurrent = mpCurveTree->currentItem();
     if (!pCurrent)
         return null;
