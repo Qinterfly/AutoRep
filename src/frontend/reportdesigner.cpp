@@ -836,7 +836,7 @@ void ReportTextEditor::startEditing(QRect const& rect, TextReportItem* pItem)
     QTextCursor cursor(document());
     cursor.select(QTextCursor::Document);
     QTextBlockFormat format;
-    format.setAlignment(mpItem->alignment);
+    format.setAlignment(mpItem->align);
     cursor.mergeBlockFormat(format);
 
     // Show the editor

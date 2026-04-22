@@ -1,3 +1,5 @@
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QRegularExpression>
 
 #include "reporttextengine.h"
@@ -124,6 +126,21 @@ QString ReportTextEngine::process(QString const& input) const
     result.append(input.mid(iLast));
 
     return result;
+}
+
+QJsonObject ReportTextEngine::toJson() const
+{
+    QJsonObject obj;
+    obj["keyVariables"] = QJsonArray::fromStringList(mVariables.keys());
+    obj["valueVariables"] = QJsonArray::fromStringList(mVariables.values());
+    obj["keyReplacements"] = QJsonArray::fromStringList(mReplacements.keys());
+    obj["valueReplacements"] = QJsonArray::fromStringList(mReplacements.values());
+    return obj;
+}
+
+void ReportTextEngine::fromJson(QJsonObject const& obj)
+{
+    // TODO
 }
 
 //! Helper function to convert key to the expected format

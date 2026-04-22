@@ -1,6 +1,9 @@
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonObject>
 
+#include "fileutility.h"
 #include "reportitem.h"
 
 using namespace Backend::Core;
@@ -25,9 +28,26 @@ ReportItem::ReportItem(ReportItem const* pAnother)
     link = pAnother->link;
 }
 
+QJsonObject ReportItem::toJson() const
+{
+    QJsonObject obj;
+    obj["id"] = Utility::toJson(id);
+    obj["name"] = name;
+    obj["rect"] = Utility::toJson(rect);
+    obj["angle"] = angle;
+    obj["font"] = Utility::toJson(font);
+    obj["link"] = Utility::toJson(link);
+    return obj;
+}
+
+void ReportItem::fromJson(QJsonObject const& obj)
+{
+    // TODO
+}
+
 TextReportItem::TextReportItem()
 {
-    alignment = Qt::AlignHCenter | Qt::AlignVCenter;
+    align = Qt::AlignHCenter | Qt::AlignVCenter;
 }
 
 TextReportItem::TextReportItem(ReportItem const* pAnother)
@@ -43,9 +63,22 @@ ReportItem::Type TextReportItem::type() const
 ReportItem* TextReportItem::clone() const
 {
     TextReportItem* pResult = new TextReportItem(this);
-    pResult->alignment = alignment;
+    pResult->align = align;
     pResult->text = text;
     return pResult;
+}
+
+QJsonObject TextReportItem::toJson() const
+{
+    QJsonObject obj = ReportItem::toJson();
+    obj["align"] = Utility::toJson(align);
+    obj["text"] = text;
+    return obj;
+}
+
+void TextReportItem::fromJson(QJsonObject const& obj)
+{
+    // TODO
 }
 
 GraphReportPoint::GraphReportPoint()
@@ -75,6 +108,19 @@ GraphReportPoint::GraphReportPoint(QString const& uComponent, QString const& uNo
 QString GraphReportPoint::name() const
 {
     return QString("%1:%2").arg(component, node);
+}
+
+QJsonObject GraphReportPoint::toJson() const
+{
+    QJsonObject obj;
+    obj["component"] = component;
+    obj["node"] = node;
+    return obj;
+}
+
+void GraphReportPoint::fromJson(QJsonObject const& obj)
+{
+    // TODO
 }
 
 GraphReportCurve::GraphReportCurve()
@@ -128,10 +174,41 @@ bool GraphReportCurve::isEmpty() const
     return points.isEmpty();
 }
 
+QJsonObject GraphReportCurve::toJson() const
+{
+    QJsonObject obj;
+    obj["name"] = name;
+    QJsonArray jsonPoints;
+    for (auto const& p : points)
+        jsonPoints.push_back(p.toJson());
+    obj["points"] = jsonPoints;
+
+    // Line
+    obj["lineStyle"] = (int) lineStyle;
+    obj["lineWidth"] = lineWidth;
+    obj["lineColor"] = Utility::toJson(lineColor);
+
+    // Marker
+    obj["markerShape"] = (int) markerShape;
+    obj["markerSize"] = markerSize;
+    obj["markerFill"] = markerFill;
+    obj["markerSkip"] = markerSkip;
+
+    return obj;
+}
+
+void GraphReportCurve::fromJson(QJsonObject const& obj)
+{
+    // TODO
+}
+
 GraphReportItem::GraphReportItem()
 {
     // Header
     subType = kNone;
+    coordDir = ReportDirection::kNone;
+    responseDir = ReportDirection::kNone;
+    unit = QString();
 
     // Axes
     xRange = {0.0, 0.0};
@@ -206,6 +283,44 @@ GraphReportCurve& GraphReportItem::addPoint(QString const& point, QString const&
     return addCurve({point}, name);
 }
 
+QJsonObject GraphReportItem::toJson() const
+{
+    QJsonObject obj = ReportItem::toJson();
+
+    QJsonArray jsonCurves;
+    for (auto const& c : curves)
+        jsonCurves.push_back(c.toJson());
+    obj["curves"] = jsonCurves;
+
+    // Header
+    obj["subType"] = (int) subType;
+    obj["coordDir"] = (int) coordDir;
+    obj["responseDir"] = (int) responseDir;
+    obj["unit"] = unit;
+
+    // Axes
+    obj["xRange"] = Utility::toJson(xRange);
+    obj["yRange"] = Utility::toJson(yRange);
+    obj["xLabel"] = xLabel;
+    obj["yLabel"] = yLabel;
+    obj["scaleRange"] = scaleRange;
+    obj["numTicks"] = numTicks;
+    obj["gridWidth"] = gridWidth;
+    obj["swapAxes"] = swapAxes;
+    obj["legendAlign"] = Utility::toJson(legendAlign);
+
+    // View
+    obj["showLegend"] = showLegend;
+    obj["showBundleFreq"] = showBundleFreq;
+
+    return obj;
+}
+
+void GraphReportItem::fromJson(QJsonObject const& obj)
+{
+    // TODO
+}
+
 PictureReportItem::PictureReportItem()
 {
 }
@@ -237,6 +352,19 @@ bool PictureReportItem::load(QString const& pathFile)
     format = QFileInfo(pathFile).suffix();
     file.close();
     return true;
+}
+
+QJsonObject PictureReportItem::toJson() const
+{
+    QJsonObject obj = ReportItem::toJson();
+    obj["data"] = Utility::toJson(data);
+    obj["format"] = format;
+    return obj;
+}
+
+void PictureReportItem::fromJson(QJsonObject const& obj)
+{
+    // TODO
 }
 
 TableReportItem::TableReportItem()
@@ -301,4 +429,24 @@ void TableReportItem::setNumRows(int nRows)
 void TableReportItem::setNumCols(int nCols)
 {
     resize(numRows(), nCols);
+}
+
+QJsonObject TableReportItem::toJson() const
+{
+    QJsonObject obj = ReportItem::toJson();
+    QJsonArray jsonData;
+    for (auto const& row : data)
+        jsonData.push_back(QJsonArray::fromStringList(row));
+    obj["data"] = jsonData;
+    obj["midLabel"] = midLabel;
+    obj["horLabels"] = QJsonArray::fromStringList(horLabels);
+    obj["verLabels"] = QJsonArray::fromStringList(verLabels);
+    obj["gridWidth"] = gridWidth;
+    obj["showLabels"] = showLabels;
+    return obj;
+}
+
+void TableReportItem::fromJson(QJsonObject const& obj)
+{
+    // TODO
 }

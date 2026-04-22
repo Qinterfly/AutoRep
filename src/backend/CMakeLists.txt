@@ -10,6 +10,7 @@ set(BACKEND_HEADERS
     reportdocument.h
     reporttextengine.h
     reportdefaults.h
+    reportinterface.h
 )
 
 set(BACKEND_SOURCES

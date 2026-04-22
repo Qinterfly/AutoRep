@@ -105,7 +105,7 @@ public:
 
     QString rawText() const;
     QString processedText() const;
-    Qt::Alignment textAlignment() const;
+    Qt::Alignment textAlign() const;
 
 protected:
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;

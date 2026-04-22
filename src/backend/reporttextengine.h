@@ -4,10 +4,12 @@
 #include <QHash>
 #include <QString>
 
+#include "reportinterface.h"
+
 namespace Backend::Core
 {
 
-class ReportTextEngine
+class ReportTextEngine : public ISerializable
 {
 public:
     ReportTextEngine();
@@ -26,6 +28,9 @@ public:
     void setReplacement(QString const& value, QString const& replacement);
 
     QString process(QString const& input) const;
+
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
 
 private:
     QHash<QString, QString> mVariables;

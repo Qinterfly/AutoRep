@@ -276,10 +276,10 @@ QString TextReportSceneItem::processedText() const
     return mTextEngine.process(rawText());
 }
 
-Qt::Alignment TextReportSceneItem::textAlignment() const
+Qt::Alignment TextReportSceneItem::textAlign() const
 {
     TextReportItem* pItem = (TextReportItem*) mpItem;
-    return pItem->alignment;
+    return pItem->align;
 }
 
 //! Process paint event
@@ -297,7 +297,7 @@ void TextReportSceneItem::drawText(QPainter* pPainter)
     pPainter->translate(mpItem->rect.center());
     pPainter->rotate(mpItem->angle);
     pPainter->translate(-mpItem->rect.center());
-    pPainter->drawText(mpItem->rect, textAlignment(), processedText());
+    pPainter->drawText(mpItem->rect, textAlign(), processedText());
     pPainter->restore();
 }
 

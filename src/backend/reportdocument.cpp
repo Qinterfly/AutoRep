@@ -1,3 +1,8 @@
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+
+#include "fileutility.h"
 #include "reportdocument.h"
 #include "reportitem.h"
 
@@ -134,6 +139,73 @@ void ReportPage::clear()
     mItems.clear();
 }
 
+QJsonObject ReportPage::toJson() const
+{
+    QJsonObject obj;
+    obj["layout"] = Utility::toJson(layout);
+    obj["name"] = name;
+    QJsonArray jsonItems;
+    for (auto const& it : mItems)
+        jsonItems.push_back(it->toJson());
+    obj["items"] = jsonItems;
+    return obj;
+}
+
+void ReportPage::fromJson(QJsonObject const& obj)
+{
+    // TODO
+}
+
 ReportDocument::ReportDocument()
 {
+}
+
+QString ReportDocument::fileVersion()
+{
+    return "0.0.1";
+}
+
+QString ReportDocument::fileSuffix()
+{
+    return "json";
+}
+
+QJsonObject ReportDocument::toJson() const
+{
+    QJsonObject obj;
+    obj["version"] = fileVersion();
+    obj["name"] = name;
+    QJsonArray jsonPages;
+    for (auto const& p : pages)
+        jsonPages.push_back(p.toJson());
+    obj["pages"] = jsonPages;
+    obj["textEngine"] = textEngine.toJson();
+    return obj;
+}
+
+void ReportDocument::fromJson(QJsonObject const& obj)
+{
+    // TODO
+}
+
+//! Read a document layout from a file
+bool ReportDocument::read(QString const& pathFile)
+{
+    // TODO
+    return true;
+}
+
+//! Write a document layout to a file
+bool ReportDocument::write(QString const& pathFile) const
+{
+    // Open file for writing
+    auto pFile = Utility::openFile(pathFile, fileSuffix(), QIODevice::WriteOnly);
+    if (!pFile)
+        return false;
+
+    // Write the document
+    QJsonDocument jsonDoc(toJson());
+    pFile->write(jsonDoc.toJson());
+
+    return true;
 }

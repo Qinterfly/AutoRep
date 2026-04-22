@@ -33,6 +33,11 @@ QSize ReportWorkspace::sizeHint() const
     return QSize(500, 1000);
 }
 
+ReportDocument const& ReportWorkspace::document() const
+{
+    return mDocument;
+}
+
 //! Retrieve the current designer
 ReportDesigner* ReportWorkspace::currentDesigner()
 {

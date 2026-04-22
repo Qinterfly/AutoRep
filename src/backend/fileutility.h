@@ -4,6 +4,8 @@
 
 #include <QDir>
 
+QT_FORWARD_DECLARE_CLASS(QPageLayout)
+
 namespace Backend::Utility
 {
 
@@ -22,6 +24,16 @@ QString combineFilePath(T const& first, Args... args)
 {
     return QDir(first).filePath(combineFilePath(args...));
 }
+
+// Convert to Json
+QJsonValue toJson(QUuid const& id);
+QJsonValue toJson(QRect const& rect);
+QJsonValue toJson(QFont const& font);
+QJsonValue toJson(QPageLayout const& layout);
+QJsonValue toJson(Qt::Alignment const& align);
+QJsonValue toJson(QColor const& color);
+QJsonValue toJson(QPair<double, double> const& pair);
+QJsonValue toJson(QByteArray const& data);
 }
 
 #endif // FILEUTILITY_H

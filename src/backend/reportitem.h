@@ -7,8 +7,7 @@
 #include <QRect>
 #include <QUuid>
 
-using PairInt = QPair<int, int>;
-using PairDouble = QPair<double, double>;
+#include "reportinterface.h"
 
 namespace Backend::Core
 {
@@ -43,7 +42,7 @@ enum class ReportMarkerShape
 };
 
 //! Base class for items
-class ReportItem
+class ReportItem : public ISerializable
 {
 public:
     enum Type
@@ -59,6 +58,9 @@ public:
 
     virtual Type type() const = 0;
     virtual ReportItem* clone() const = 0;
+
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
 
 public:
     QUuid id;
@@ -80,13 +82,16 @@ public:
     Type type() const override;
     ReportItem* clone() const override;
 
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
 public:
-    Qt::Alignment alignment;
+    Qt::Alignment align;
     QString text;
 };
 
 //! Class to a define a layout of a graph point
-class GraphReportPoint
+class GraphReportPoint : public ISerializable
 {
 public:
     GraphReportPoint();
@@ -96,13 +101,16 @@ public:
 
     QString name() const;
 
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
 public:
     QString component;
     QString node;
 };
 
 //! Class to define a layout of a graph curve
-class GraphReportCurve
+class GraphReportCurve : public ISerializable
 {
 public:
     GraphReportCurve();
@@ -113,6 +121,9 @@ public:
     ~GraphReportCurve() = default;
 
     bool isEmpty() const;
+
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
 
 public:
     QString name;
@@ -156,6 +167,9 @@ public:
     GraphReportCurve& addCurve(QStringList const& points, QString const& name = QString());
     GraphReportCurve& addPoint(QString const& point, QString const& name = QString());
 
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
 public:
     QList<GraphReportCurve> curves;
 
@@ -194,6 +208,9 @@ public:
 
     bool load(QString const& pathFile);
 
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
 public:
     QByteArray data;
     QString format;
@@ -216,6 +233,9 @@ public:
     void resize(int nRows, int nCols);
     void setNumRows(int nRows);
     void setNumCols(int nCols);
+
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
 
 public:
     QList<QStringList> data;

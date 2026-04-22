@@ -24,8 +24,8 @@ private slots:
     void setMultiImRePage();
     void setFreqAmpPage();
     void setModeshapePage();
-    void buildReport();
-    void writeReport();
+    void writeDocument();
+    void printReport();
 
 private:
     Frontend::MainWindow* mpMainWindow;

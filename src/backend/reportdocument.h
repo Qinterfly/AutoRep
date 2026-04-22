@@ -13,7 +13,7 @@ class ReportItem;
 class GraphReportCurve;
 
 //! Class to define report page layout
-class ReportPage
+class ReportPage : public ISerializable
 {
 public:
     ReportPage();
@@ -35,6 +35,9 @@ public:
     ReportItem* take(int index);
     void clear();
 
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
 public:
     QPageLayout layout;
     QString name;
@@ -44,11 +47,18 @@ private:
 };
 
 //! Collection of report pages
-class ReportDocument
+class ReportDocument : public ISerializable
 {
 public:
     ReportDocument();
     ~ReportDocument() = default;
+
+    static QString fileVersion();
+    static QString fileSuffix();
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+    bool read(QString const& pathFile);
+    bool write(QString const& pathFile) const;
 
 public:
     QString name;

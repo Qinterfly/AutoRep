@@ -25,6 +25,7 @@ public:
     virtual ~ReportWorkspace() = default;
 
     QSize sizeHint() const override;
+    Backend::Core::ReportDocument const& document() const;
     ReportDesigner* currentDesigner();
     ReportDesigner* designer(int iPage);
     ReportDesigner* designer(QString const& name);

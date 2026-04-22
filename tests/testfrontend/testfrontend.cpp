@@ -256,14 +256,16 @@ void TestFrontend::setModeshapePage()
     pTitle->text = "${MODE}\n${EXCITE}";
 }
 
-//! Make up the report
-void TestFrontend::buildReport()
+//! Export report to a file
+void TestFrontend::writeDocument()
 {
-    // TODO
+    QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.json");
+    ReportDocument const& document = mpReportWorkspace->document();
+    QVERIFY(document.write(pathFile));
 }
 
 //! Write the report to a file
-void TestFrontend::writeReport()
+void TestFrontend::printReport()
 {
     QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
     mpReportWorkspace->print(pathFile);
