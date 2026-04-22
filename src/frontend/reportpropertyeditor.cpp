@@ -190,6 +190,10 @@ void ReportPropertyEditor::addTableProperties()
     QtVariantProperty* pNumColsProperty = mpManager->addProperty(kNumCols, QMetaType::Int, tr("Number of columns"));
     pNumColsProperty->setValue(pItem->numCols());
     mpEditor->addProperty(pNumColsProperty);
+
+    QtVariantProperty* pShowLabelsProperty = mpManager->addProperty(kShowLabels, QMetaType::Bool, tr("Header"));
+    pShowLabelsProperty->setValue(pItem->showLabels);
+    mpEditor->addProperty(pShowLabelsProperty);
 }
 
 //! Change the item property value
@@ -257,6 +261,9 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kNumCols:
         static_cast<TableReportItem*>(mpItem)->setNumCols(value.toInt());
+        break;
+    case kShowLabels:
+        static_cast<TableReportItem*>(mpItem)->showLabels = value.toBool();
         break;
 
     default:

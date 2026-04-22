@@ -53,7 +53,8 @@ public:
 
         // Table
         kNumRows,
-        kNumCols
+        kNumCols,
+        kShowLabels
     };
 
     ReportPropertyEditor(QWidget* pParent = nullptr);

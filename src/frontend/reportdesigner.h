@@ -5,6 +5,7 @@
 #include <QTextEdit>
 #include <QWidget>
 
+#include "customtable.h"
 #include "reportdocument.h"
 #include "reportitem.h"
 #include "reporttextengine.h"
@@ -25,6 +26,7 @@ class GeometryView;
 class ResponseEditor;
 class ReportSceneItem;
 class ReportTextEditor;
+class ReportTableEditor;
 
 //! Designer options
 struct ReportDesignerOptions
@@ -100,6 +102,7 @@ private:
     QGraphicsScene* mpScene;
     ReportSceneView* mpSceneView;
     ReportTextEditor* mpTextEditor;
+    ReportTableEditor* mpTableEditor;
     QComboBox* mpScaleSelector;
     bool mIsPrinting;
 
@@ -156,6 +159,28 @@ protected:
 
 private:
     Backend::Core::TextReportItem* mpItem;
+};
+
+//! Class to edit report table items
+class ReportTableEditor : public CustomTable
+{
+    Q_OBJECT
+
+public:
+    ReportTableEditor(QWidget* pParent = nullptr);
+    virtual ~ReportTableEditor() = default;
+
+    void startEditing(QRect const& rect, Backend::Core::TableReportItem* pItem);
+
+signals:
+    void editingFinished();
+
+protected:
+    void focusOutEvent(QFocusEvent* pEvent) override;
+    void keyPressEvent(QKeyEvent* pEvent) override;
+
+private:
+    Backend::Core::TableReportItem* mpItem;
 };
 }
 

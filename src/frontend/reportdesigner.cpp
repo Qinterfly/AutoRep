@@ -1,6 +1,8 @@
+#include <QApplication>
 #include <QComboBox>
 #include <QFileDialog>
 #include <QGroupBox>
+#include <QHeaderView>
 #include <QLabel>
 #include <QListWidget>
 #include <QMessageBox>
@@ -516,6 +518,10 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
         if (!pathFile.isEmpty())
             static_cast<PictureReportItem*>(pReportItem)->load(pathFile);
     }
+    else if (pReportItem->type() == ReportItem::kTable)
+    {
+        mpTableEditor->startEditing(viewRect, (TableReportItem*) pReportItem);
+    }
 }
 
 //! Create all the widgets
@@ -576,6 +582,7 @@ QWidget* ReportDesigner::createSceneWidget()
 
     // Create the scene editors
     mpTextEditor = new ReportTextEditor(mpSceneView);
+    mpTableEditor = new ReportTableEditor(mpSceneView);
 
     // Initialize the view
     mpSceneView->setScene(mpScene);
@@ -855,6 +862,116 @@ void ReportTextEditor::keyPressEvent(QKeyEvent* pEvent)
         return;
     }
     QTextEdit::keyPressEvent(pEvent);
+}
+
+ReportTableEditor::ReportTableEditor(QWidget* pParent)
+    : CustomTable(pParent)
+    , mpItem(nullptr)
+{
+    hide();
+}
+
+//! Start editing of a text report item
+void ReportTableEditor::startEditing(QRect const& rect, TableReportItem* pItem)
+{
+    // Store the item
+    mpItem = pItem;
+
+    // Set the geometr
+    setGeometry(rect);
+
+    // Set the properties
+    setFont(mpItem->font);
+    horizontalHeader()->setVisible(false);
+    verticalHeader()->setVisible(false);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    setWordWrap(true);
+
+    // Set the data
+    int numRows = mpItem->numRows();
+    int numCols = mpItem->numCols();
+    int iHeader = mpItem->showLabels;
+    setRowCount(numRows + iHeader);
+    setColumnCount(numCols + iHeader);
+    for (int iRow = 0; iRow != numRows; ++iRow)
+    {
+        for (int iCol = 0; iCol != numCols; ++iCol)
+            setItem(iHeader + iRow, iHeader + iCol, Utility::createTableItem(mpItem->data[iRow][iCol]));
+    }
+
+    // Set the header
+    if (iHeader > 0)
+    {
+        // Middle
+        setItem(0, 0, Utility::createTableItem(mpItem->midLabel));
+
+        // Horizontal
+        for (int iCol = 0; iCol != numCols; ++iCol)
+            setItem(0, iHeader + iCol, Utility::createTableItem(mpItem->horLabels[iCol]));
+
+        // Vertical
+        for (int iRow = 0; iRow != numRows; ++iRow)
+            setItem(iHeader + iRow, 0, Utility::createTableItem(mpItem->verLabels[iRow]));
+    }
+
+    // Show the editor
+    show();
+    setFocus();
+}
+
+//! Finish editing once the focus is lost
+void ReportTableEditor::focusOutEvent(QFocusEvent* pEvent)
+{
+    // Do not lose focus on editors
+    QWidget* pFocusWidget = QApplication::focusWidget();
+    if (pFocusWidget && pFocusWidget->parent() && pFocusWidget->parent()->parent() == this)
+    {
+        QTableWidget::focusOutEvent(pEvent);
+        return;
+    }
+
+    // Set the data
+    int numRows = mpItem->numRows();
+    int numCols = mpItem->numCols();
+    int iHeader = mpItem->showLabels;
+    for (int iRow = 0; iRow != numRows; ++iRow)
+    {
+        for (int iCol = 0; iCol != numCols; ++iCol)
+            mpItem->data[iRow][iCol] = item(iHeader + iRow, iHeader + iCol)->text();
+    }
+
+    // Set the header
+    if (iHeader > 0)
+    {
+        // Middle
+        mpItem->midLabel = item(0, 0)->text();
+
+        // Horizontal
+        for (int iCol = 0; iCol != numCols; ++iCol)
+            mpItem->horLabels[iCol] = item(0, iHeader + iCol)->text();
+
+        // Vertical
+        for (int iRow = 0; iRow != numRows; ++iRow)
+            mpItem->verLabels[iRow] = item(iHeader + iRow, 0)->text();
+    }
+
+    // Finish the editing
+    this->hide();
+    mpItem = nullptr;
+    emit editingFinished();
+    CustomTable::focusOutEvent(pEvent);
+}
+
+//! Process the keys to lose focus
+void ReportTableEditor::keyPressEvent(QKeyEvent* pEvent)
+{
+    if (pEvent->key() == Qt::Key_Return || pEvent->key() == Qt::Key_Escape)
+    {
+        clearFocus();
+        return;
+    }
+    CustomTable::keyPressEvent(pEvent);
 }
 
 //! Helper function to create a list item

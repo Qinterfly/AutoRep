@@ -873,12 +873,12 @@ void TableReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem co
     // Set the header
     if (iHeader > 0)
     {
-        // Mid label
+        // Middle
         cell = QRectF(0, 0, cellWidth, cellHeight);
         pPainter->drawRect(cell);
         pPainter->drawText(cell, mTextEngine.process(pItem->midLabel), textOption);
 
-        // Horizontal labels
+        // Horizontal
         for (int iCol = 1; iCol <= numCols; ++iCol)
         {
             cell = QRectF(iCol * cellWidth, 0, cellWidth, cellHeight);
@@ -888,7 +888,7 @@ void TableReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem co
                 pPainter->drawText(cell, mTextEngine.process(pItem->horLabels[iLabel]), textOption);
         }
 
-        // Vertical labels
+        // Vertical
         for (int iRow = 1; iRow <= numRows; ++iRow)
         {
             cell = QRectF(0, iRow * cellHeight, cellWidth, cellHeight);
