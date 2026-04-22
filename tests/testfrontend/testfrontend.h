@@ -19,6 +19,7 @@ public:
 private slots:
     void openProject();
     void addResponseBundles();
+    void setDocument();
     void setImRePage();
     void setMultiImRePage();
     void setFreqAmpPage();

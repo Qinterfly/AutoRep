@@ -4,6 +4,8 @@
 #include <QList>
 #include <QPageLayout>
 
+#include "reporttextengine.h"
+
 namespace Backend::Core
 {
 
@@ -51,6 +53,7 @@ public:
 public:
     QString name;
     QList<ReportPage> pages;
+    ReportTextEngine textEngine;
 };
 }
 

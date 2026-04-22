@@ -1,4 +1,5 @@
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QPrinter>
 #include <QSettings>
 #include <QToolBar>
@@ -24,8 +25,7 @@ ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryVie
     setFont(Utility::getFont());
     createContent();
     createConnections();
-    initialize();
-    rebuild();
+    setDefaultDocument();
 }
 
 QSize ReportWorkspace::sizeHint() const
@@ -57,6 +57,19 @@ ReportDesigner* ReportWorkspace::designer(QString const& name)
             return (ReportDesigner*) mpDesignerTabs->widget(iPage);
     }
     return nullptr;
+}
+
+//! Set the default document
+void ReportWorkspace::setDefaultDocument()
+{
+    setDocument(ReportDefaults::document());
+}
+
+//! Replace the current document with the new one
+void ReportWorkspace::setDocument(ReportDocument const& document)
+{
+    mDocument = document;
+    rebuild();
 }
 
 //! Print all the pages to a pdf file
@@ -120,9 +133,10 @@ void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
-    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("Default template"), this, &ReportWorkspace::setDefaultDocument);
-    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import template"));
-    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export template"));
+    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocument);
+    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import document"));
+    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export document"));
+    pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
     pToolBar->setIconSize(Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
@@ -144,15 +158,6 @@ void ReportWorkspace::createConnections()
     connect(mpDesignerTabs, &CustomTabWidget::currentChanged, this, &ReportWorkspace::processDesignerSelected);
 }
 
-//! Initialize the editor
-void ReportWorkspace::initialize()
-{
-    mDocument.pages.push_back(ReportDefaults::imRePage());
-    mDocument.pages.push_back(ReportDefaults::multiImRePage());
-    mDocument.pages.push_back(ReportDefaults::freqAmpPage());
-    mDocument.pages.push_back(ReportDefaults::modeshapePage());
-}
-
 //! Replot the designer tabs
 void ReportWorkspace::refresh()
 {
@@ -171,7 +176,7 @@ void ReportWorkspace::rebuild()
     for (int i = 0; i != numPages; ++i)
     {
         ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mpResponseEditor, page);
+        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mpResponseEditor, page, mDocument.textEngine);
         QString name = page.name;
         if (name.isEmpty())
             name = tr("Page %1").arg(1 + i);
@@ -179,14 +184,6 @@ void ReportWorkspace::rebuild()
         pDesigner->fit();
     }
     mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
-}
-
-//! Set the default document
-void ReportWorkspace::setDefaultDocument()
-{
-    mDocument = ReportDocument();
-    initialize();
-    rebuild();
 }
 
 //! Fit the designer on selection
@@ -197,3 +194,129 @@ void ReportWorkspace::processDesignerSelected()
         pDesigner->fit();
 }
 
+//! Show an editor to create and remove text variables
+void ReportWorkspace::editTextEngine()
+{
+    ReportTextEngineEditor* pEditor = new ReportTextEngineEditor(mSettings, mDocument.textEngine);
+    connect(pEditor, &ReportTextEngineEditor::edited, this, &ReportWorkspace::refresh);
+    Utility::showAsDialog(pEditor, tr("Text Engine Editor"), this, false);
+}
+
+ReportTextEngineEditor::ReportTextEngineEditor(QSettings& settings, ReportTextEngine& textEngine, QWidget* pParent)
+    : QWidget(pParent)
+    , mSettings(settings)
+    , mTextEngine(textEngine)
+{
+    createContent();
+    refresh();
+}
+
+QSize ReportTextEngineEditor::sizeHint() const
+{
+    return QSize(600, 600);
+}
+
+//! Update the widgets content
+void ReportTextEngineEditor::refresh()
+{
+    // Set the table properties
+    QSignalBlocker blockerTable(mpTable);
+    int numVars = mTextEngine.numVariables();
+    mpTable->clear();
+    mpTable->setRowCount(numVars);
+    mpTable->setColumnCount(2);
+    mpTable->setHorizontalHeaderLabels({tr("Key"), tr("Value")});
+    mpTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    mpTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    // Set the table content
+    QStringList keys = mTextEngine.keys();
+    std::sort(keys.begin(), keys.end(), [](QString const& a, QString const& b) { return a.size() < b.size(); });
+    for (int i = 0; i != numVars; ++i)
+    {
+        QString const& key = keys[i];
+        QString value = mTextEngine.getValue(key);
+        mpTable->setItem(i, 0, Utility::createTableItem(key));
+        mpTable->setItem(i, 1, Utility::createTableItem(value));
+    }
+}
+
+//! Insert a new variable
+void ReportTextEngineEditor::addVariable()
+{
+    if (mTextEngine.addVariable("NEW"))
+    {
+        refresh();
+        qInfo() << tr("New variable is added");
+    }
+}
+
+//! Remove the selected variables
+void ReportTextEngineEditor::removeVariables()
+{
+    // Retrieve the selected variables
+    QList<int> selected = selectedRows();
+    if (selected.isEmpty())
+        return;
+
+    // Remove the selected variables
+    int numSelected = selected.size();
+    for (int i = 0; i != numSelected; ++i)
+    {
+        QString key = mpTable->item(selected[i], 0)->text();
+        mTextEngine.removeVariable(key);
+    }
+    qInfo() << tr("Selected variables are removed");
+
+    // Update the content
+    refresh();
+}
+
+//! Create all the widgets
+void ReportTextEngineEditor::createContent()
+{
+    // Create the toolbar
+    QToolBar* pToolBar = new QToolBar;
+    pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add variable"), this, &ReportTextEngineEditor::addVariable);
+    pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove variable"), this, &ReportTextEngineEditor::removeVariables);
+    pToolBar->setIconSize(Size::skToolBarIcon);
+    Utility::setShortcutHints(pToolBar);
+
+    // Create the table widget
+    mpTable = new CustomTable;
+    mpTable->setSelectionBehavior(QAbstractItemView::SelectItems);
+    mpTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    connect(mpTable, &CustomTable::itemChanged, this, &ReportTextEngineEditor::processItemChanged);
+
+    // Combine the widgets
+    QVBoxLayout* pLayout = new QVBoxLayout;
+    pLayout->setContentsMargins(0, 0, 0, 0);
+    pLayout->addWidget(pToolBar);
+    pLayout->addWidget(mpTable);
+    setLayout(pLayout);
+}
+
+//! Retrieve selected tabular rows
+QList<int> ReportTextEngineEditor::selectedRows()
+{
+    QSet<int> selectedRows;
+    QList<QTableWidgetItem*> items = mpTable->selectedItems();
+    int numItems = items.size();
+    for (int i = 0; i != numItems; ++i)
+        selectedRows.insert(items[i]->row());
+    return selectedRows.values();
+}
+
+//! Process changing items
+void ReportTextEngineEditor::processItemChanged()
+{
+    int numRows = mpTable->rowCount();
+    mTextEngine.clearVariables();
+    for (int i = 0; i != numRows; ++i)
+    {
+        QString key = mpTable->item(i, 0)->text();
+        QString value = mpTable->item(i, 1)->text();
+        mTextEngine.setVariable(key, value);
+    }
+    emit edited();
+}

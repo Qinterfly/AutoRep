@@ -85,6 +85,7 @@ GraphReportCurve::GraphReportCurve()
     markerShape = ReportMarkerShape::kDisc;
     markerSize = 6;
     markerFill = false;
+    markerSkip = 0;
 }
 
 GraphReportCurve::GraphReportCurve(QList<GraphReportPoint> const& uPoints, QString const& uName)

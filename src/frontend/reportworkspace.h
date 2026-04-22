@@ -11,6 +11,7 @@ namespace Frontend
 {
 
 class CustomTabWidget;
+class CustomTable;
 class ReportDesigner;
 class GeometryView;
 class ResponseEditor;
@@ -23,24 +24,25 @@ public:
     ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent = nullptr);
     virtual ~ReportWorkspace() = default;
 
-    QSize sizeHint() const;
+    QSize sizeHint() const override;
     ReportDesigner* currentDesigner();
     ReportDesigner* designer(int iPage);
     ReportDesigner* designer(QString const& name);
     void refresh();
 
+    void setDefaultDocument();
+    void setDocument(Backend::Core::ReportDocument const& document);
     bool print(QString const& pathFile);
     bool printDialog();
 
 private:
     void createContent();
     void createConnections();
-    void initialize();
     void rebuild();
 
     // Slots
-    void setDefaultDocument();
     void processDesignerSelected();
+    void editTextEngine();
 
 private:
     QSettings& mSettings;
@@ -50,6 +52,34 @@ private:
     CustomTabWidget* mpDesignerTabs;
 };
 
+class ReportTextEngineEditor : public QWidget
+{
+    Q_OBJECT
+
+public:
+    ReportTextEngineEditor(QSettings& settings, Backend::Core::ReportTextEngine& textEngine, QWidget* pParent = nullptr);
+    virtual ~ReportTextEngineEditor() = default;
+
+    QSize sizeHint() const override;
+    void refresh();
+    void addVariable();
+    void removeVariables();
+
+signals:
+    void edited();
+
+private:
+    void createContent();
+    QList<int> selectedRows();
+
+    // Slots
+    void processItemChanged();
+
+private:
+    QSettings& mSettings;
+    Backend::Core::ReportTextEngine& mTextEngine;
+    CustomTable* mpTable;
+};
 }
 
 #endif // REPORTWORKSPACE_H

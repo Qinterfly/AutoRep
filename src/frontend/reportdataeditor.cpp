@@ -657,6 +657,10 @@ void ReportCurvePropertyEditor::createProperties()
     QtVariantProperty* pMarkerFillProperty = mpManager->addProperty(kMarkerFill, QMetaType::Bool, tr("Marker fill"));
     pMarkerFillProperty->setValue(mCurve.markerFill);
     mpEditor->addProperty(pMarkerFillProperty);
+
+    QtVariantProperty* pMarkerSkipProperty = mpManager->addProperty(kMarkerSkip, QMetaType::Int, tr("Marker skip"));
+    pMarkerSkipProperty->setValue(mCurve.markerSkip);
+    mpEditor->addProperty(pMarkerSkipProperty);
 }
 
 //! Specify connections
@@ -699,6 +703,9 @@ void ReportCurvePropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kMarkerFill:
         mCurve.markerFill = value.toBool();
+        break;
+    case kMarkerSkip:
+        mCurve.markerSkip = value.toInt();
         break;
     }
     emit edited();

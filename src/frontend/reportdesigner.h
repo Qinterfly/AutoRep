@@ -46,7 +46,8 @@ class ReportDesigner : public QWidget
 
 public:
     ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, Backend::Core::ReportPage& page,
-                   ReportDesignerOptions const& options = ReportDesignerOptions(), QWidget* pParent = nullptr);
+                   Backend::Core::ReportTextEngine& textEngine, ReportDesignerOptions const& options = ReportDesignerOptions(),
+                   QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
     Backend::Core::ReportPage& page();
@@ -95,8 +96,8 @@ private:
     GeometryView* mpGeometryView;
     ResponseEditor* mpResponseEditor;
     Backend::Core::ReportPage& mPage;
+    Backend::Core::ReportTextEngine& mTextEngine;
     ReportDesignerOptions mOptions;
-    Backend::Core::ReportTextEngine mTextEngine;
 
     // Scene
     QGraphicsScene* mpScene;

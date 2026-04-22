@@ -37,12 +37,13 @@ ReportDesignerOptions::ReportDesignerOptions()
 }
 
 ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, ReportPage& page,
-                               ReportDesignerOptions const& options, QWidget* pParent)
+                               ReportTextEngine& textEngine, ReportDesignerOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
     , mpResponseEditor(pResponseEditor)
     , mPage(page)
+    , mTextEngine(textEngine)
     , mOptions(options)
 {
     setFont(Utility::getFont());

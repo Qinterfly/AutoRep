@@ -648,9 +648,9 @@ void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double
 {
     // Define the style
     QPen pen(curve.lineColor, curve.lineWidth, curve.lineStyle);
-    QCPScatterStyle style((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
+    QCPScatterStyle scatterStyle((QCPScatterStyle::ScatterShape) curve.markerShape, curve.markerSize);
     if (curve.markerFill)
-        style.setBrush(curve.lineColor);
+        scatterStyle.setBrush(curve.lineColor);
     QString label = name.isEmpty() ? curve.name : name;
 
     // Modify the style, so that the markers are visible when the curve is not
@@ -667,7 +667,8 @@ void GraphReportSceneItem::addPlottable(QList<double> const& xData, QList<double
     pPlottable->setLineStyle(lineStyle);
     pPlottable->setPen(pen);
     pPlottable->setName(label);
-    pPlottable->setScatterStyle(style);
+    pPlottable->setScatterStyle(scatterStyle);
+    pPlottable->setScatterSkip(curve.markerSkip);
 }
 
 //! Retrieve the axes, taking into account the swap flag

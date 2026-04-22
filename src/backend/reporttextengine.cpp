@@ -24,6 +24,18 @@ bool ReportTextEngine::contains(QString const& rawKey) const
     return mVariables.contains(key);
 }
 
+//! Retrieve the number of variables
+int ReportTextEngine::numVariables() const
+{
+    return mVariables.count();
+}
+
+//! Retrieve the variable keys
+QList<QString> ReportTextEngine::keys() const
+{
+    return mVariables.keys();
+}
+
 //! Get the variable value
 QString ReportTextEngine::getValue(QString const& rawKey) const
 {
@@ -34,6 +46,31 @@ QString ReportTextEngine::getValue(QString const& rawKey) const
     if (mReplacements.contains(value))
         value = mReplacements[value];
     return value;
+}
+
+//! Remove all the variables
+void ReportTextEngine::clearVariables()
+{
+    mVariables.clear();
+}
+
+//! Remove the variable by its key
+bool ReportTextEngine::removeVariable(QString const& rawKey)
+{
+    QString key = normalizeKey(rawKey);
+    if (!contains(key))
+        return false;
+    return mVariables.remove(key);
+}
+
+//! Add a variable
+bool ReportTextEngine::addVariable(QString const& rawKey)
+{
+    QString key = normalizeKey(rawKey);
+    if (contains(key))
+        return false;
+    mVariables[key] = QString();
+    return true;
 }
 
 //! Set the variable value

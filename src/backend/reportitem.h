@@ -127,6 +127,7 @@ public:
     ReportMarkerShape markerShape;
     int markerSize;
     bool markerFill;
+    int markerSkip;
 };
 
 //! Class to define a layout of a graph element

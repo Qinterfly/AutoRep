@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include "fileutility.h"
+#include "reportdefaults.h"
 #include "reportdesigner.h"
 #include "reportworkspace.h"
 #include "sessioneditor.h"
@@ -65,6 +66,16 @@ void TestFrontend::addResponseBundles()
     QVERIFY(pResponseEditor->collection().count() == numBundles);
 }
 
+//! Initialize a report document
+void TestFrontend::setDocument()
+{
+    ReportDocument document = ReportDefaults::document();
+    document.name = "MC-21";
+    document.textEngine.setVariable("MODE", "Симметричные вертикальные колебания двигателей");
+    document.textEngine.setVariable("EXCITE", "Возбуждение с двигателей");
+    mpReportWorkspace->setDocument(document);
+}
+
 //! Set the imaginary/real page of the report
 void TestFrontend::setImRePage()
 {
@@ -92,7 +103,7 @@ void TestFrontend::setImRePage()
     }
 
     // Set the title
-    pTitle->text = "Симметричные вертикальные колебания двигателей\nf = ${FREQ} Гц\nВозбуждение с двигателей, F = ${FORCE} Н";
+    pTitle->text = "${MODE}\nf = ${FREQ} Гц\n${EXCITE}, F = ${FORCE} Н";
 
     // Refresh the page
     pDesigner->refresh();
@@ -120,7 +131,7 @@ void TestFrontend::setMultiImRePage()
     pImag->addPoint(point);
 
     // Set the title
-    pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей\nТочка ${POINT}";
+    pTitle->text = "${MODE}\n${EXCITE}\nТочка ${POINT}";
 
     // Refresh the page
     pDesigner->refresh();
@@ -160,7 +171,7 @@ void TestFrontend::setFreqAmpPage()
     pPic->load(Utility::combineFilePath(INPUT_DIR, "picture.svg"));
 
     // Set the title
-    pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей";
+    pTitle->text = "${MODE}\n${EXCITE}";
 
     // Refresh the page
     pDesigner->refresh();
@@ -242,7 +253,7 @@ void TestFrontend::setModeshapePage()
     pTable->data[2][1] = "${OOSh:3p24:Y}";
 
     // Set the title
-    pTitle->text = "Симметричные вертикальные колебания двигателей\nВозбуждение с двигателей";
+    pTitle->text = "${MODE}\n${EXCITE}";
 }
 
 //! Make up the report

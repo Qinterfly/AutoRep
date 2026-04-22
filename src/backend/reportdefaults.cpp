@@ -27,6 +27,17 @@ QList<GraphReportCurve> ReportDefaults::curves()
     return result;
 }
 
+//! Create a document with page preset
+ReportDocument ReportDefaults::document()
+{
+    ReportDocument result;
+    result.pages.push_back(ReportDefaults::imRePage());
+    result.pages.push_back(ReportDefaults::multiImRePage());
+    result.pages.push_back(ReportDefaults::freqAmpPage());
+    result.pages.push_back(ReportDefaults::modeshapePage());
+    return result;
+}
+
 //! Create a page with imaginary and real parts of a spectrum
 ReportPage ReportDefaults::imRePage()
 {

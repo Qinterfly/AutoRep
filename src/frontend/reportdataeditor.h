@@ -106,7 +106,8 @@ public:
         kLineColor,
         kMarkerShape,
         kMarkerSize,
-        kMarkerFill
+        kMarkerFill,
+        kMarkerSkip
     };
 
     ReportCurvePropertyEditor(Backend::Core::GraphReportCurve& curve, QWidget* pParent = nullptr);
