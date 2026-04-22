@@ -259,9 +259,17 @@ void TestFrontend::setModeshapePage()
 //! Export report to a file
 void TestFrontend::writeDocument()
 {
-    QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.json");
-    ReportDocument const& document = mpReportWorkspace->document();
-    QVERIFY(document.write(pathFile));
+    QString outputPathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.json");
+    QString checkPathFile = Utility::combineFilePath(TEMP_DIR, "check.json");
+
+    // Write the document
+    ReportDocument const& baseDocument = mpReportWorkspace->document();
+    QVERIFY(baseDocument.write(outputPathFile));
+
+    // Read the resulting document and write it to temporary file for checking
+    ReportDocument compareDocument;
+    QVERIFY(compareDocument.read(outputPathFile));
+    QVERIFY(compareDocument.write(checkPathFile));
 }
 
 //! Write the report to a file

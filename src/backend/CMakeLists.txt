@@ -30,6 +30,7 @@ qt_add_library(backend STATIC
 target_include_directories(backend PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/lib
+    ${CMAKE_BINARY_DIR}
 )
 
 target_link_libraries(backend PUBLIC

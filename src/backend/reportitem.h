@@ -245,6 +245,8 @@ public:
     double gridWidth;
     bool showLabels;
 };
+
+ReportItem* createItem(ReportItem::Type type);
 }
 
 #endif // REPORTITEM_H

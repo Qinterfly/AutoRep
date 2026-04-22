@@ -64,7 +64,13 @@ ReportDesigner* ReportWorkspace::designer(QString const& name)
     return nullptr;
 }
 
-//! Set the default document
+//! Set a new document
+void ReportWorkspace::setNewDocument()
+{
+    setDocument(ReportDocument());
+}
+
+//! Set a default document
 void ReportWorkspace::setDefaultDocument()
 {
     setDocument(ReportDefaults::document());
@@ -138,9 +144,10 @@ void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
-    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocument);
-    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import document"));
-    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export document"));
+    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this, &ReportWorkspace::setNewDocument);
+    pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocument);
+    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import document"), this, &ReportWorkspace::importDocument);
+    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export document"), this, &ReportWorkspace::exportDocument);
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
     pToolBar->setIconSize(Size::skToolBarIcon);
@@ -189,6 +196,43 @@ void ReportWorkspace::rebuild()
         pDesigner->fit();
     }
     mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
+}
+
+//! Import the document from a file
+void ReportWorkspace::importDocument()
+{
+    // Get the file path
+    QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Document"), Utility::getLastDirectory(mSettings).path(),
+                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
+    if (pathFile.isEmpty())
+        return;
+
+    // Read the document
+    ReportDocument document;
+    if (document.read(pathFile))
+        setDocument(document);
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+}
+
+//! Export the document to a file
+void ReportWorkspace::exportDocument()
+{
+    // Get the file path
+    QString pathFile = QFileDialog::getSaveFileName(this, tr("Save Document"), Utility::getLastDirectory(mSettings).path(),
+                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
+    if (pathFile.isEmpty())
+        return;
+
+    // Modify the suffix, if necessary
+    Utility::modifyFileSuffix(pathFile, ReportDocument::fileSuffix());
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+
+    // Export the document
+    mDocument.write(pathFile);
 }
 
 //! Fit the designer on selection

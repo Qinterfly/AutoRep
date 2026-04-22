@@ -2,6 +2,7 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 
+#include "fileutility.h"
 #include "reporttextengine.h"
 
 using namespace Backend::Core;
@@ -131,16 +132,32 @@ QString ReportTextEngine::process(QString const& input) const
 QJsonObject ReportTextEngine::toJson() const
 {
     QJsonObject obj;
-    obj["keyVariables"] = QJsonArray::fromStringList(mVariables.keys());
-    obj["valueVariables"] = QJsonArray::fromStringList(mVariables.values());
-    obj["keyReplacements"] = QJsonArray::fromStringList(mReplacements.keys());
-    obj["valueReplacements"] = QJsonArray::fromStringList(mReplacements.values());
+    obj["variableKeys"] = QJsonArray::fromStringList(mVariables.keys());
+    obj["variableValues"] = QJsonArray::fromStringList(mVariables.values());
+    obj["replacementKeys"] = QJsonArray::fromStringList(mReplacements.keys());
+    obj["replacementValues"] = QJsonArray::fromStringList(mReplacements.values());
     return obj;
 }
 
 void ReportTextEngine::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    // Set variables
+    QStringList varKeys, varValues;
+    Utility::fromJson(varKeys, obj["variableKeys"]);
+    Utility::fromJson(varValues, obj["variableValues"]);
+    int numVars = varKeys.size();
+    mVariables.clear();
+    for (int i = 0; i != numVars; ++i)
+        mVariables[varKeys[i]] = varValues[i];
+
+    // Set replacements
+    QStringList replaceKeys, replaceValues;
+    Utility::fromJson(replaceKeys, obj["replacementKeys"]);
+    Utility::fromJson(replaceValues, obj["replacementValues"]);
+    int numReplace = replaceKeys.size();
+    mReplacements.clear();
+    for (int i = 0; i != numReplace; ++i)
+        mReplacements[replaceKeys[i]] = replaceValues[i];
 }
 
 //! Helper function to convert key to the expected format

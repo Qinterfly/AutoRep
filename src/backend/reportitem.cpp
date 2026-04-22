@@ -31,6 +31,7 @@ ReportItem::ReportItem(ReportItem const* pAnother)
 QJsonObject ReportItem::toJson() const
 {
     QJsonObject obj;
+    obj["type"] = type();
     obj["id"] = Utility::toJson(id);
     obj["name"] = name;
     obj["rect"] = Utility::toJson(rect);
@@ -42,7 +43,12 @@ QJsonObject ReportItem::toJson() const
 
 void ReportItem::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    Utility::fromJson(id, obj["id"]);
+    name = obj["name"].toString();
+    Utility::fromJson(rect, obj["rect"]);
+    angle = obj["angle"].toDouble();
+    Utility::fromJson(font, obj["font"]);
+    Utility::fromJson(link, obj["link"]);
 }
 
 TextReportItem::TextReportItem()
@@ -78,7 +84,9 @@ QJsonObject TextReportItem::toJson() const
 
 void TextReportItem::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    ReportItem::fromJson(obj);
+    Utility::fromJson(align, obj["align"]);
+    text = obj["text"].toString();
 }
 
 GraphReportPoint::GraphReportPoint()
@@ -120,7 +128,8 @@ QJsonObject GraphReportPoint::toJson() const
 
 void GraphReportPoint::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    component = obj["component"].toString();
+    node = obj["node"].toString();
 }
 
 GraphReportCurve::GraphReportCurve()
@@ -199,7 +208,23 @@ QJsonObject GraphReportCurve::toJson() const
 
 void GraphReportCurve::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    name = obj["name"].toString();
+    QJsonArray jsonPoints = obj["points"].toArray();
+    int numPoints = jsonPoints.size();
+    points.resize(numPoints);
+    for (int i = 0; i != numPoints; ++i)
+        points[i].fromJson(jsonPoints[i].toObject());
+
+    // Line
+    lineStyle = (Qt::PenStyle) obj["lineStyle"].toInt();
+    lineWidth = obj["lineWidth"].toDouble();
+    Utility::fromJson(lineColor, obj["lineColor"]);
+
+    // Marker
+    markerShape = (ReportMarkerShape) obj["markerShape"].toInt();
+    markerSize = obj["markerSize"].toInt();
+    markerFill = obj["markerFill"].toBool();
+    markerSkip = obj["markerSkip"].toInt();
 }
 
 GraphReportItem::GraphReportItem()
@@ -318,7 +343,34 @@ QJsonObject GraphReportItem::toJson() const
 
 void GraphReportItem::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    ReportItem::fromJson(obj);
+
+    QJsonArray jsonCurves = obj["curves"].toArray();
+    int numCurves = jsonCurves.size();
+    curves.resize(numCurves);
+    for (int i = 0; i != numCurves; ++i)
+        curves[i].fromJson(jsonCurves[i].toObject());
+
+    // Header
+    subType = (GraphReportItem::SubType) obj["subType"].toInt();
+    coordDir = (ReportDirection) obj["coordDir"].toInt();
+    responseDir = (ReportDirection) obj["responseDir"].toInt();
+    unit = obj["unit"].toString();
+
+    // Axes
+    Utility::fromJson(xRange, obj["xRange"]);
+    Utility::fromJson(yRange, obj["yRange"]);
+    xLabel = obj["xLabel"].toString();
+    yLabel = obj["yLabel"].toString();
+    scaleRange = obj["scaleRange"].toDouble();
+    numTicks = obj["numTicks"].toInt();
+    gridWidth = obj["gridWidth"].toDouble();
+    swapAxes = obj["swapAxes"].toBool();
+    Utility::fromJson(legendAlign, obj["legendAlign"]);
+
+    // View
+    showLegend = obj["showLegend"].toBool();
+    showBundleFreq = obj["showBundleFreq"].toBool();
 }
 
 PictureReportItem::PictureReportItem()
@@ -364,7 +416,9 @@ QJsonObject PictureReportItem::toJson() const
 
 void PictureReportItem::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    ReportItem::fromJson(obj);
+    Utility::fromJson(data, obj["data"]);
+    format = obj["format"].toString();
 }
 
 TableReportItem::TableReportItem()
@@ -448,5 +502,33 @@ QJsonObject TableReportItem::toJson() const
 
 void TableReportItem::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    ReportItem::fromJson(obj);
+    QJsonArray jsonData = obj["data"].toArray();
+    int nRows = jsonData.size();
+    data.resize(nRows);
+    for (int i = 0; i != nRows; ++i)
+        Utility::fromJson(data[i], jsonData[i]);
+    midLabel = obj["midLabel"].toString();
+    Utility::fromJson(horLabels, obj["horLabels"]);
+    Utility::fromJson(verLabels, obj["verLabels"]);
+    gridWidth = obj["gridWidth"].toDouble();
+    showLabels = obj["showLabels"].toBool();
+}
+
+ReportItem* Backend::Core::createItem(ReportItem::Type type)
+{
+    switch (type)
+    {
+    case ReportItem::kText:
+        return new TextReportItem;
+    case ReportItem::kGraph:
+        return new GraphReportItem;
+    case ReportItem::kPicture:
+        return new PictureReportItem;
+    case ReportItem::kTable:
+        return new TableReportItem;
+    default:
+        break;
+    }
+    return nullptr;
 }

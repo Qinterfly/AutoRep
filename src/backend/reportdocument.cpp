@@ -2,6 +2,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <config.h>
+
 #include "fileutility.h"
 #include "reportdocument.h"
 #include "reportitem.h"
@@ -153,7 +155,19 @@ QJsonObject ReportPage::toJson() const
 
 void ReportPage::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    Utility::fromJson(layout, obj["layout"]);
+    name = obj["name"].toString();
+    QJsonArray jsonItems = obj["items"].toArray();
+    int numItems = jsonItems.count();
+    mItems.resize(numItems);
+    for (int i = 0; i != numItems; ++i)
+    {
+        QJsonObject jsonItem = jsonItems[i].toObject();
+        auto type = (ReportItem::Type) jsonItem["type"].toInt();
+        ReportItem* pItem = createItem(type);
+        pItem->fromJson(jsonItem);
+        mItems[i] = pItem;
+    }
 }
 
 ReportDocument::ReportDocument()
@@ -162,7 +176,7 @@ ReportDocument::ReportDocument()
 
 QString ReportDocument::fileVersion()
 {
-    return "0.0.1";
+    return VERSION_FULL;
 }
 
 QString ReportDocument::fileSuffix()
@@ -185,13 +199,47 @@ QJsonObject ReportDocument::toJson() const
 
 void ReportDocument::fromJson(QJsonObject const& obj)
 {
-    // TODO
+    name = obj["name"].toString();
+    QJsonArray jsonPages = obj["pages"].toArray();
+    int numPages = jsonPages.size();
+    pages.resize(numPages);
+    for (int i = 0; i != numPages; ++i)
+        pages[i].fromJson(jsonPages[i].toObject());
+    textEngine.fromJson(obj["textEngine"].toObject());
 }
 
 //! Read a document layout from a file
 bool ReportDocument::read(QString const& pathFile)
 {
-    // TODO
+    // Open file for reading
+    auto pFile = Utility::openFile(pathFile, fileSuffix(), QIODevice::ReadOnly);
+    if (!pFile)
+        return false;
+
+    // Read the file
+    QByteArray jsonData = pFile->readAll();
+    pFile->close();
+
+    // Parse the JSON data
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
+
+    // Check for errors
+    if (parseError.error != QJsonParseError::NoError)
+    {
+        qWarning() << QObject::tr("JSON parse error at offset %1:%2").arg(parseError.offset).arg(parseError.errorString());
+        return false;
+    }
+    if (jsonDoc.isNull())
+    {
+        qWarning() << QObject::tr("Failed to read the document");
+        return false;
+    }
+
+    // Parse the object
+    fromJson(jsonDoc.object());
+    qInfo() << QObject::tr("Document has been read from the file %1").arg(pathFile);
+
     return true;
 }
 
@@ -206,6 +254,8 @@ bool ReportDocument::write(QString const& pathFile) const
     // Write the document
     QJsonDocument jsonDoc(toJson());
     pFile->write(jsonDoc.toJson());
+    pFile->close();
+    qInfo() << QObject::tr("Document has been written to the file %1").arg(pathFile);
 
     return true;
 }

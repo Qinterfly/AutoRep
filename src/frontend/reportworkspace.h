@@ -31,6 +31,7 @@ public:
     ReportDesigner* designer(QString const& name);
     void refresh();
 
+    void setNewDocument();
     void setDefaultDocument();
     void setDocument(Backend::Core::ReportDocument const& document);
     bool print(QString const& pathFile);
@@ -42,6 +43,8 @@ private:
     void rebuild();
 
     // Slots
+    void importDocument();
+    void exportDocument();
     void processDesignerSelected();
     void editTextEngine();
 
