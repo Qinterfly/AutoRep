@@ -11,6 +11,8 @@ set(BACKEND_HEADERS
     reporttextengine.h
     reportdefaults.h
     reportinterface.h
+    mathutility.h
+    constants.h
 )
 
 set(BACKEND_SOURCES
@@ -20,6 +22,7 @@ set(BACKEND_SOURCES
     reportdocument.cpp
     reporttextengine.cpp
     reportdefaults.cpp
+    mathutility.cpp
 )
 
 qt_add_library(backend STATIC

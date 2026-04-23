@@ -185,6 +185,7 @@ void ReportWorkspace::addPage()
     mDocument.add();
     addDesigner(mDocument.count() - 1);
     mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
+    emit edited();
 }
 
 //! Rename the currently active designer
@@ -206,6 +207,7 @@ void ReportWorkspace::renameCurrentPage()
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mDocument.get(iPage).name = name;
     mpDesignerTabs->setTabText(iPage, name);
+    emit edited();
 }
 
 //! Duplicate the currently active designer
@@ -220,6 +222,7 @@ void ReportWorkspace::duplicateCurrentPage()
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mDocument.add(mDocument.get(iPage));
     addDesigner(mDocument.count() - 1);
+    emit edited();
 }
 
 //! Remove the currently active designer
@@ -240,6 +243,7 @@ void ReportWorkspace::removeCurrentPage()
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mpDesignerTabs->removePage(iPage);
     mDocument.remove(iPage);
+    emit edited();
 }
 
 //! Create all the widgets
@@ -323,6 +327,7 @@ void ReportWorkspace::addDesigner(int iPage)
     QString name = page.name;
     if (name.isEmpty())
         name = tr("Page %1").arg(1 + iPage);
+    connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::edited);
     mpDesignerTabs->addTab(pDesigner, name);
     pDesigner->fit();
 }

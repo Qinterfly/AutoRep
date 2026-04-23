@@ -12,6 +12,7 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
+#include "constants.h"
 #include "customtabwidget.h"
 #include "geometryview.h"
 #include "reportdataeditor.h"
@@ -22,9 +23,9 @@
 #include "uiconstants.h"
 #include "uiutility.h"
 
+using namespace Backend::Constants;
 using namespace Backend::Core;
 using namespace Frontend;
-using namespace Constants;
 
 // Helper functions
 QListWidgetItem* createListItem(ReportPage const& page, int index);
@@ -234,7 +235,7 @@ void ReportDesigner::drawItems()
         {
             pSceneItem->setFlag(QGraphicsItem::ItemIsMovable, !mOptions.lockItems);
             pSceneItem->setFlag(QGraphicsItem::ItemIsSelectable, true);
-            connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::refreshEditor);
+            connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::processSceneItemChanged);
             connect(pSceneItem, &ReportSceneItem::requestEdit, this, [this, pSceneItem]() { processEditItemRequest(pSceneItem); });
             if (mSelectedItems.contains(pSceneItem->item()))
                 pSceneItem->setSelected(true);
@@ -319,6 +320,7 @@ void ReportDesigner::addItem(ReportItem::Type type)
     // Update the content of the widgets
     refresh();
     qInfo() << tr("The item is added to the report");
+    emit edited();
 }
 
 //! Duplicate the currently selected item
@@ -340,6 +342,7 @@ void ReportDesigner::duplicateSelectedItems()
     // Update the designer
     refresh();
     qInfo() << tr("Items are duplicated and added to the report");
+    emit edited();
 }
 
 //! Remove the currently selected items
@@ -363,6 +366,7 @@ void ReportDesigner::removeSelectedItems()
     // Update the designer
     refresh();
     qInfo() << tr("Items are removed from the report");
+    emit edited();
 }
 
 //! Move selected items using the specified shift
@@ -383,6 +387,7 @@ void ReportDesigner::moveSelectedItems(int iShift)
     // Update the list of items
     refreshList();
     qInfo() << tr("The report items are shifted");
+    emit edited();
 }
 
 //! Process selecting item through list
@@ -430,6 +435,7 @@ void ReportDesigner::changeItemByList(QListWidgetItem* pListItem)
     QString oldName = pReportItem->name;
     pReportItem->name = pListItem->text();
     qInfo() << tr("Item is successfully renamed: %1 -> %2").arg(oldName, pReportItem->name);
+    emit edited();
 }
 
 //! Select the scale from the list of predefined options
@@ -458,6 +464,9 @@ void ReportDesigner::changePageOrientation()
 
     // Redraw the scene
     drawAll();
+
+    // Finish up the editing
+    emit edited();
 }
 
 //! Set the editor for item data
@@ -485,7 +494,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
         if (pItem->type() == ReportItem::kGraph)
         {
             mpDataEditor = new GraphReportDataEditor(mpGeometryView, mPage);
-            connect(mpDataEditor, &ReportDataEditor::edited, this, &ReportDesigner::refresh);
+            connect(mpDataEditor, &ReportDataEditor::edited, this, &ReportDesigner::processItemEdited);
         }
         if (mpDataEditor)
         {
@@ -493,6 +502,20 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
             pDataLayout->addWidget(mpDataEditor);
         }
     }
+}
+
+//! Process changing items via scene
+void ReportDesigner::processSceneItemChanged()
+{
+    refreshEditor();
+    emit edited();
+}
+
+//! Process changing items via editor
+void ReportDesigner::processItemEdited()
+{
+    refresh();
+    emit edited();
 }
 
 //! Process editing items on the scene
@@ -661,12 +684,15 @@ QWidget* ReportDesigner::createListWidget()
     pToolBar->addAction(QIcon(":/icons/item-table.svg"), tr("Add table"), this, [this]() { addItem(ReportItem::kTable); });
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate"), this, &ReportDesigner::duplicateSelectedItems);
-    pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
+    QAction* pRemoveAction = pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/arrow-up.svg"), tr("Move up"), this, [this]() { moveSelectedItems(-1); });
     pToolBar->addAction(QIcon(":/icons/arrow-down.svg"), tr("Move down"), this, [this]() { moveSelectedItems(+1); });
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
+
+    // Set the shortcuts
+    pRemoveAction->setShortcut(Qt::Key_Delete);
 
     // Construct the group box
     QGroupBox* pGroupBox = new QGroupBox(tr("Items"));

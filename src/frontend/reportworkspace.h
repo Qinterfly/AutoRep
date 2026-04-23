@@ -46,6 +46,9 @@ public:
     void duplicateCurrentPage();
     void removeCurrentPage();
 
+signals:
+    void edited();
+
 private:
     void createContent();
     void createConnections();

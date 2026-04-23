@@ -3,8 +3,10 @@
 #include "reportdefaults.h"
 #include "reportitem.h"
 
+#include "constants.h"
 #include "reportdocument.h"
 
+using namespace Backend::Constants;
 using namespace Backend::Core;
 
 //! Create curves
@@ -49,7 +51,7 @@ ReportPage ReportDefaults::imRePage()
     pImag->rect = QRect(25, 35, 150, 110);
     pImag->subType = GraphReportItem::kImag;
     pImag->responseDir = ReportDirection::kY;
-    pImag->unit = "m/s^2";
+    pImag->unit = Units::skM_S2;
     pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, ${UNIT}");
     pImag->showBundleFreq = true;
@@ -60,7 +62,7 @@ ReportPage ReportDefaults::imRePage()
     pReal->rect = QRect(25, 150, 150, 110);
     pReal->subType = GraphReportItem::kReal;
     pReal->responseDir = ReportDirection::kY;
-    pReal->unit = "m/s^2";
+    pReal->unit = Units::skM_S2;
     pReal->link = pImag->id;
     pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, ${UNIT}");
@@ -105,7 +107,7 @@ ReportPage ReportDefaults::multiImRePage()
     pImag->rect = QRect(25, 35, 150, 110);
     pImag->subType = GraphReportItem::kMultiImag;
     pImag->responseDir = ReportDirection::kY;
-    pImag->unit = "m/s^2";
+    pImag->unit = Units::skM_S2;
     pImag->xLabel = QObject::tr("f, Hz");
     pImag->yLabel = QObject::tr("a, ${UNIT}");
 
@@ -115,7 +117,7 @@ ReportPage ReportDefaults::multiImRePage()
     pReal->rect = QRect(25, 150, 150, 110);
     pReal->subType = GraphReportItem::kMultiReal;
     pReal->responseDir = ReportDirection::kY;
-    pReal->unit = "m/s^2";
+    pReal->unit = Units::skM_S2;
     pReal->link = pImag->id;
     pReal->xLabel = QObject::tr("f, Hz");
     pReal->yLabel = QObject::tr("a, ${UNIT}");
@@ -159,7 +161,7 @@ ReportPage ReportDefaults::freqAmpPage()
     pAmp->rect = QRect(25, 35, 150, 110);
     pAmp->subType = GraphReportItem::kFreqAmp;
     pAmp->responseDir = ReportDirection::kY;
-    pAmp->unit = "m";
+    pAmp->unit = Units::skM;
     pAmp->xLabel = QObject::tr("f, Hz");
     pAmp->yLabel = QObject::tr("a, ${UNIT}");
     pAmp->swapAxes = true;
@@ -210,7 +212,7 @@ ReportPage ReportDefaults::modeshapePage()
     pFus->subType = GraphReportItem::kModeshape;
     pFus->coordDir = ReportDirection::kX;
     pFus->responseDir = ReportDirection::kY;
-    pFus->unit = "m/s^2";
+    pFus->unit = Units::skM_S2;
     pFus->xLabel = QObject::tr("${CDIR}, m");
     pFus->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pFus->showLegend = false;
@@ -222,7 +224,7 @@ ReportPage ReportDefaults::modeshapePage()
     pWing->subType = GraphReportItem::kModeshape;
     pWing->coordDir = ReportDirection::kZ;
     pWing->responseDir = ReportDirection::kY;
-    pWing->unit = "m/s^2";
+    pWing->unit = Units::skM_S2;
     pWing->xLabel = QObject::tr("${CDIR}, m");
     pWing->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pWing->showLegend = false;
@@ -234,7 +236,7 @@ ReportPage ReportDefaults::modeshapePage()
     pHStab->subType = GraphReportItem::kModeshape;
     pHStab->coordDir = ReportDirection::kZ;
     pHStab->responseDir = ReportDirection::kY;
-    pHStab->unit = "m/s^2";
+    pHStab->unit = Units::skM_S2;
     pHStab->xLabel = QObject::tr("${CDIR}, m");
     pHStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pHStab->showLegend = false;
@@ -246,7 +248,7 @@ ReportPage ReportDefaults::modeshapePage()
     pVStab->subType = GraphReportItem::kModeshape;
     pVStab->coordDir = ReportDirection::kY;
     pVStab->responseDir = ReportDirection::kZ;
-    pVStab->unit = "m/s^2";
+    pVStab->unit = Units::skM_S2;
     pVStab->xLabel = QObject::tr("${CDIR}, m");
     pVStab->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
     pVStab->swapAxes = true;

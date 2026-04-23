@@ -71,6 +71,24 @@ int getRepeatedIndex(int index, int size)
     return index;
 }
 
+//! Show save dialog when closing a widget and process its output
+int showSaveDialog(QWidget* pWidget, QString const& title, QString const& message)
+{
+    QMessageBox* pMessageBox = new QMessageBox(QMessageBox::Question, title, message,
+                                               QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    pMessageBox->setFont(pWidget->font());
+    auto result = pMessageBox->exec();
+    switch (result)
+    {
+    case QMessageBox::Save:
+        return 1;
+    case QMessageBox::Discard:
+        return 0;
+    default:
+        return -1;
+    }
+}
+
 //! Substitute a file suffix to the expected one, if necessary
 void modifyFileSuffix(QString& pathFile, QString const& expectedSuffix)
 {

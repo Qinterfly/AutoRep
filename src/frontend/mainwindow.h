@@ -35,6 +35,7 @@ public:
 
 private:
     void initializeWindow();
+    void closeEvent(QCloseEvent* pEvent) override;
 
     // Content
     void createContent();
@@ -54,6 +55,7 @@ private:
     void restoreSettings();
 
     // Dialogs
+    bool saveChangesDialog();
     void about();
 
     // Slots

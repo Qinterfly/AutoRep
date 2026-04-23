@@ -57,6 +57,9 @@ public:
     bool printDialog();
     void selectItem(int index);
 
+signals:
+    void edited();
+
 private:
     void createContent();
     void createConnections();
@@ -84,6 +87,8 @@ private:
     void setScaleBySelector();
     void changePageOrientation();
     void setDataEditor(Backend::Core::ReportItem* pItem);
+    void processSceneItemChanged();
+    void processItemEdited();
     void processEditItemRequest(ReportSceneItem* pSceneItem);
 
     // Helper

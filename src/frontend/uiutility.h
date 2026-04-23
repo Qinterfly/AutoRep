@@ -27,6 +27,7 @@ QColor getColor(vtkColor3d color);
 vtkColor3d getColor(QColor color);
 void setShortcutHints(QToolBar* pToolBar);
 int getRepeatedIndex(int index, int size);
+int showSaveDialog(QWidget* pWidget, QString const& title, QString const& message);
 
 // File
 void modifyFileSuffix(QString& pathFile, QString const& expectedSuffix);

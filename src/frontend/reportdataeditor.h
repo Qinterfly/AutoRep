@@ -94,6 +94,7 @@ private:
     QTreeWidget* mpCurveTree;
 };
 
+//! Class to edit curve properties
 class ReportCurvePropertyEditor : public QWidget
 {
     Q_OBJECT

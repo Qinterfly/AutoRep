@@ -1,5 +1,6 @@
 #include <QActionGroup>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QDir>
 #include <QFontDatabase>
 #include <QHBoxLayout>
@@ -37,7 +38,6 @@ MainWindow::MainWindow(QWidget* pParent, bool isRestore)
 
 MainWindow::~MainWindow()
 {
-    saveSettings();
 }
 
 SessionEditor* MainWindow::sessionEditor()
@@ -57,6 +57,21 @@ void MainWindow::initializeWindow()
     setTheme();
     applyLanguage();
     qInstallMessageHandler(Frontend::logMessage);
+}
+
+//! Save project and settings before exit
+void MainWindow::closeEvent(QCloseEvent* pEvent)
+{
+    bool isClose = saveChangesDialog();
+    if (isClose)
+    {
+        saveSettings();
+        pEvent->accept();
+    }
+    else
+    {
+        pEvent->ignore();
+    }
 }
 
 //! Create all the widgets and corresponding actions
@@ -88,6 +103,9 @@ void MainWindow::createConnections()
     // Response editor
     connect(mpSessionEditor->responseEditor(), &ResponseEditor::edited, mpReportWorkspace, &ReportWorkspace::refresh);
     connect(mpSessionEditor->responseEditor(), &ResponseEditor::selected, mpReportWorkspace, &ReportWorkspace::refresh);
+
+    // Report workspace
+    connect(mpReportWorkspace, &ReportWorkspace::edited, this, [this]() { setModified(true); });
 }
 
 //! Create the action to change the application language
@@ -292,6 +310,22 @@ void MainWindow::restoreSettings()
             qInfo() << tr("Settings were restored from the file %1").arg(Constants::Settings::skFileName);
     }
     mSettings.endGroup();
+}
+
+//! Save changes through dialog
+bool MainWindow::saveChangesDialog()
+{
+    if (isWindowModified())
+    {
+        QString title = tr("Save changes");
+        QString message = tr("Would you like to save report document before exiting?");
+        int iResult = Utility::showSaveDialog(this, title, message);
+        if (iResult < 0)
+            return false;
+        if (iResult == 1)
+            mpReportWorkspace->saveDocumentDialog();
+    }
+    return true;
 }
 
 //! Show information about the program

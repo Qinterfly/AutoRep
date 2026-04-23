@@ -9,18 +9,19 @@
 #include <qttreepropertybrowser.h>
 #include <qtvariantproperty.h>
 
+#include "constants.h"
 #include "customplot.h"
 #include "geometryview.h"
 #include "reportdataeditor.h"
+#include "reportdefaults.h"
 #include "reportdocument.h"
 #include "reportitem.h"
-#include "reportdefaults.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
+using namespace Backend::Constants;
 using namespace Backend::Core;
 using namespace Frontend;
-using namespace Constants;
 
 // Constants
 int const skCurveRole = Qt::UserRole + 1;

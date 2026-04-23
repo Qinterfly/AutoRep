@@ -1,34 +1,27 @@
-#include <complex.h>
 #include <testlab/common.h>
 #include <QSvgGenerator>
 #include <QSvgRenderer>
 
 #include "customplot.h"
+#include "mathutility.h"
+#include "reportdefaults.h"
 #include "reportdocument.h"
 #include "reportitem.h"
 #include "reportsceneitem.h"
-#include "reportdefaults.h"
 #include "reporttextengine.h"
 #include "session.h"
-#include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Backend::Core;
 using namespace Frontend;
-using namespace Constants;
 
+// Constants
 static double const skEps = std::numeric_limits<double>::epsilon();
 static double const skInf = std::numeric_limits<double>::infinity();
 
 // Helper function
 QFont sceneFont(ReportItem* pItem);
 QRectF rotatedRect(QRectF const& rect, qreal angle);
-QVector<double> convert(std::vector<double> const& data);
-int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type);
-Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem);
-int findClosestKey(Testlab::Response const& response, double searchKey);
-std::vector<double> getCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point);
-QString getDirLabel(ReportDirection dir);
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
@@ -375,8 +368,8 @@ void GraphReportSceneItem::setState()
 
     // Update the parser
     mTextEngine.setVariable("unit", pItem->unit);
-    mTextEngine.setVariable("cdir", getDirLabel(pItem->coordDir));
-    mTextEngine.setVariable("rdir", getDirLabel(pItem->responseDir));
+    mTextEngine.setVariable("cdir", Backend::Utility::getDirLabel(pItem->coordDir));
+    mTextEngine.setVariable("rdir", Backend::Utility::getDirLabel(pItem->responseDir));
 
     // Set the legend
     bool isPlottables = mpPlot->plottableCount() > 0;
@@ -449,11 +442,17 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
         {
             // Get the response which has the requested unit and direction
             GraphReportPoint const& point = curve.points[iPoint];
-            Testlab::Response response = getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+            if (response.keys.size() == 0)
+            {
+                qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
+                continue;
+            }
 
             // Set the data
-            QList<double> xData = convert(response.keys);
-            QList<double> yData = pItem->subType == GraphReportItem::kReal ? convert(response.realValues) : convert(response.imagValues);
+            QList<double> xData = Backend::Utility::convert(response.keys);
+            QList<double> yData = pItem->subType == GraphReportItem::kReal ? Backend::Utility::convert(response.realValues)
+                                                                           : Backend::Utility::convert(response.imagValues);
             if (xData.isEmpty() || xData.size() != yData.size())
                 continue;
             if (pItem->swapAxes)
@@ -501,11 +500,17 @@ void GraphReportSceneItem::processMultiReIm()
         ResponseBundle const& bundle = mCollection.get(iBundle);
 
         // Get the response which has the requested unit and direction
-        Testlab::Response response = getAcceleration(bundle, point, pItem);
+        Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+        if (response.keys.size() == 0)
+        {
+            qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
+            continue;
+        }
 
         // Set the data
-        QList<double> xData = convert(response.keys);
-        QList<double> yData = pItem->subType == GraphReportItem::kMultiReal ? convert(response.realValues) : convert(response.imagValues);
+        QList<double> xData = Backend::Utility::convert(response.keys);
+        QList<double> yData = pItem->subType == GraphReportItem::kMultiReal ? Backend::Utility::convert(response.realValues)
+                                                                            : Backend::Utility::convert(response.imagValues);
         if (xData.isEmpty() || xData.size() != yData.size())
             continue;
         if (pItem->swapAxes)
@@ -549,15 +554,44 @@ void GraphReportSceneItem::processFreqAmp()
         {
             ResponseBundle const& bundle = mCollection.get(iBundle);
             if (bundle.freq < skEps)
+            {
+                qWarning() << tr("The bundle frequncy is not specified for %1. Could not process the Freq-Amp graph").arg(bundle.name);
                 continue;
+            }
 
             // Get the response which has the requested unit and direction
-            Testlab::Response response = getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
             if (response.keys.size() == 0)
+            {
+                qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
                 continue;
+            }
+
+            // Find all the roots
+            QList<double> xReal = Backend::Utility::convert(response.keys);
+            QList<double> yReal = Backend::Utility::convert(response.realValues);
+            auto roots = Backend::Utility::findRoots(xReal, yReal);
+            if (roots.empty())
+            {
+                qWarning() << tr("Could not find any roots for the Freq-Amp graph");
+                return;
+            }
+
+            // Get the closest root
+            double freq = bundle.freq;
+            double minDist = skInf;
+            for (auto const& root : roots)
+            {
+                double dist = std::abs(root.key - bundle.freq);
+                if (dist < minDist)
+                {
+                    freq = root.key;
+                    minDist = dist;
+                }
+            }
 
             // Find the closest frequency to the resonance one
-            int iFound = findClosestKey(response, bundle.freq);
+            int iFound = Backend::Utility::findClosestKey(response, freq);
             if (iFound < 0)
                 continue;
 
@@ -566,6 +600,11 @@ void GraphReportSceneItem::processFreqAmp()
             double im = response.imagValues[iFound];
             xData[iBundle] = response.keys[iFound];
             yData[iBundle] = std::sqrt(std::pow(re, 2.0) + std::pow(im, 2.0));
+
+            // Add the variable
+            QString varName = QString("%1:freq").arg(point.name());
+            QString varValue = QString::number(freq, 'f', 3);
+            mTextEngine.setVariable(varName, varValue);
         }
 
         // Add the curve
@@ -611,17 +650,20 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
             GraphReportPoint const& point = curve.points[iPoint];
 
             // Get the response which has the requested unit and direction
-            Testlab::Response response = getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
             if (response.keys.size() == 0)
+            {
+                qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
                 continue;
+            }
 
             // Find the closest frequency to the resonance one
-            int iFound = findClosestKey(response, bundle.freq);
+            int iFound = Backend::Utility::findClosestKey(response, bundle.freq);
             if (iFound < 0)
                 continue;
 
             // Get the point coordinates
-            std::vector<double> coords = getCoords(mGeometry, point);
+            std::vector<double> coords = Backend::Utility::getCoords(mGeometry, point);
             if (coords.empty())
                 continue;
 
@@ -630,7 +672,7 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
             yData[iPoint] = response.imagValues[iFound] * response.header.point.sign;
 
             // Add the variable
-            QString varName = QString("%1:%2").arg(point.name(), getDirLabel(pItem->responseDir));
+            QString varName = QString("%1:%2").arg(point.name(), Backend::Utility::getDirLabel(pItem->responseDir));
             QString varValue = QString::number(yData[iPoint], 'f', 3);
             mTextEngine.setVariable(varName, varValue);
         }
@@ -924,159 +966,4 @@ QRectF rotatedRect(QRectF const& rect, qreal angle)
     t.rotate(angle);
     t.translate(-c.x(), -c.y());
     return t.mapRect(rect);
-}
-
-//! Helper function to convert double data
-QVector<double> convert(std::vector<double> const& data)
-{
-    return QVector<double>(data.begin(), data.end());
-}
-
-//! Helper function to find the response measured at the specified point along the requested direction
-int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type)
-{
-    int iFound = -1;
-    int numResponses = bundle.responses.size();
-    for (int i = 0; i != numResponses; ++i)
-    {
-        Testlab::Response const& response = bundle.responses[i];
-
-        // Slice the response data
-        Testlab::ResponsePoint const& responsePoint = response.header.point;
-        QString componentName = QString::fromStdWString(responsePoint.component);
-        QString nodeName = QString::fromStdWString(responsePoint.node);
-
-        // Check the flags
-        bool isPoint = componentName == point.component && nodeName == point.node;
-        bool isDir = (int) dir == (int) responsePoint.direction;
-        bool isType = response.header.type == type;
-        if (isPoint && isDir && isType)
-            return i;
-    }
-    return iFound;
-}
-
-//! Helper function to retrieve acceleration response
-Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem)
-{
-    // Find the acceleration response
-    Testlab::Response null;
-    int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
-    if (iResponse < 0)
-        return null;
-    Testlab::Response const accel = bundle.responses[iResponse];
-
-    // Check if the response has the requested unit or the units are not set
-    QString targetUnit = pItem->unit;
-    QString unit = QString::fromStdWString(accel.header.unit.name);
-    if (unit.isEmpty() || targetUnit.isEmpty() || unit == targetUnit)
-        return accel;
-
-    // Build up all the possible units as to choose from them later on
-    QMap<QString, Testlab::Response> responseSet;
-    responseSet[unit] = accel;
-
-    // Process the force, if presented
-    int numKeys = accel.keys.size();
-    int iForce = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kForce);
-    if (iForce >= 0)
-    {
-        Testlab::Response const force = bundle.responses[iForce];
-        Testlab::Response response = accel;
-        bool isFRF = unit == Units::skM_S2_N;
-        for (int i = 0; i != numKeys; ++i)
-        {
-            std::complex<double> a = {accel.realValues[i], accel.imagValues[i]};
-            std::complex<double> F = {force.realValues[i], force.imagValues[i]};
-            std::complex<double> r = {0.0, 0.0};
-            if (isFRF)
-                r = a * F;
-            else if (std::abs(F) > skEps)
-                r = a / F;
-            response.realValues[i] = r.real();
-            response.imagValues[i] = r.imag();
-        }
-        if (isFRF)
-            responseSet[Units::skM_S2] = response;
-        else
-            responseSet[Units::skM_S2_N] = response;
-    }
-
-    // Double integrate to compute displacements
-    if (responseSet.contains(Units::skM_S2))
-    {
-        Testlab::Response response = responseSet[Units::skM_S2];
-        for (int i = 0; i != numKeys; ++i)
-        {
-            std::complex<double> a = {response.realValues[i], response.imagValues[i]};
-            std::complex<double> r = {0.0, 0.0};
-            if (std::abs(response.keys[i]) > skEps)
-                r = -a / std::pow(2.0 * M_PI * response.keys[i], 2.0);
-            response.realValues[i] = r.real();
-            response.imagValues[i] = r.imag();
-        }
-        responseSet[Units::skM] = response;
-    }
-
-    // Return the result
-    if (responseSet.contains(targetUnit))
-        return responseSet[targetUnit];
-    return null;
-}
-
-//! Helper function find closest key to the requested one
-int findClosestKey(Testlab::Response const& response, double searchKey)
-{
-    int iFound = -1;
-    double minDist = skInf;
-    int numKeys = response.keys.size();
-    for (int iKey = 0; iKey != numKeys; ++iKey)
-    {
-        double dist = std::abs(response.keys[iKey] - searchKey);
-        if (dist < minDist)
-        {
-            minDist = dist;
-            iFound = iKey;
-        }
-    }
-    return iFound;
-}
-
-//! Helper function to get point location
-std::vector<double> getCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point)
-{
-    int numComponents = geometry.components.size();
-    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
-    {
-        Testlab::Component const& component = geometry.components[iComponent];
-        QString componentName = QString::fromStdWString(component.name);
-        if (componentName != point.component)
-            continue;
-        int numNodes = component.nodes.size();
-        for (int iNode = 0; iNode != numNodes; ++iNode)
-        {
-            Testlab::Node const& node = component.nodes[iNode];
-            QString nodeName = QString::fromStdWString(node.name);
-            if (nodeName == point.node)
-                return node.coordinates;
-        }
-    }
-    return {};
-}
-
-//! Get direction label
-QString getDirLabel(ReportDirection dir)
-{
-    switch (dir)
-    {
-    case ReportDirection::kX:
-        return "X";
-    case ReportDirection::kY:
-        return "Y";
-    case ReportDirection::kZ:
-        return "Z";
-    default:
-        break;
-    }
-    return QString();
 }

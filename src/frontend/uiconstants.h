@@ -33,15 +33,6 @@ namespace Size
 QSize const skToolBarIcon = QSize(25, 25);
 uint const skMaxRecentProjects = 5;
 }
-
-namespace Units
-{
-
-QString const skM_S2 = "m/s^2";
-QString const skM_S2_N = "(m/s^2)/N";
-QString const skM = "m";
-
-}
 }
 
 #endif // UICONSTANTS_H
