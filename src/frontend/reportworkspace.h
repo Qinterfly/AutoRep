@@ -31,20 +31,32 @@ public:
     ReportDesigner* designer(QString const& name);
     void refresh();
 
+    // Document
     void setNewDocument();
     void setDefaultDocument();
     void setDocument(Backend::Core::ReportDocument const& document);
+    void openDocumentDialog();
+    void saveDocumentDialog();
     bool print(QString const& pathFile);
     bool printDialog();
+
+    // Designer
+    void addPage();
+    void renameCurrentPage();
+    void duplicateCurrentPage();
+    void removeCurrentPage();
 
 private:
     void createContent();
     void createConnections();
     void rebuild();
 
+    // Widget
+    void setNewDocumentDialog();
+    void setDefaultDocumentDialog();
+    void addDesigner(int iPage);
+
     // Slots
-    void importDocument();
-    void exportDocument();
     void processDesignerSelected();
     void editTextEngine();
 

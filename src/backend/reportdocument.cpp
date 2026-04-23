@@ -174,6 +174,51 @@ ReportDocument::ReportDocument()
 {
 }
 
+bool ReportDocument::isEmpty() const
+{
+    return mPages.isEmpty();
+}
+
+int ReportDocument::count() const
+{
+    return mPages.count();
+}
+
+ReportPage& ReportDocument::get(int index)
+{
+    return *mPages[index];
+}
+
+ReportPage* ReportDocument::add()
+{
+    ReportPage* pPage = new ReportPage;
+    mPages.push_back(pPage);
+    return pPage;
+}
+
+void ReportDocument::add(ReportPage const& page)
+{
+    mPages.push_back(new ReportPage(page));
+}
+
+bool ReportDocument::remove(int index)
+{
+    if (index >= 0 && index < mPages.size())
+    {
+        ReportPage* pPage = mPages[index];
+        mPages.remove(index);
+        delete pPage;
+        return true;
+    }
+    return false;
+}
+
+void ReportDocument::clear()
+{
+    while (!isEmpty())
+        remove(0);
+}
+
 QString ReportDocument::fileVersion()
 {
     return VERSION_FULL;
@@ -189,23 +234,26 @@ QJsonObject ReportDocument::toJson() const
     QJsonObject obj;
     obj["version"] = fileVersion();
     obj["name"] = name;
-    QJsonArray jsonPages;
-    for (auto const& p : pages)
-        jsonPages.push_back(p.toJson());
-    obj["pages"] = jsonPages;
     obj["textEngine"] = textEngine.toJson();
+    QJsonArray jsonPages;
+    for (ReportPage* pPage : mPages)
+        jsonPages.push_back(pPage->toJson());
+    obj["pages"] = jsonPages;
     return obj;
 }
 
 void ReportDocument::fromJson(QJsonObject const& obj)
 {
+    clear();
     name = obj["name"].toString();
+    textEngine.fromJson(obj["textEngine"].toObject());
     QJsonArray jsonPages = obj["pages"].toArray();
     int numPages = jsonPages.size();
-    pages.resize(numPages);
     for (int i = 0; i != numPages; ++i)
-        pages[i].fromJson(jsonPages[i].toObject());
-    textEngine.fromJson(obj["textEngine"].toObject());
+    {
+        ReportPage* pPage = add();
+        pPage->fromJson(jsonPages[i].toObject());
+    }
 }
 
 //! Read a document layout from a file

@@ -53,6 +53,15 @@ public:
     ReportDocument();
     ~ReportDocument() = default;
 
+    bool isEmpty() const;
+    int count() const;
+    ReportPage& get(int index);
+
+    ReportPage* add();
+    void add(ReportPage const& page);
+    bool remove(int index);
+    void clear();
+
     static QString fileVersion();
     static QString fileSuffix();
     QJsonObject toJson() const override;
@@ -62,8 +71,10 @@ public:
 
 public:
     QString name;
-    QList<ReportPage> pages;
     ReportTextEngine textEngine;
+
+private:
+    QList<ReportPage*> mPages;
 };
 }
 

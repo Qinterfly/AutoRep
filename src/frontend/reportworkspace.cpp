@@ -1,5 +1,7 @@
 #include <QFileDialog>
 #include <QHeaderView>
+#include <QInputDialog>
+#include <QMessageBox>
 #include <QPrinter>
 #include <QSettings>
 #include <QToolBar>
@@ -83,6 +85,43 @@ void ReportWorkspace::setDocument(ReportDocument const& document)
     rebuild();
 }
 
+//! Open the document from a file
+void ReportWorkspace::openDocumentDialog()
+{
+    // Get the file path
+    QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Document"), Utility::getLastDirectory(mSettings).path(),
+                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
+    if (pathFile.isEmpty())
+        return;
+
+    // Read the document
+    ReportDocument document;
+    if (document.read(pathFile))
+        setDocument(document);
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+}
+
+//! Save the document to a file
+void ReportWorkspace::saveDocumentDialog()
+{
+    // Get the file path
+    QString pathFile = QFileDialog::getSaveFileName(this, tr("Save Document"), Utility::getLastDirectory(mSettings).path(),
+                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
+    if (pathFile.isEmpty())
+        return;
+
+    // Modify the suffix, if necessary
+    Utility::modifyFileSuffix(pathFile, ReportDocument::fileSuffix());
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+
+    // Export the document
+    mDocument.write(pathFile);
+}
+
 //! Print all the pages to a pdf file
 bool ReportWorkspace::print(QString const& pathFile)
 {
@@ -96,7 +135,7 @@ bool ReportWorkspace::print(QString const& pathFile)
     if (!painter.begin(&printer))
         return false;
 
-    int numPages = mDocument.pages.size();
+    int numPages = mDocument.count();
     for (int iPage = 0; iPage != numPages; ++iPage)
     {
         ReportDesigner* pDesigner = designer(iPage);
@@ -139,17 +178,87 @@ bool ReportWorkspace::printDialog()
     return print(pathFile);
 }
 
+//! Create a designer
+void ReportWorkspace::addPage()
+{
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
+    mDocument.add();
+    addDesigner(mDocument.count() - 1);
+    mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
+}
+
+//! Rename the currently active designer
+void ReportWorkspace::renameCurrentPage()
+{
+    // Get the current page index
+    int iPage = mpDesignerTabs->currentIndex();
+    if (iPage < 0)
+        return;
+
+    // Construct the dialog
+    bool isOk;
+    QString name = QInputDialog::getText(this, tr("Change page name"), tr("New page name: "), QLineEdit::Normal, mpDesignerTabs->tabText(iPage),
+                                         &isOk);
+    if (!isOk)
+        return;
+
+    // Set the page name
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
+    mDocument.get(iPage).name = name;
+    mpDesignerTabs->setTabText(iPage, name);
+}
+
+//! Duplicate the currently active designer
+void ReportWorkspace::duplicateCurrentPage()
+{
+    // Get the current page index
+    int iPage = mpDesignerTabs->currentIndex();
+    if (iPage < 0)
+        return;
+
+    // Duplicate the page
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
+    mDocument.add(mDocument.get(iPage));
+    addDesigner(mDocument.count() - 1);
+}
+
+//! Remove the currently active designer
+void ReportWorkspace::removeCurrentPage()
+{
+    // Get the current page index
+    int iPage = mpDesignerTabs->currentIndex();
+    if (iPage < 0)
+        return;
+
+    // Construct the dialog
+    auto reply = QMessageBox::question(this, tr("Remove page"), tr("Are you sure that you want to remove the current page?"),
+                                       QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes)
+        return;
+
+    // Remove the page
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
+    mpDesignerTabs->removePage(iPage);
+    mDocument.remove(iPage);
+}
+
 //! Create all the widgets
 void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
-    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this, &ReportWorkspace::setNewDocument);
-    pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocument);
-    pToolBar->addAction(QIcon(":/icons/document-import.svg"), tr("Import document"), this, &ReportWorkspace::importDocument);
-    pToolBar->addAction(QIcon(":/icons/document-export.svg"), tr("Export document"), this, &ReportWorkspace::exportDocument);
+    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this, &ReportWorkspace::setNewDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
+    pToolBar->addSeparator();
+    pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), this, &ReportWorkspace::openDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save document"), this, &ReportWorkspace::saveDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
+    pToolBar->addSeparator();
+    pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
+    pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename page"), this, &ReportWorkspace::renameCurrentPage);
+    pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate page"), this, &ReportWorkspace::duplicateCurrentPage);
+    pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove page"), this, &ReportWorkspace::removeCurrentPage);
     pToolBar->setIconSize(Size::skToolBarIcon);
     Utility::setShortcutHints(pToolBar);
 
@@ -174,7 +283,7 @@ void ReportWorkspace::createConnections()
 void ReportWorkspace::refresh()
 {
     mpDesignerTabs->count();
-    int numPages = mDocument.pages.size();
+    int numPages = mDocument.count();
     for (int i = 0; i != numPages; ++i)
         designer(i)->refresh();
 }
@@ -184,55 +293,38 @@ void ReportWorkspace::rebuild()
 {
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mpDesignerTabs->removeAllPages();
-    int numPages = mDocument.pages.size();
+    int numPages = mDocument.count();
     for (int i = 0; i != numPages; ++i)
-    {
-        ReportPage& page = mDocument.pages[i];
-        ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mpResponseEditor, page, mDocument.textEngine);
-        QString name = page.name;
-        if (name.isEmpty())
-            name = tr("Page %1").arg(1 + i);
-        mpDesignerTabs->addTab(pDesigner, name);
-        pDesigner->fit();
-    }
+        addDesigner(i);
     mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
 }
 
-//! Import the document from a file
-void ReportWorkspace::importDocument()
+void ReportWorkspace::setNewDocumentDialog()
 {
-    // Get the file path
-    QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Document"), Utility::getLastDirectory(mSettings).path(),
-                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
-    if (pathFile.isEmpty())
-        return;
-
-    // Read the document
-    ReportDocument document;
-    if (document.read(pathFile))
-        setDocument(document);
-
-    // Store the path
-    Utility::setLastPathFile(mSettings, pathFile);
+    auto reply = QMessageBox::question(this, tr("Set new document"), tr("Are you sure that you want to set a new document?"),
+                                       QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes)
+        setNewDocument();
 }
 
-//! Export the document to a file
-void ReportWorkspace::exportDocument()
+void ReportWorkspace::setDefaultDocumentDialog()
 {
-    // Get the file path
-    QString pathFile = QFileDialog::getSaveFileName(this, tr("Save Document"), Utility::getLastDirectory(mSettings).path(),
-                                                    tr("Document format (*.%1)").arg(ReportDocument::fileSuffix()));
-    if (pathFile.isEmpty())
-        return;
+    auto reply = QMessageBox::question(this, tr("Set default document"), tr("Are you sure that you want to set a default document?"),
+                                       QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes)
+        setDefaultDocument();
+}
 
-    // Modify the suffix, if necessary
-    Utility::modifyFileSuffix(pathFile, ReportDocument::fileSuffix());
-
-    // Store the path
-    Utility::setLastPathFile(mSettings, pathFile);
-
-    // Export the document
-    mDocument.write(pathFile);
+//! Add a designer to the workspace
+void ReportWorkspace::addDesigner(int iPage)
+{
+    ReportPage& page = mDocument.get(iPage);
+    ReportDesigner* pDesigner = new ReportDesigner(mSettings, mpGeometryView, mpResponseEditor, page, mDocument.textEngine);
+    QString name = page.name;
+    if (name.isEmpty())
+        name = tr("Page %1").arg(1 + iPage);
+    mpDesignerTabs->addTab(pDesigner, name);
+    pDesigner->fit();
 }
 
 //! Fit the designer on selection

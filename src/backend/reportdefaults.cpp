@@ -31,10 +31,10 @@ QList<GraphReportCurve> ReportDefaults::curves()
 ReportDocument ReportDefaults::document()
 {
     ReportDocument result;
-    result.pages.push_back(ReportDefaults::imRePage());
-    result.pages.push_back(ReportDefaults::multiImRePage());
-    result.pages.push_back(ReportDefaults::freqAmpPage());
-    result.pages.push_back(ReportDefaults::modeshapePage());
+    result.add(ReportDefaults::imRePage());
+    result.add(ReportDefaults::multiImRePage());
+    result.add(ReportDefaults::freqAmpPage());
+    result.add(ReportDefaults::modeshapePage());
     return result;
 }
 
