@@ -281,7 +281,7 @@ void TestFrontend::printReport()
 
 TestFrontend::~TestFrontend()
 {
-    QTest::qWait(50000);
+    QTest::qWait(500000);
     mpMainWindow->deleteLater();
 }
 

@@ -36,7 +36,8 @@ public:
     void setDefaultDocument();
     void setDocument(Backend::Core::ReportDocument const& document);
     void openDocumentDialog();
-    void saveDocumentDialog();
+    void saveDocument();
+    void saveAsDocumentDialog();
     bool print(QString const& pathFile);
     bool printDialog();
 
@@ -48,11 +49,12 @@ public:
 
 signals:
     void edited();
+    void saved();
 
 private:
     void createContent();
     void createConnections();
-    void rebuild();
+    void recreateDesigners();
 
     // Widget
     void setNewDocumentDialog();
@@ -69,6 +71,7 @@ private:
     ResponseEditor* mpResponseEditor;
     Backend::Core::ReportDocument mDocument;
     CustomTabWidget* mpDesignerTabs;
+    QString mDocumentPathFile;
 };
 
 class ReportTextEngineEditor : public QWidget

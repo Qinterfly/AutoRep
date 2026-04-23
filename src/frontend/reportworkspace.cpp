@@ -82,7 +82,7 @@ void ReportWorkspace::setDefaultDocument()
 void ReportWorkspace::setDocument(ReportDocument const& document)
 {
     mDocument = document;
-    rebuild();
+    recreateDesigners();
 }
 
 //! Open the document from a file
@@ -103,8 +103,20 @@ void ReportWorkspace::openDocumentDialog()
     Utility::setLastPathFile(mSettings, pathFile);
 }
 
-//! Save the document to a file
-void ReportWorkspace::saveDocumentDialog()
+//! Save the document
+void ReportWorkspace::saveDocument()
+{
+    if (mDocumentPathFile.isEmpty())
+    {
+        saveAsDocumentDialog();
+        return;
+    }
+    if (mDocument.write(mDocumentPathFile))
+        emit saved();
+}
+
+//! Save the document to a file by means of a dialog
+void ReportWorkspace::saveAsDocumentDialog()
 {
     // Get the file path
     QString pathFile = QFileDialog::getSaveFileName(this, tr("Save Document"), Utility::getLastDirectory(mSettings).path(),
@@ -118,8 +130,12 @@ void ReportWorkspace::saveDocumentDialog()
     // Store the path
     Utility::setLastPathFile(mSettings, pathFile);
 
-    // Export the document
-    mDocument.write(pathFile);
+    // Write the document
+    if (mDocument.write(pathFile))
+    {
+        mDocumentPathFile = pathFile;
+        emit saved();
+    }
 }
 
 //! Print all the pages to a pdf file
@@ -256,7 +272,8 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), this, &ReportWorkspace::openDocumentDialog);
-    pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save document"), this, &ReportWorkspace::saveDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), this, &ReportWorkspace::saveDocument);
+    pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), this, &ReportWorkspace::saveAsDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
@@ -292,8 +309,8 @@ void ReportWorkspace::refresh()
         designer(i)->refresh();
 }
 
-//! Rebuild the designer tabs
-void ReportWorkspace::rebuild()
+//! Rebuild the designers
+void ReportWorkspace::recreateDesigners()
 {
     QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
     mpDesignerTabs->removeAllPages();

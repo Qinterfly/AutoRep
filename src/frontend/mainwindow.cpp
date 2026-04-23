@@ -106,6 +106,7 @@ void MainWindow::createConnections()
 
     // Report workspace
     connect(mpReportWorkspace, &ReportWorkspace::edited, this, [this]() { setModified(true); });
+    connect(mpReportWorkspace, &ReportWorkspace::saved, this, [this]() { setModified(false); });
 }
 
 //! Create the action to change the application language
@@ -323,7 +324,7 @@ bool MainWindow::saveChangesDialog()
         if (iResult < 0)
             return false;
         if (iResult == 1)
-            mpReportWorkspace->saveDocumentDialog();
+            mpReportWorkspace->saveAsDocumentDialog();
     }
     return true;
 }

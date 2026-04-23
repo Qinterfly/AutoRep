@@ -9,6 +9,7 @@
 #include "customlineedit.h"
 #include "customtabwidget.h"
 #include "geometryview.h"
+#include "mathutility.h"
 #include "sessioneditor.h"
 #include "uiconstants.h"
 #include "uiutility.h"
@@ -160,6 +161,20 @@ bool ResponseEditor::addBundle(Responses const& responses)
     ResponseBundle bundle(name, responses);
     bundle.freq = parseValue(name, "Гц");
     bundle.force = parseValue(name, "Н");
+
+    // Estimate the frequency by the first root, if necessary
+    if (bundle.freq < std::numeric_limits<double>::epsilon())
+    {
+        if (!responses.empty())
+        {
+            Testlab::Response const& response = responses.front();
+            QList<double> xData = Backend::Utility::convert(response.keys);
+            QList<double> yData = Backend::Utility::convert(response.realValues);
+            auto roots = Backend::Utility::findRoots(xData, yData);
+            if (!roots.empty())
+                bundle.freq = roots.front().key;
+        }
+    }
 
     // Add to the collection
     mCollection.add(bundle);
