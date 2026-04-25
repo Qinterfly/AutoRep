@@ -99,6 +99,7 @@ public:
     GraphReportPoint(QString const& uComponent, QString const& uNode);
     ~GraphReportPoint() = default;
 
+    bool isEmpty() const;
     QString name() const;
 
     QJsonObject toJson() const override;
@@ -136,7 +137,7 @@ public:
 
     // Marker
     ReportMarkerShape markerShape;
-    int markerSize;
+    double markerSize;
     bool markerFill;
     int markerSkip;
 };

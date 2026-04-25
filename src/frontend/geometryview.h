@@ -76,9 +76,11 @@ private:
     // Acquisition
     void registerActor(GeometrySelection const& key, vtkActor* value);
     GeometrySelection find(vtkActor* actor) const;
+    int index(vtkActor* actor);
 
 private:
-    QMap<vtkActor*, vtkSmartPointer<vtkProperty>> mSelection;
+    QList<vtkActor*> mSelectedActors;
+    QMap<vtkActor*, vtkSmartPointer<vtkProperty>> mProperties;
     QMap<GeometrySelection, vtkActor*> mActors;
 };
 

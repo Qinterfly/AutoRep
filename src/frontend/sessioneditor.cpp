@@ -322,20 +322,30 @@ QLayout* ResponseEditor::createBundleLayout()
     mpBundleForceEdit->setMaximumWidth(90);
     connect(mpBundleForceEdit, &Edit1d::valueChanged, this, &ResponseEditor::setBundleProperties);
 
-    // Create the control layout
-    QHBoxLayout* pControlLayout = new QHBoxLayout;
-    pControlLayout->addWidget(new QLabel(tr("Freq.: ")));
-    pControlLayout->addWidget(mpBundleFreqEdit);
-    pControlLayout->addWidget(new QLabel(tr("Force: ")));
-    pControlLayout->addWidget(mpBundleForceEdit);
-    pControlLayout->addStretch();
+    // Create the reference point edit
+    mpBundleRefPointEdit = new Edit1s;
+    connect(mpBundleRefPointEdit, &Edit1s::editingFinished, this, &ResponseEditor::setBundleProperties);
+
+    // Create the value layout
+    QHBoxLayout* pValueLayout = new QHBoxLayout;
+    pValueLayout->addWidget(new QLabel(tr("Freq.: ")));
+    pValueLayout->addWidget(mpBundleFreqEdit);
+    pValueLayout->addWidget(new QLabel(tr("Force: ")));
+    pValueLayout->addWidget(mpBundleForceEdit);
+    pValueLayout->addStretch();
+
+    // Create the reference layout
+    QHBoxLayout* pRefLayout = new QHBoxLayout;
+    pRefLayout->addWidget(new QLabel(tr("Reference point: ")));
+    pRefLayout->addWidget(mpBundleRefPointEdit);
 
     // Combine the widgets
     QVBoxLayout* pMainLayout = new QVBoxLayout;
     pMainLayout->setContentsMargins(0, 0, 0, 5);
     pMainLayout->addWidget(pToolBar);
     pMainLayout->addWidget(mpBundleList);
-    pMainLayout->addLayout(pControlLayout);
+    pMainLayout->addLayout(pValueLayout);
+    pMainLayout->addLayout(pRefLayout);
     return pMainLayout;
 }
 
@@ -377,6 +387,7 @@ void ResponseEditor::setBundleProperties()
     // Set the properties
     bundle.freq = mpBundleFreqEdit->value();
     bundle.force = mpBundleForceEdit->value();
+    bundle.refPoint = mpBundleRefPointEdit->text();
 
     // Finish up the editing
     emit edited();

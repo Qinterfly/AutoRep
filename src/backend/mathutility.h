@@ -22,7 +22,7 @@ QString getDirLabel(Backend::Core::ReportDirection dir);
 
 // Response
 int findResponse(Backend::Core::ResponseBundle const& bundle, Backend::Core::GraphReportPoint const& point, Backend::Core::ReportDirection dir,
-                 Testlab::ResponseType type);
+                 Testlab::ResponseType type, QString const& unit = QString());
 Testlab::Response getAcceleration(Backend::Core::ResponseBundle const& bundle, Backend::Core::GraphReportPoint const& point,
                                   Backend::Core::GraphReportItem* pItem);
 std::vector<double> getCoords(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point);

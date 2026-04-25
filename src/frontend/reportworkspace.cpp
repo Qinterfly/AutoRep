@@ -1,13 +1,16 @@
+#include <QApplication>
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QPrinter>
 #include <QSettings>
+#include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
 
 #include "customtabwidget.h"
+#include "fileutility.h"
 #include "reportdefaults.h"
 #include "reportdesigner.h"
 #include "reportworkspace.h"
@@ -18,16 +21,24 @@ using namespace Frontend;
 using namespace Backend::Core;
 using namespace Constants;
 
-ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent)
+ReportWorkspaceOptions::ReportWorkspaceOptions()
+{
+    autoSaveDuration = 120000;
+}
+
+ReportWorkspace::ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor,
+                                 ReportWorkspaceOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
     , mpResponseEditor(pResponseEditor)
+    , mOptions(options)
 {
     setFont(Utility::getFont());
     createContent();
     createConnections();
     setDefaultDocument();
+    setAutoSave();
 }
 
 QSize ReportWorkspace::sizeHint() const
@@ -106,12 +117,12 @@ void ReportWorkspace::openDocumentDialog()
 //! Save the document
 void ReportWorkspace::saveDocument()
 {
-    if (mDocumentPathFile.isEmpty())
+    if (mOptions.lastPathFile.isEmpty())
     {
         saveAsDocumentDialog();
         return;
     }
-    if (mDocument.write(mDocumentPathFile))
+    if (mDocument.write(mOptions.lastPathFile))
         emit saved();
 }
 
@@ -133,7 +144,7 @@ void ReportWorkspace::saveAsDocumentDialog()
     // Write the document
     if (mDocument.write(pathFile))
     {
-        mDocumentPathFile = pathFile;
+        mOptions.lastPathFile = pathFile;
         emit saved();
     }
 }
@@ -267,20 +278,30 @@ void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
-    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this, &ReportWorkspace::setNewDocumentDialog);
+    QAction* pNewAction = pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this,
+                                              &ReportWorkspace::setNewDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
     pToolBar->addSeparator();
-    pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), this, &ReportWorkspace::openDocumentDialog);
-    pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), this, &ReportWorkspace::saveDocument);
-    pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), this, &ReportWorkspace::saveAsDocumentDialog);
-    pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
+    QAction* pOpenAction = pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), this,
+                                               &ReportWorkspace::openDocumentDialog);
+    QAction* pSaveAction = pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), this, &ReportWorkspace::saveDocument);
+    QAction* pSaveAsAction = pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), this,
+                                                 &ReportWorkspace::saveAsDocumentDialog);
+    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
     pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename page"), this, &ReportWorkspace::renameCurrentPage);
     pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate page"), this, &ReportWorkspace::duplicateCurrentPage);
     pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove page"), this, &ReportWorkspace::removeCurrentPage);
     pToolBar->setIconSize(Size::skToolBarIcon);
+
+    // Set the shortcuts
+    pNewAction->setShortcut(QKeySequence::New);
+    pOpenAction->setShortcut(QKeySequence::Open);
+    pSaveAction->setShortcut(QKeySequence::Save);
+    pSaveAsAction->setShortcut(QKeySequence::SaveAs);
+    pPrintAction->setShortcut(QKeySequence::Print);
     Utility::setShortcutHints(pToolBar);
 
     // Create the tab widget
@@ -347,6 +368,30 @@ void ReportWorkspace::addDesigner(int iPage)
     connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::edited);
     mpDesignerTabs->addTab(pDesigner, name);
     pDesigner->fit();
+}
+
+//! Set the autosave timer
+void ReportWorkspace::setAutoSave()
+{
+    if (mOptions.autoSaveDuration <= 0)
+        return;
+
+    // Set the autosave path
+    QString dir = Backend::Utility::combineFilePath(qApp->applicationDirPath(), "autosave");
+    QString fileName = QString("%1.%2").arg(QDateTime::currentDateTime().toString("dd.mm.yyyy - hh.mm"), ReportDocument::fileSuffix());
+    mOptions.autoSavePathFile = Backend::Utility::combineFilePath(dir, fileName);
+    if (!QFileInfo::exists(dir))
+        QDir().mkpath(dir);
+
+    // Run the timer
+    QTimer* pTimer = new QTimer(this);
+    connect(pTimer, &QTimer::timeout, this,
+            [this]()
+            {
+                mDocument.write(mOptions.autoSavePathFile);
+                qInfo() << tr("Document is automatically saved to %1").arg(mOptions.autoSavePathFile);
+            });
+    pTimer->start(mOptions.autoSaveDuration);
 }
 
 //! Fit the designer on selection

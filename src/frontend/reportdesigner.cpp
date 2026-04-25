@@ -756,8 +756,12 @@ void ReportDesigner::resolveItemLinks()
             {
                 if (pMasterItem->type() == GraphReportItem::kGraph)
                 {
-                    static_cast<GraphReportItem*>(pSlaveItem)->curves = static_cast<GraphReportItem*>(pMasterItem)->curves;
-                    static_cast<GraphReportItem*>(pSlaveItem)->xRange = static_cast<GraphReportItem*>(pMasterItem)->xRange;
+                    GraphReportItem* pGraphSlaveItem = (GraphReportItem*) pSlaveItem;
+                    GraphReportItem* pGraphMasterItem = (GraphReportItem*) pMasterItem;
+                    pGraphSlaveItem->responseDir = pGraphMasterItem->responseDir;
+                    pGraphSlaveItem->unit = pGraphMasterItem->unit;
+                    pGraphSlaveItem->curves = pGraphMasterItem->curves;
+                    pGraphSlaveItem->xRange = pGraphMasterItem->xRange;
                 }
             }
         }

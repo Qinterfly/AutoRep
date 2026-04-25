@@ -57,7 +57,8 @@ QString getDirLabel(ReportDirection dir)
 }
 
 //! Find the response measured at the specified point along the requested direction
-int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type)
+int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type,
+                 QString const& unit)
 {
     int iFound = -1;
     int numResponses = bundle.responses.size();
@@ -69,12 +70,14 @@ int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, Re
         Testlab::ResponsePoint const& responsePoint = response.header.point;
         QString componentName = QString::fromStdWString(responsePoint.component);
         QString nodeName = QString::fromStdWString(responsePoint.node);
+        QString unitName = QString::fromStdWString(response.header.unit.name);
 
         // Check the flags
         bool isPoint = componentName == point.component && nodeName == point.node;
-        bool isDir = (int) dir == (int) responsePoint.direction;
+        bool isDir = dir == ReportDirection::kNone ? true : (int) dir == (int) responsePoint.direction;
         bool isType = response.header.type == type;
-        if (isPoint && isDir && isType)
+        bool isUnit = unit.isEmpty() ? true : unit == unitName;
+        if (isPoint && isDir && isType && isUnit)
             return i;
     }
     return iFound;
@@ -100,14 +103,30 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
     QMap<QString, Testlab::Response> responseSet;
     responseSet[unit] = accel;
 
+    // Set the reference point
+    bool isFRF = unit == Units::skM_S2_N;
+    GraphReportPoint refPoint;
+    ReportDirection refDir = ReportDirection::kNone;
+    if (isFRF)
+    {
+        QString refComponent = QString::fromStdWString(accel.header.refPoint.component);
+        QString refNode = QString::fromStdWString(accel.header.refPoint.node);
+        refPoint = GraphReportPoint(refComponent, refNode);
+        refDir = (ReportDirection) accel.header.refPoint.direction;
+    }
+    else
+    {
+        refPoint = GraphReportPoint(bundle.refPoint);
+        refDir = pItem->responseDir;
+    }
+
     // Process the force, if presented
     int numKeys = accel.keys.size();
-    int iForce = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kForce);
+    int iForce = findResponse(bundle, refPoint, refDir, Testlab::ResponseType::kForce, Units::skN);
     if (iForce >= 0)
     {
         Testlab::Response const force = bundle.responses[iForce];
         Testlab::Response response = accel;
-        bool isFRF = unit == Units::skM_S2_N;
         for (int i = 0; i != numKeys; ++i)
         {
             std::complex<double> a = {accel.realValues[i], accel.imagValues[i]};

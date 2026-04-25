@@ -37,7 +37,11 @@ string(TOLOWER ${CMAKE_BUILD_TYPE} configName)
 set(installDir ${INSTALL_DIR}/${systemName}-${configName} CACHE INTERNAL "Installation directory")
 if (WIN32)
     find_program(TOOL_WINDEPLOYQT NAMES windeployqt)
+    # Directories
+    set(vtkRuntimeDir ${VTK_DIR}/bin/${CMAKE_BUILD_TYPE})
+    # Files
     set(testlabFiles ${TESTLAB_DIR}/*)
+    set(vtkFiles ${vtkRuntimeDir}/*${CMAKE_SHARED_LIBRARY_SUFFIX})
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
         set(targetFiles ${CMAKE_CURRENT_BINARY_DIR}/*)
         add_custom_command(TARGET application POST_BUILD
@@ -45,6 +49,7 @@ if (WIN32)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${installDir}
             COMMAND ${CMAKE_COMMAND} "-DSRCS=${testlabFiles}" "-DDEST=${CMAKE_CURRENT_BINARY_DIR}" -P "${scriptDir}/copy.cmake"
             COMMAND ${CMAKE_COMMAND} "-DSRCS=${testlabFiles}" "-DDEST=${installDir}" -P "${scriptDir}/copy.cmake"
+            COMMAND ${CMAKE_COMMAND} "-DSRCS=${vtkFiles}" "-DDEST=${installDir}" -P "${scriptDir}/copy.cmake"
             COMMAND ${CMAKE_COMMAND} "-DSRCS=${targetFiles}" "-DDEST=${installDir}" -P "${scriptDir}/copy.cmake"
         )
     else()

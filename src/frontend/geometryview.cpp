@@ -195,6 +195,7 @@ void GeometryView::setIsometricView()
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
     mRenderer->ResetCamera();
+    mRenderWindow->Render();
 }
 
 //! Set view perpendicular to one of the planes
@@ -210,6 +211,7 @@ void GeometryView::setPlaneView(int dir, int sign)
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
     mRenderer->ResetCamera();
+    mRenderWindow->Render();
 }
 
 //! Set the initial state of widgets
@@ -780,12 +782,11 @@ void GeometryInteractorStyle::OnKeyPress()
 QList<GeometrySelection> GeometryInteractorStyle::selections() const
 {
     QList<GeometrySelection> result;
-    QList<vtkActor*> selectedActors = mSelection.keys();
-    int numSelected = selectedActors.size();
+    int numSelected = mSelectedActors.size();
     result.reserve(numSelected);
-    for (int i = 0; i != numSelected; ++i)
+    for (vtkActor* actor : mSelectedActors)
     {
-        GeometrySelection key = find(selectedActors[i]);
+        GeometrySelection key = find(actor);
         if (key.isValid())
             result.push_back(key);
     }
@@ -808,7 +809,7 @@ void GeometryInteractorStyle::select(QList<GeometrySelection> const& keys)
 void GeometryInteractorStyle::select(vtkActor* actor)
 {
     // Deselect the actor on the second click
-    if (mSelection.contains(actor))
+    if (mSelectedActors.contains(actor))
     {
         deselect(actor);
         return;
@@ -827,24 +828,26 @@ void GeometryInteractorStyle::select(vtkActor* actor)
     setActorScale(actor, pickFactor);
 
     // Save the original property
-    mSelection[actor] = property;
+    mSelectedActors.push_back(actor);
+    mProperties[actor] = property;
 }
 
 //! Remove the actor from the selection set
 void GeometryInteractorStyle::deselect(vtkActor* actor)
 {
     // Check if there is such actor on the scene
-    if (!mSelection.contains(actor))
+    if (!mSelectedActors.contains(actor))
         return;
 
     // Set the original properties
-    actor->GetProperty()->DeepCopy(mSelection[actor]);
+    actor->GetProperty()->DeepCopy(mProperties[actor]);
 
     // Modify the actor scale
     setActorScale(actor, 1.0 / pickFactor);
 
     // Remove the actor from the selection
-    mSelection.remove(actor);
+    mSelectedActors.remove(index(actor));
+    mProperties.remove(actor);
 }
 
 //! Deselect all the actors associated with a model entity
@@ -887,6 +890,18 @@ GeometrySelection GeometryInteractorStyle::find(vtkActor* actor) const
             return key;
     }
     return GeometrySelection();
+}
+
+//! Get the selected actor index
+int GeometryInteractorStyle::index(vtkActor* actor)
+{
+    int numSelected = mSelectedActors.size();
+    for (int i = 0; i != numSelected; ++i)
+    {
+        if (mSelectedActors[i] == actor)
+            return i;
+    }
+    return -1;
 }
 
 //! Helper function to estimate the maximum dimension of the model

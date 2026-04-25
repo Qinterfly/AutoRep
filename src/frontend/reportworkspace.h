@@ -16,12 +16,23 @@ class ReportDesigner;
 class GeometryView;
 class ResponseEditor;
 
+struct ReportWorkspaceOptions
+{
+    ReportWorkspaceOptions();
+    ~ReportWorkspaceOptions() = default;
+
+    QString lastPathFile;
+    QString autoSavePathFile;
+    int autoSaveDuration; // Milliseconds
+};
+
 class ReportWorkspace : public QWidget
 {
     Q_OBJECT
 
 public:
-    ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, QWidget* pParent = nullptr);
+    ReportWorkspace(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor,
+                    ReportWorkspaceOptions const& options = ReportWorkspaceOptions(), QWidget* pParent = nullptr);
     virtual ~ReportWorkspace() = default;
 
     QSize sizeHint() const override;
@@ -60,6 +71,7 @@ private:
     void setNewDocumentDialog();
     void setDefaultDocumentDialog();
     void addDesigner(int iPage);
+    void setAutoSave();
 
     // Slots
     void processDesignerSelected();
@@ -69,9 +81,9 @@ private:
     QSettings& mSettings;
     GeometryView* mpGeometryView;
     ResponseEditor* mpResponseEditor;
+    ReportWorkspaceOptions mOptions;
     Backend::Core::ReportDocument mDocument;
     CustomTabWidget* mpDesignerTabs;
-    QString mDocumentPathFile;
 };
 
 class ReportTextEngineEditor : public QWidget

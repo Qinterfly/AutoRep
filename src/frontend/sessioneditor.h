@@ -92,6 +92,7 @@ private:
     QListWidget* mpBundleList;
     Edit1d* mpBundleFreqEdit;
     Edit1d* mpBundleForceEdit;
+    Edit1s* mpBundleRefPointEdit;
 
     // Response
     QListWidget* mpResponseList;

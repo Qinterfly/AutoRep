@@ -54,6 +54,7 @@ namespace Testlab
 		int numAverages;
 		std::wstring dimension;
 		std::wstring transducer;
+		std::wstring functionClass;
 		std::wstring comment;
 	};
 

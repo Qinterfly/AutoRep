@@ -113,6 +113,11 @@ GraphReportPoint::GraphReportPoint(QString const& uComponent, QString const& uNo
 {
 }
 
+bool GraphReportPoint::isEmpty() const
+{
+    return name().isEmpty();
+}
+
 QString GraphReportPoint::name() const
 {
     return QString("%1:%2").arg(component, node);
@@ -138,7 +143,7 @@ GraphReportCurve::GraphReportCurve()
     lineWidth = 1.25;
     lineColor = Qt::red;
     markerShape = ReportMarkerShape::kDisc;
-    markerSize = 6;
+    markerSize = 6.0;
     markerFill = false;
     markerSkip = 0;
 }
@@ -222,7 +227,7 @@ void GraphReportCurve::fromJson(QJsonObject const& obj)
 
     // Marker
     markerShape = (ReportMarkerShape) obj["markerShape"].toInt();
-    markerSize = obj["markerSize"].toInt();
+    markerSize = obj["markerSize"].toDouble();
     markerFill = obj["markerFill"].toBool();
     markerSkip = obj["markerSkip"].toInt();
 }

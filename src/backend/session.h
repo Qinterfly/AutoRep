@@ -26,6 +26,7 @@ struct ResponseBundle
     Responses responses;
     double freq;
     double force;
+    QString refPoint;
 };
 
 class ResponseCollection

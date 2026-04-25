@@ -22,6 +22,7 @@ namespace Frontend
 {
 
 class GeometryView;
+class ReportCurvePropertyEditor;
 
 //! General class to edit report item data
 class ReportDataEditor : public QWidget
@@ -58,7 +59,6 @@ public:
     void addCurve();
     void editSelectedCurve();
     void replaceSelectedCurve();
-    void renameSelectedCurve();
     void removeSelected();
     QList<Backend::Core::GraphReportPoint> getSelectedPoints();
 
@@ -67,7 +67,7 @@ private:
     void createConnections();
     QLayout* createHeaderLayout();
     QWidget* createToolBar();
-    QLayout* createTreeLayout();
+    QLayout* createCurveLayout();
 
     // Widgets
     void refreshHeader();
@@ -92,6 +92,7 @@ private:
 
     // Curves
     QTreeWidget* mpCurveTree;
+    ReportCurvePropertyEditor* mpCurveEditor;
 };
 
 //! Class to edit curve properties
@@ -102,6 +103,7 @@ class ReportCurvePropertyEditor : public QWidget
 public:
     enum Type
     {
+        kName,
         kLineStyle,
         kLineWidth,
         kLineColor,
@@ -111,8 +113,10 @@ public:
         kMarkerSkip
     };
 
-    ReportCurvePropertyEditor(Backend::Core::GraphReportCurve& curve, QWidget* pParent = nullptr);
+    ReportCurvePropertyEditor(QWidget* pParent = nullptr);
     virtual ~ReportCurvePropertyEditor() = default;
+
+    void setCurve(Backend::Core::GraphReportItem* pItem, int iCurve);
 
 signals:
     void edited();
@@ -128,7 +132,8 @@ private:
     void setValue(QtProperty* pProperty, QVariant value);
 
 private:
-    Backend::Core::GraphReportCurve& mCurve;
+    Backend::Core::GraphReportItem* mpItem;
+    int mICurve;
     CustomVariantPropertyManager* mpManager;
     QtVariantEditorFactory* mpFactory;
     QtTreePropertyBrowser* mpEditor;
