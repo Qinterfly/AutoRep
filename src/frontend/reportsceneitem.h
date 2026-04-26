@@ -123,6 +123,8 @@ class GraphReportSceneItem : public ReportSceneItem
     Q_OBJECT
 
 public:
+    friend class ReportGraphEditor;
+
     GraphReportSceneItem(Backend::Core::GraphReportItem* pItem, Backend::Core::ReportTextEngine& textEngine,
                          Backend::Core::ResponseCollection const& collection, int iSelectedBundle, Testlab::Geometry const& geometry,
                          QGraphicsItem* pParent = nullptr);

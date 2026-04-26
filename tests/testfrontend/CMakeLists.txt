@@ -20,6 +20,7 @@ target_link_libraries(testfrontend PRIVATE
     Qt::Gui
     Qt::Widgets
     Qt::Test
+    qcustomplot
     backend
     frontend
 )

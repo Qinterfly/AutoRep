@@ -28,6 +28,8 @@ public:
     void fit();
 
     QString title() const;
+    QFlags<Qt::AlignmentFlag> legendAlignment() const;
+
     void addTitle();
     void setTitle(QString const& title);
     void setLegendAlignment(QFlags<Qt::AlignmentFlag> const& flags);

@@ -31,6 +31,17 @@ void CustomTabWidget::setTabsRenamable(bool flag)
     mRenameEnabled = flag;
 }
 
+//! Find tab index by its widget
+int CustomTabWidget::find(QWidget* pWidget)
+{
+    for (int i = 0; i != count(); ++i)
+    {
+        if (widget(i) == pWidget)
+            return i;
+    }
+    return -1;
+}
+
 //! Remove tab as well as widget associated with it
 void CustomTabWidget::removePage(int index)
 {
@@ -39,10 +50,25 @@ void CustomTabWidget::removePage(int index)
     pWidget->deleteLater();
 }
 
+//! Remove all the pages
 void CustomTabWidget::removeAllPages()
 {
     while (count() > 0)
         removePage(0);
+}
+
+//! Move tab to the specified index
+void CustomTabWidget::moveTab(int iFrom, int iTo)
+{
+    if (iFrom == iTo)
+        return;
+
+    QWidget* page = widget(iFrom);
+    QString text = tabText(iFrom);
+    QIcon icon = tabIcon(iFrom);
+
+    removeTab(iFrom);
+    insertTab(iTo, page, icon, text);
 }
 
 //! Reimplemented filter of events

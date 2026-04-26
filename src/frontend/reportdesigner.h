@@ -5,6 +5,7 @@
 #include <QTextEdit>
 #include <QWidget>
 
+#include "customplot.h"
 #include "customtable.h"
 #include "reportdocument.h"
 #include "reportitem.h"
@@ -25,7 +26,9 @@ class ReportDataEditor;
 class GeometryView;
 class ResponseEditor;
 class ReportSceneItem;
+class GraphReportSceneItem;
 class ReportTextEditor;
+class ReportGraphEditor;
 class ReportTableEditor;
 
 //! Designer options
@@ -108,6 +111,7 @@ private:
     QGraphicsScene* mpScene;
     ReportSceneView* mpSceneView;
     ReportTextEditor* mpTextEditor;
+    ReportGraphEditor* mpGraphEditor;
     ReportTableEditor* mpTableEditor;
     QComboBox* mpScaleSelector;
     bool mIsPrinting;
@@ -165,6 +169,28 @@ protected:
 
 private:
     Backend::Core::TextReportItem* mpItem;
+};
+
+//! Class to edit report graph items
+class ReportGraphEditor : public CustomPlot
+{
+    Q_OBJECT
+
+public:
+    ReportGraphEditor(QWidget* pParent = nullptr);
+    virtual ~ReportGraphEditor() = default;
+
+    void startEditing(QRect const& rect, GraphReportSceneItem* pItem);
+
+signals:
+    void editingFinished();
+
+protected:
+    void focusOutEvent(QFocusEvent* pEvent) override;
+    void keyPressEvent(QKeyEvent* pEvent) override;
+
+private:
+    GraphReportSceneItem* mpItem;
 };
 
 //! Class to edit report table items

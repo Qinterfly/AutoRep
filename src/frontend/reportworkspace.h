@@ -57,6 +57,7 @@ public:
     void renameCurrentPage();
     void duplicateCurrentPage();
     void removeCurrentPage();
+    void moveCurrentPage(int iShift);
 
 signals:
     void edited();

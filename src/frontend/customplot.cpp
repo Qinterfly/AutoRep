@@ -59,6 +59,11 @@ QString CustomPlot::title() const
     return mpTitle->text();
 }
 
+QFlags<Qt::AlignmentFlag> CustomPlot::legendAlignment() const
+{
+    return axisRect()->insetLayout()->insetAlignment(0);
+}
+
 //! Add the title to the layout
 void CustomPlot::addTitle()
 {

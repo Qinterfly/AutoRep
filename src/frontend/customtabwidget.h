@@ -17,8 +17,10 @@ public:
     bool tabsRenameable() const;
     void setTabsRenamable(bool flag);
 
+    int find(QWidget* pWidget);
     void removePage(int index);
     void removeAllPages();
+    void moveTab(int iFrom, int iTo);
 
 protected:
     bool eventFilter(QObject* pObject, QEvent* pEvent) override;

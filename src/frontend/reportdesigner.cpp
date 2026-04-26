@@ -531,20 +531,31 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
     QRect viewRect(viewTopLeft, viewBottomRight);
 
     // Show the editor
-    if (pReportItem->type() == ReportItem::kText)
+    switch (pReportItem->type())
+    {
+    case ReportItem::kText:
     {
         mpTextEditor->startEditing(viewRect, (TextReportItem*) pReportItem);
+        break;
     }
-    else if (pReportItem->type() == ReportItem::kPicture)
+    case ReportItem::kGraph:
+    {
+        mpGraphEditor->startEditing(viewRect, (GraphReportSceneItem*) pSceneItem);
+        break;
+    }
+    case ReportItem::kPicture:
     {
         QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Picture"), Utility::getLastDirectory(mSettings).path(),
                                                         tr("Picture file format (*.svg *.png *.jpg *.jpeg)"));
         if (!pathFile.isEmpty())
             static_cast<PictureReportItem*>(pReportItem)->load(pathFile);
+        break;
     }
-    else if (pReportItem->type() == ReportItem::kTable)
+    case ReportItem::kTable:
     {
         mpTableEditor->startEditing(viewRect, (TableReportItem*) pReportItem);
+        break;
+    }
     }
 }
 
@@ -606,6 +617,7 @@ QWidget* ReportDesigner::createSceneWidget()
 
     // Create the scene editors
     mpTextEditor = new ReportTextEditor(mpSceneView);
+    mpGraphEditor = new ReportGraphEditor(mpSceneView);
     mpTableEditor = new ReportTableEditor(mpSceneView);
 
     // Initialize the view
@@ -646,14 +658,21 @@ QWidget* ReportDesigner::createSceneWidget()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addWidget(new QLabel(tr("Scale: ")));
     pToolBar->addWidget(mpScaleSelector);
-    pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), mpSceneView, &ReportSceneView::fitToPage);
-    pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), mpSceneView, &ReportSceneView::zoomIn);
-    pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
+    QAction* pFitAction = pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), mpSceneView, &ReportSceneView::fitToPage);
+    QAction* pZoomInAction = pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), mpSceneView, &ReportSceneView::zoomIn);
+    QAction* pZoomOutAction = pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
+
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
     pToolBar->addAction(QIcon(":/icons/page-orientation.svg"), tr("Change page orientation"), this, &ReportDesigner::changePageOrientation);
-    pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
+    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
+
+    // Set the shortcuts
+    pFitAction->setShortcut(Qt::CTRL | Qt::Key_0);
+    pZoomInAction->setShortcut(Qt::CTRL | Qt::Key_Plus);
+    pZoomOutAction->setShortcut(Qt::CTRL | Qt::Key_Minus);
+    pPrintAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_P);
     Utility::setShortcutHints(pToolBar);
 
     // Construct the group box
@@ -896,6 +915,99 @@ void ReportTextEditor::keyPressEvent(QKeyEvent* pEvent)
         return;
     }
     QTextEdit::keyPressEvent(pEvent);
+}
+
+ReportGraphEditor::ReportGraphEditor(QWidget* pParent)
+    : CustomPlot(pParent)
+    , mpItem(nullptr)
+{
+    hide();
+}
+
+//! Start editing of a text report item
+void ReportGraphEditor::startEditing(QRect const& rect, GraphReportSceneItem* pItem)
+{
+    // Store the item
+    mpItem = pItem;
+
+    // Set the geometry
+    setGeometry(rect);
+
+    // Clear the data
+    clear();
+
+    // Slice the plot data
+    CustomPlot* pSrcPlot = mpItem->mpPlot;
+    QCPAxis* pSrcXAxis = pSrcPlot->xAxis;
+    QCPAxis* pSrcYAxis = pSrcPlot->yAxis;
+    QCPLegend* pSrcLegend = pSrcPlot->legend;
+
+    // Copy the axes labels
+    xAxis->setTickLabelFont(pSrcXAxis->tickLabelFont());
+    yAxis->setTickLabelFont(pSrcYAxis->tickLabelFont());
+    xAxis->setLabelFont(pSrcXAxis->labelFont());
+    yAxis->setLabelFont(pSrcYAxis->labelFont());
+    xAxis->setLabel(pSrcXAxis->label());
+    yAxis->setLabel(pSrcYAxis->label());
+
+    // Copy the grid
+    xAxis->grid()->setPen(pSrcXAxis->grid()->pen());
+    yAxis->grid()->setPen(pSrcYAxis->grid()->pen());
+    xAxis->grid()->setZeroLinePen(pSrcXAxis->grid()->zeroLinePen());
+    yAxis->grid()->setZeroLinePen(pSrcYAxis->grid()->zeroLinePen());
+
+    // Copy the axis range
+    rescaleAxes();
+    xAxis->setRange(pSrcXAxis->range());
+    yAxis->setRange(pSrcYAxis->range());
+    xAxis->setTicker(pSrcXAxis->ticker());
+    yAxis->setTicker(pSrcYAxis->ticker());
+
+    // Copy the legend
+    legend->setVisible(pSrcLegend->visible());
+    legend->setFont(pSrcLegend->font());
+    setLegendAlignment(pSrcPlot->legendAlignment());
+
+    // Copy the plottables
+    int numPlottables = pSrcPlot->plottableCount();
+    for (int i = 0; i != numPlottables; ++i)
+    {
+        QCPCurve* pSrcCurve = qobject_cast<QCPCurve*>(pSrcPlot->plottable(i));
+        if (!pSrcCurve)
+            continue;
+        QCPCurve* pDstCurve = new QCPCurve(xAxis, yAxis);
+        pDstCurve->data()->set(*pSrcCurve->data());
+        pDstCurve->setPen(pSrcCurve->pen());
+        pDstCurve->setBrush(pSrcCurve->brush());
+        pDstCurve->setName(pSrcCurve->name());
+        pDstCurve->setLineStyle(pSrcCurve->lineStyle());
+        pDstCurve->setScatterStyle(pSrcCurve->scatterStyle());
+    }
+
+    // Show the editor
+    replot();
+    show();
+    setFocus();
+}
+
+//! Finish editing once the focus is lost
+void ReportGraphEditor::focusOutEvent(QFocusEvent* pEvent)
+{
+    QWidget::focusOutEvent(pEvent);
+    this->hide();
+    mpItem = nullptr;
+    emit editingFinished();
+}
+
+//! Process the keys to lose focus
+void ReportGraphEditor::keyPressEvent(QKeyEvent* pEvent)
+{
+    if (pEvent->key() == Qt::Key_Return || pEvent->key() == Qt::Key_Escape)
+    {
+        clearFocus();
+        return;
+    }
+    QWidget::keyPressEvent(pEvent);
 }
 
 ReportTableEditor::ReportTableEditor(QWidget* pParent)

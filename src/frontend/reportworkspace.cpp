@@ -273,6 +273,32 @@ void ReportWorkspace::removeCurrentPage()
     emit edited();
 }
 
+//! Move the currently selected designer
+void ReportWorkspace::moveCurrentPage(int iShift)
+{
+    if (iShift == 0)
+        return;
+
+    // Get the current page index
+    int iPage = mpDesignerTabs->currentIndex();
+    if (iPage < 0)
+        return;
+
+    // Get the new page index
+    int iSwapPage = iPage + iShift;
+    if (iSwapPage < 0 || iSwapPage >= mpDesignerTabs->count())
+        return;
+
+    // Move the designers
+    QSignalBlocker blockerDesignerTabs(mpDesignerTabs);
+    mpDesignerTabs->moveTab(iPage, iSwapPage);
+    mpDesignerTabs->setCurrentIndex(iSwapPage);
+
+    // Swap the pages
+    mDocument.swap(iPage, iSwapPage);
+    emit edited();
+}
+
 //! Create all the widgets
 void ReportWorkspace::createContent()
 {
@@ -293,6 +319,8 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
     pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename page"), this, &ReportWorkspace::renameCurrentPage);
     pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate page"), this, &ReportWorkspace::duplicateCurrentPage);
+    pToolBar->addAction(QIcon(":/icons/arrow-left.svg"), tr("Move page left"), this, [this]() { moveCurrentPage(-1); });
+    pToolBar->addAction(QIcon(":/icons/arrow-right.svg"), tr("Move page right"), this, [this]() { moveCurrentPage(+1); });
     pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove page"), this, &ReportWorkspace::removeCurrentPage);
     pToolBar->setIconSize(Size::skToolBarIcon);
 

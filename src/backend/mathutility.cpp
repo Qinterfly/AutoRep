@@ -220,16 +220,20 @@ Testlab::Response projectResponse(Testlab::Response const& response, Testlab::Ge
     if (angles.empty())
         return response;
 
+    // Slice the directions
+    int iRespDir = (int) response.header.point.direction - 1;
+    int iDir = (int) dir - 1;
+    if (iRespDir < 0 || iDir < 0)
+        return response;
+
     // Construct the transformation matrix
     AngleAxisd rotX(angles[2], Vector3d::UnitX()); // YZ
     AngleAxisd rotY(angles[1], Vector3d::UnitY()); // XZ
     AngleAxisd rotZ(angles[0], Vector3d::UnitZ()); // XY
     Quaterniond q = rotX * rotY * rotZ;
     Matrix3d transform = q.toRotationMatrix();
-    int iDir = (int) dir - 1;
-    if (iDir < 0)
-        return response;
-    double factor = transform(iDir, iDir);
+    Vector3d proj = transform * Vector3d::Unit(iRespDir);
+    double factor = proj[iDir];
 
     // Multiply the response
     Testlab::Response result = response;
