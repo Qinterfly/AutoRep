@@ -51,7 +51,10 @@ class ReportDocument : public ISerializable
 {
 public:
     ReportDocument();
-    ~ReportDocument() = default;
+    ReportDocument(ReportDocument const& another);
+    ~ReportDocument();
+
+    ReportDocument& operator=(ReportDocument const& another);
 
     bool isEmpty() const;
     int count() const;
@@ -60,6 +63,7 @@ public:
     ReportPage* add();
     void add(ReportPage const& page);
     bool remove(int index);
+    void swap(int iFirst, int iSecond);
     void clear();
 
     static QString fileVersion();

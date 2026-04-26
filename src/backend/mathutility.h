@@ -25,7 +25,10 @@ int findResponse(Backend::Core::ResponseBundle const& bundle, Backend::Core::Gra
                  Testlab::ResponseType type, QString const& unit = QString());
 Testlab::Response getAcceleration(Backend::Core::ResponseBundle const& bundle, Backend::Core::GraphReportPoint const& point,
                                   Backend::Core::GraphReportItem* pItem);
-std::vector<double> getCoords(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point);
+Testlab::Node getNode(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point);
+std::vector<double> getPointCoords(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point);
+std::vector<double> getPointAngles(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point);
+Testlab::Response projectResponse(Testlab::Response const& response, Testlab::Geometry const& geometry, Backend::Core::ReportDirection dir);
 
 // Roots
 struct Root

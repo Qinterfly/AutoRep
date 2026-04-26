@@ -1,3 +1,4 @@
+#include <Eigen/Geometry>
 #include <complex.h>
 #include <QMap>
 
@@ -7,6 +8,7 @@
 
 using namespace Backend::Constants;
 using namespace Backend::Core;
+using namespace Eigen;
 
 // Constants
 static double const skEps = std::numeric_limits<double>::epsilon();
@@ -167,26 +169,78 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
     return null;
 }
 
-//! Get point location
-std::vector<double> getCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point)
+//! Find the Testlab associated node associated with the graph point
+Testlab::Node getNode(Testlab::Geometry const& geometry, Backend::Core::GraphReportPoint const& point)
 {
+    // Loop thrgouh all the components
     int numComponents = geometry.components.size();
     for (int iComponent = 0; iComponent != numComponents; ++iComponent)
     {
         Testlab::Component const& component = geometry.components[iComponent];
+
+        // Check if the component is the same
         QString componentName = QString::fromStdWString(component.name);
         if (componentName != point.component)
             continue;
+
+        // Loop through all the nodes
         int numNodes = component.nodes.size();
         for (int iNode = 0; iNode != numNodes; ++iNode)
         {
             Testlab::Node const& node = component.nodes[iNode];
+
+            // Check if the node is the same
             QString nodeName = QString::fromStdWString(node.name);
             if (nodeName == point.node)
-                return node.coordinates;
+                return node;
         }
     }
     return {};
+}
+
+//! Get point location
+std::vector<double> getPointCoords(Testlab::Geometry const& geometry, GraphReportPoint const& point)
+{
+    return getNode(geometry, point).coordinates;
+}
+
+//! Get point angles
+std::vector<double> getPointAngles(Testlab::Geometry const& geometry, GraphReportPoint const& point)
+{
+    return getNode(geometry, point).angles;
+}
+
+//! Project response onto the target direction
+Testlab::Response projectResponse(Testlab::Response const& response, Testlab::Geometry const& geometry, Backend::Core::ReportDirection dir)
+{
+    // Get the point angles
+    QString component = QString::fromStdWString(response.header.point.component);
+    QString node = QString::fromStdWString(response.header.point.node);
+    std::vector<double> angles = getPointAngles(geometry, GraphReportPoint(component, node));
+    if (angles.empty())
+        return response;
+
+    // Construct the transformation matrix
+    AngleAxisd rotX(angles[2], Vector3d::UnitX()); // YZ
+    AngleAxisd rotY(angles[1], Vector3d::UnitY()); // XZ
+    AngleAxisd rotZ(angles[0], Vector3d::UnitZ()); // XY
+    Quaterniond q = rotX * rotY * rotZ;
+    Matrix3d transform = q.toRotationMatrix();
+    int iDir = (int) dir - 1;
+    if (iDir < 0)
+        return response;
+    double factor = transform(iDir, iDir);
+
+    // Multiply the response
+    Testlab::Response result = response;
+    int numKeys = result.keys.size();
+    for (int i = 0; i != numKeys; ++i)
+    {
+        result.realValues[i] *= factor;
+        result.imagValues[i] *= factor;
+    }
+
+    return result;
 }
 
 //! Find all the response roots

@@ -174,6 +174,28 @@ ReportDocument::ReportDocument()
 {
 }
 
+ReportDocument::ReportDocument(ReportDocument const& another)
+{
+    *this = another;
+}
+
+ReportDocument::~ReportDocument()
+{
+    clear();
+}
+
+ReportDocument& ReportDocument::operator=(ReportDocument const& another)
+{
+    clear();
+    name = another.name;
+    textEngine = another.textEngine;
+    int numPages = another.mPages.size();
+    mPages.resize(numPages);
+    for (int i = 0; i != numPages; ++i)
+        mPages[i] = new ReportPage(*another.mPages[i]);
+    return *this;
+}
+
 bool ReportDocument::isEmpty() const
 {
     return mPages.isEmpty();
@@ -211,6 +233,15 @@ bool ReportDocument::remove(int index)
         return true;
     }
     return false;
+}
+
+void ReportDocument::swap(int iFirst, int iSecond)
+{
+    int numPages = mPages.size();
+    bool isFirst = iFirst >= 0 && iFirst < numPages;
+    bool isSecond = iSecond >= 0 && iSecond < numPages;
+    if (isFirst && isSecond)
+        mPages.swapItemsAt(iFirst, iSecond);
 }
 
 void ReportDocument::clear()

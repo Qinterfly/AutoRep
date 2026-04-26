@@ -388,7 +388,8 @@ void ReportWorkspace::setAutoSave()
     connect(pTimer, &QTimer::timeout, this,
             [this]()
             {
-                mDocument.write(mOptions.autoSavePathFile);
+                ReportDocument document(mDocument);
+                document.write(mOptions.autoSavePathFile);
                 qInfo() << tr("Document is automatically saved to %1").arg(mOptions.autoSavePathFile);
             });
     pTimer->start(mOptions.autoSaveDuration);

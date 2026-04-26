@@ -657,19 +657,24 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
                 continue;
             }
 
-            // Find the closest frequency to the resonance one
-            int iFound = Backend::Utility::findClosestKey(response, bundle.freq);
-            if (iFound < 0)
+            // Get the point coordinates
+            std::vector<double> coords = Backend::Utility::getPointCoords(mGeometry, point);
+            if (coords.empty())
                 continue;
 
-            // Get the point coordinates
-            std::vector<double> coords = Backend::Utility::getCoords(mGeometry, point);
-            if (coords.empty())
+            // Project the response
+            Testlab::Response projResponse = Backend::Utility::projectResponse(response, mGeometry, pItem->responseDir);
+            if (projResponse.keys.size() == 0)
+                continue;
+
+            // Find the closest frequency to the resonance one
+            int iFound = Backend::Utility::findClosestKey(projResponse, bundle.freq);
+            if (iFound < 0)
                 continue;
 
             // Set the data
             xData[iPoint] = coords[(int) pItem->coordDir - 1];
-            yData[iPoint] = response.imagValues[iFound] * response.header.point.sign;
+            yData[iPoint] = projResponse.imagValues[iFound] * projResponse.header.point.sign;
 
             // Add the variable
             QString varName = QString("%1:%2").arg(point.name(), Backend::Utility::getDirLabel(pItem->responseDir));
