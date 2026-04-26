@@ -162,21 +162,24 @@ bool ReportDesigner::printDialog()
 //! Select a report item by its index
 void ReportDesigner::selectItem(int index)
 {
-    ReportItem* pItem = mPage.get(index);
+    ReportItem* pItem = mScenePage.get(index);
     if (!pItem)
         return;
-    mSelectedItems = {pItem};
+    mSelectedItemIDs = {pItem->id};
     refresh();
 }
 
 //! Draw all the graphic objects
 void ReportDesigner::drawAll()
 {
+    // Set the scene page
+    mScenePage = mPage;
+
     // Set up the scene
     QSignalBlocker blockerScene(mpScene);
     QSignalBlocker blockerSceneView(mpSceneView);
     mpScene->clear();
-    mpScene->setSceneRect(mPage.layout.paintRect());
+    mpScene->setSceneRect(mScenePage.layout.paintRect());
 
     // Set the text engine
     updateTextEngine();
@@ -197,10 +200,10 @@ void ReportDesigner::drawAll()
 //! Draw the report items
 void ReportDesigner::drawItems()
 {
-    int numItems = mPage.count();
+    int numItems = mScenePage.count();
     for (int i = 0; i != numItems; ++i)
     {
-        ReportItem* pReportItem = mPage.get(i);
+        ReportItem* pReportItem = mScenePage.get(i);
 
         // Create the item
         ReportSceneItem* pSceneItem = nullptr;
@@ -237,7 +240,7 @@ void ReportDesigner::drawItems()
             pSceneItem->setFlag(QGraphicsItem::ItemIsSelectable, true);
             connect(pSceneItem, &ReportSceneItem::changed, this, &ReportDesigner::processSceneItemChanged);
             connect(pSceneItem, &ReportSceneItem::requestEdit, this, [this, pSceneItem]() { processEditItemRequest(pSceneItem); });
-            if (mSelectedItems.contains(pSceneItem->item()))
+            if (mSelectedItemIDs.contains(pSceneItem->item()->id))
                 pSceneItem->setSelected(true);
         }
 
@@ -261,13 +264,13 @@ void ReportDesigner::refreshList()
 {
     QSignalBlocker blocker(mpItemList);
     mpItemList->clear();
-    int numItems = mPage.count();
+    int numItems = mScenePage.count();
     for (int i = 0; i != numItems; ++i)
     {
-        ReportItem* pReportItem = mPage.get(i);
-        QListWidgetItem* pListItem = createListItem(mPage, i);
+        ReportItem* pReportItem = mScenePage.get(i);
+        QListWidgetItem* pListItem = createListItem(mScenePage, i);
         mpItemList->addItem(pListItem);
-        if (mSelectedItems.contains(pReportItem))
+        if (mSelectedItemIDs.contains(pReportItem->id))
             pListItem->setSelected(true);
     }
 }
@@ -276,8 +279,8 @@ void ReportDesigner::refreshList()
 void ReportDesigner::refreshEditor()
 {
     ReportItem* pItem = nullptr;
-    if (mSelectedItems.size() == 1)
-        pItem = mSelectedItems.first();
+    if (mSelectedItemIDs.size() == 1)
+        pItem = mScenePage.get(mSelectedItemIDs.first());
     mpPropertyEditor->setItem(pItem);
     setDataEditor(pItem);
 }
@@ -312,12 +315,15 @@ void ReportDesigner::addItem(ReportItem::Type type)
         return;
 
     // Add it to the page
-    mPage.add(pItem);
+    mScenePage.add(pItem);
 
     // Select it
-    mSelectedItems = {pItem};
+    mSelectedItemIDs = {pItem->id};
 
-    // Update the content of the widgets
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
+
+    // Update the designer
     refresh();
     qInfo() << tr("The item is added to the report");
     emit edited();
@@ -327,17 +333,21 @@ void ReportDesigner::addItem(ReportItem::Type type)
 void ReportDesigner::duplicateSelectedItems()
 {
     // Check if there are any selected items
-    if (mSelectedItems.isEmpty())
+    if (mSelectedItemIDs.isEmpty())
         return;
 
     // Duplicate the selected items
-    int numSelected = mSelectedItems.size();
+    int numSelected = mSelectedItemIDs.size();
     for (int i = 0; i != numSelected; ++i)
     {
-        ReportItem* pCopyItem = mSelectedItems[i]->clone();
+        ReportItem* pSrcItem = mScenePage.get(mSelectedItemIDs[i]);
+        ReportItem* pCopyItem = pSrcItem->clone();
         pCopyItem->name.append(tr(" (Copy)"));
-        mPage.add(pCopyItem);
+        mScenePage.add(pCopyItem);
     }
+
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
 
     // Update the designer
     refresh();
@@ -349,7 +359,7 @@ void ReportDesigner::duplicateSelectedItems()
 void ReportDesigner::removeSelectedItems()
 {
     // Check if there are any selected items
-    if (mSelectedItems.isEmpty())
+    if (mSelectedItemIDs.isEmpty())
         return;
 
     // Show the dialog
@@ -358,10 +368,13 @@ void ReportDesigner::removeSelectedItems()
         return;
 
     // Remove the selected items
-    int numSelected = mSelectedItems.size();
+    int numSelected = mSelectedItemIDs.size();
     for (int i = 0; i != numSelected; ++i)
-        mPage.remove(mSelectedItems[i]);
-    mSelectedItems.clear();
+        mScenePage.remove(mScenePage.get(mSelectedItemIDs[i]));
+    mSelectedItemIDs.clear();
+
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
 
     // Update the designer
     refresh();
@@ -378,14 +391,14 @@ void ReportDesigner::moveSelectedItems(int iShift)
     for (int i = 0; i != numItems; ++i)
     {
         int iRow = mpItemList->row(items[i]);
-        mPage.swap(iRow, iRow + iShift);
+        mScenePage.swap(iRow, iRow + iShift);
     }
 
-    // Update the scene
-    drawAll();
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
 
-    // Update the list of items
-    refreshList();
+    // Update the designer
+    refresh();
     qInfo() << tr("The report items are shifted");
     emit edited();
 }
@@ -396,9 +409,12 @@ void ReportDesigner::selectByList()
     // Store the selected items
     QList<QListWidgetItem*> items = mpItemList->selectedItems();
     int numItems = items.size();
-    mSelectedItems.resize(numItems);
+    mSelectedItemIDs.resize(numItems);
     for (int i = 0; i != numItems; ++i)
-        mSelectedItems[i] = mPage.get(mpItemList->row(items[i]));
+    {
+        ReportItem* pItem = mScenePage.get(mpItemList->row(items[i]));
+        mSelectedItemIDs[i] = pItem->id;
+    }
 
     // Update the scene
     drawAll();
@@ -413,11 +429,11 @@ void ReportDesigner::selectByScene()
     // Store the selected items
     QList<QGraphicsItem*> items = mpScene->selectedItems();
     int numItems = items.size();
-    mSelectedItems.resize(numItems);
+    mSelectedItemIDs.resize(numItems);
     for (int i = 0; i != numItems; ++i)
     {
         ReportSceneItem* pSceneItem = (ReportSceneItem*) items[i];
-        mSelectedItems[i] = pSceneItem->item();
+        mSelectedItemIDs[i] = pSceneItem->item()->id;
     }
 
     // Update the item list
@@ -430,10 +446,18 @@ void ReportDesigner::selectByScene()
 //! Rename the item by its list counterpart
 void ReportDesigner::changeItemByList(QListWidgetItem* pListItem)
 {
+    // Get the item
     int index = mpItemList->row(pListItem);
-    ReportItem* pReportItem = mPage.get(index);
+    ReportItem* pReportItem = mScenePage.get(index);
     QString oldName = pReportItem->name;
+
+    // Set a new name
     pReportItem->name = pListItem->text();
+
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
+
+    // Finish up the editing
     qInfo() << tr("Item is successfully renamed: %1 -> %2").arg(oldName, pReportItem->name);
     emit edited();
 }
@@ -457,10 +481,13 @@ void ReportDesigner::setScaleBySelector()
 void ReportDesigner::changePageOrientation()
 {
     // Change the orientation
-    if (mPage.layout.orientation() == QPageLayout::Portrait)
-        mPage.layout.setOrientation(QPageLayout::Landscape);
+    if (mScenePage.layout.orientation() == QPageLayout::Portrait)
+        mScenePage.layout.setOrientation(QPageLayout::Landscape);
     else
-        mPage.layout.setOrientation(QPageLayout::Portrait);
+        mScenePage.layout.setOrientation(QPageLayout::Portrait);
+
+    // Set the change
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
 
     // Redraw the scene
     drawAll();
@@ -493,7 +520,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
     {
         if (pItem->type() == ReportItem::kGraph)
         {
-            mpDataEditor = new GraphReportDataEditor(mpGeometryView, mPage);
+            mpDataEditor = new GraphReportDataEditor(mpGeometryView, mScenePage);
             connect(mpDataEditor, &ReportDataEditor::edited, this, &ReportDesigner::processItemEdited);
         }
         if (mpDataEditor)
@@ -507,6 +534,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
 //! Process changing items via scene
 void ReportDesigner::processSceneItemChanged()
 {
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
     refreshEditor();
     emit edited();
 }
@@ -514,6 +542,7 @@ void ReportDesigner::processSceneItemChanged()
 //! Process changing items via editor
 void ReportDesigner::processItemEdited()
 {
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
     refresh();
     emit edited();
 }
@@ -599,7 +628,9 @@ void ReportDesigner::createConnections()
 
     // Editor
     connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
-    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::refresh);
+    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::processItemEdited);
+    connect(mpGraphEditor, &ReportGraphEditor::editingFinished, this, &ReportDesigner::processItemEdited);
+    connect(mpTableEditor, &ReportTableEditor::editingFinished, this, &ReportDesigner::processItemEdited);
 }
 
 //! Create the group of scene widgets
@@ -614,6 +645,9 @@ QWidget* ReportDesigner::createSceneWidget()
     // Create the scene and the view
     mpScene = new QGraphicsScene;
     mpSceneView = new ReportSceneView;
+
+    // Create the undo stack
+    mpSceneUndoStack = new QUndoStack(this);
 
     // Create the scene editors
     mpTextEditor = new ReportTextEditor(mpSceneView);
@@ -661,6 +695,18 @@ QWidget* ReportDesigner::createSceneWidget()
     QAction* pFitAction = pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), mpSceneView, &ReportSceneView::fitToPage);
     QAction* pZoomInAction = pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), mpSceneView, &ReportSceneView::zoomIn);
     QAction* pZoomOutAction = pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
+
+    pToolBar->addSeparator();
+    QAction* pUndoAction = mpSceneUndoStack->createUndoAction(this, tr("&Undo"));
+    pUndoAction->setIcon(QIcon(":/icons/edit-undo.svg"));
+    pUndoAction->setShortcuts(QKeySequence::Undo);
+    connect(pUndoAction, &QAction::triggered, this, &ReportDesigner::refresh);
+    pToolBar->addAction(pUndoAction);
+    QAction* pRedoAction = mpSceneUndoStack->createRedoAction(this, tr("&Redo"));
+    pRedoAction->setIcon(QIcon(":/icons/edit-redo.svg"));
+    pRedoAction->setShortcuts(QKeySequence::Redo);
+    pToolBar->addAction(pRedoAction);
+    connect(pRedoAction, &QAction::triggered, this, &ReportDesigner::refresh);
 
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
@@ -764,13 +810,13 @@ void ReportDesigner::updateTextEngine()
 //! Resolve item dependencies
 void ReportDesigner::resolveItemLinks()
 {
-    int numItems = mPage.count();
+    int numItems = mScenePage.count();
     for (int i = 0; i != numItems; ++i)
     {
-        ReportItem* pSlaveItem = mPage.get(i);
+        ReportItem* pSlaveItem = mScenePage.get(i);
         if (!pSlaveItem->link.isNull())
         {
-            ReportItem* pMasterItem = mPage.get(pSlaveItem->link);
+            ReportItem* pMasterItem = mScenePage.get(pSlaveItem->link);
             if (pMasterItem && pMasterItem->type() == pSlaveItem->type())
             {
                 if (pMasterItem->type() == GraphReportItem::kGraph)
@@ -1118,6 +1164,25 @@ void ReportTableEditor::keyPressEvent(QKeyEvent* pEvent)
         return;
     }
     CustomTable::keyPressEvent(pEvent);
+}
+
+EditPage::EditPage(ReportPage& page, ReportPage const& value)
+    : mPage(page)
+    , mOldValue(page)
+    , mNewValue(value)
+{
+}
+
+//! Revert the change
+void EditPage::undo()
+{
+    mPage = mOldValue;
+}
+
+//! Make the change
+void EditPage::redo()
+{
+    mPage = mNewValue;
 }
 
 //! Helper function to create a list item

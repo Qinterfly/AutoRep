@@ -108,8 +108,10 @@ private:
     ReportDesignerOptions mOptions;
 
     // Scene
+    Backend::Core::ReportPage mScenePage;
     QGraphicsScene* mpScene;
     ReportSceneView* mpSceneView;
+    QUndoStack* mpSceneUndoStack;
     ReportTextEditor* mpTextEditor;
     ReportGraphEditor* mpGraphEditor;
     ReportTableEditor* mpTableEditor;
@@ -125,7 +127,7 @@ private:
     QWidget* mpDataEditorContainer;
 
     // Selection
-    QList<Backend::Core::ReportItem*> mSelectedItems;
+    QList<QUuid> mSelectedItemIDs;
 };
 
 //! Class to view scene
@@ -213,6 +215,22 @@ protected:
 
 private:
     Backend::Core::TableReportItem* mpItem;
+};
+
+//! Class to edit page
+class EditPage : public QUndoCommand
+{
+public:
+    EditPage(Backend::Core::ReportPage& page, Backend::Core::ReportPage const& value);
+    virtual ~EditPage() = default;
+
+    void undo() override;
+    void redo() override;
+
+private:
+    Backend::Core::ReportPage& mPage;
+    Backend::Core::ReportPage mOldValue;
+    Backend::Core::ReportPage mNewValue;
 };
 }
 
