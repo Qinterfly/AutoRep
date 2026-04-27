@@ -8,5 +8,6 @@ lib/testlab/Release
 output
 resources
 releases
+experiments
 install
 TODO.txt

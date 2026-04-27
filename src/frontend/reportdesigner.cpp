@@ -34,11 +34,12 @@ ReportDesignerOptions::ReportDesignerOptions()
 {
     // Flags
     lockItems = false;
+    enablePrinting = true;
     uniteModeshapeRange = true;
 }
 
 ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, ReportPage& page,
-                               ReportTextEngine& textEngine, ReportDesignerOptions const& options, QWidget* pParent)
+                               ReportTextEngine const& textEngine, ReportDesignerOptions const& options, QWidget* pParent)
     : QWidget(pParent)
     , mSettings(settings)
     , mpGeometryView(pGeometryView)
@@ -57,6 +58,12 @@ ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView,
 ReportPage& ReportDesigner::page()
 {
     return mPage;
+}
+
+//! Get the options
+ReportDesignerOptions const& ReportDesigner::options() const
+{
+    return mOptions;
 }
 
 //! Fit the content
@@ -81,6 +88,7 @@ bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
     QPageLayout printLayout = mPage.layout;
     printLayout.setOrientation(QPageLayout::Portrait); // Force the portrait orientation for printing
     printer.setPageLayout(printLayout);
+    painter.save();
 
     // Set the view
     mpSceneView->fitToPage();
@@ -110,6 +118,7 @@ bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 
     // Render to the painter
     mpScene->render(&painter);
+    painter.restore();
 
     // Restore the scene state
     mIsPrinting = false;
@@ -166,6 +175,13 @@ void ReportDesigner::selectItem(int index)
     if (!pItem)
         return;
     mSelectedItemIDs = {pItem->id};
+    refresh();
+}
+
+//! Update the text engine from the source
+void ReportDesigner::setTextEngine(Backend::Core::ReportTextEngine const& textEngine)
+{
+    mTextEngine = textEngine;
     refresh();
 }
 
@@ -252,7 +268,8 @@ void ReportDesigner::drawItems()
 //! Draw the border around the page
 void ReportDesigner::drawBorder()
 {
-    QGraphicsRectItem* pBorder = mpScene->addRect(mpScene->sceneRect(), QPen(Qt::black, 0), QBrush(Qt::white));
+    QColor borderColor = mOptions.enablePrinting ? QColor("black") : QColor("red");
+    QGraphicsRectItem* pBorder = mpScene->addRect(mpScene->sceneRect(), QPen(borderColor, 0), QBrush(Qt::white));
     pBorder->setZValue(-1000);
     pBorder->setFlag(QGraphicsItem::ItemIsSelectable, false);
     pBorder->setFlag(QGraphicsItem::ItemIsMovable, false);
@@ -688,6 +705,7 @@ QWidget* ReportDesigner::createSceneWidget()
 
     // Create the actions
     QAction* pLockSceneAction = createBoolAction(QIcon(":/icons/lock.svg"), tr("Lock items"), mOptions.lockItems);
+    QAction* pEnablePrintingAction = createBoolAction(QIcon(":/icons/page-valid.svg"), tr("Enable printing"), mOptions.enablePrinting);
 
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
@@ -711,6 +729,7 @@ QWidget* ReportDesigner::createSceneWidget()
 
     pToolBar->addSeparator();
     pToolBar->addAction(pLockSceneAction);
+    pToolBar->addAction(pEnablePrintingAction);
     pToolBar->addAction(QIcon(":/icons/page-orientation.svg"), tr("Change page orientation"), this, &ReportDesigner::changePageOrientation);
     QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);

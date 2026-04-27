@@ -39,6 +39,7 @@ struct ReportDesignerOptions
 
     // Flags
     bool lockItems;
+    bool enablePrinting;
     bool uniteModeshapeRange;
 };
 
@@ -49,16 +50,19 @@ class ReportDesigner : public QWidget
 
 public:
     ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, Backend::Core::ReportPage& page,
-                   Backend::Core::ReportTextEngine& textEngine, ReportDesignerOptions const& options = ReportDesignerOptions(),
+                   Backend::Core::ReportTextEngine const& textEngine, ReportDesignerOptions const& options = ReportDesignerOptions(),
                    QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
     Backend::Core::ReportPage& page();
+    ReportDesignerOptions const& options() const;
+
     void fit();
     void refresh();
     bool print(QPrinter& printer, QPainter& painter);
     bool printDialog();
     void selectItem(int index);
+    void setTextEngine(Backend::Core::ReportTextEngine const& textEngine);
 
 signals:
     void edited();
@@ -105,7 +109,7 @@ private:
     GeometryView* mpGeometryView;
     ResponseEditor* mpResponseEditor;
     Backend::Core::ReportPage& mPage;
-    Backend::Core::ReportTextEngine& mTextEngine;
+    Backend::Core::ReportTextEngine mTextEngine;
     ReportDesignerOptions mOptions;
 
     // Scene

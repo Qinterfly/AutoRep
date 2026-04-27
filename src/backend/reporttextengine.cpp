@@ -87,7 +87,7 @@ void ReportTextEngine::setVariable(QString const& rawKey, QString const& value)
 void ReportTextEngine::setVariable(QString const& rawKey, double value)
 {
     QString key = normalizeKey(rawKey);
-    QString text = QString::number(value, 'g', 3);
+    QString text = QString::number(value);
     text.replace('.', ',');
     mVariables[key] = text;
 }

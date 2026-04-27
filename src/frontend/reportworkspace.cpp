@@ -166,17 +166,23 @@ bool ReportWorkspace::print(QString const& pathFile)
         return false;
 
     int numPages = mDocument.count();
+    int numPrint = 0;
     for (int iPage = 0; iPage != numPages; ++iPage)
     {
         ReportDesigner* pDesigner = designer(iPage);
         if (!pDesigner)
             continue;
+        if (!pDesigner->options().enablePrinting)
+            continue;
+
+        // Create the page
+        if (numPrint > 0)
+            printer.newPage();
+
+        // Print
         if (!pDesigner->print(printer, painter))
             return false;
-
-        // Create the next page
-        if (iPage != numPages - 1)
-            printer.newPage();
+        ++numPrint;
     }
 
     // Close the painter
@@ -425,11 +431,19 @@ void ReportWorkspace::processDesignerSelected()
         pDesigner->fit();
 }
 
+//! Distribute the modified text engine among the designers
+void ReportWorkspace::processTextEngineEdited()
+{
+    int numPages = mDocument.count();
+    for (int i = 0; i != numPages; ++i)
+        designer(i)->setTextEngine(mDocument.textEngine);
+}
+
 //! Show an editor to create and remove text variables
 void ReportWorkspace::editTextEngine()
 {
     ReportTextEngineEditor* pEditor = new ReportTextEngineEditor(mSettings, mDocument.textEngine);
-    connect(pEditor, &ReportTextEngineEditor::edited, this, &ReportWorkspace::refresh);
+    connect(pEditor, &ReportTextEngineEditor::edited, this, &ReportWorkspace::processTextEngineEdited);
     Utility::showAsDialog(pEditor, tr("Text Engine Editor"), this, false);
 }
 

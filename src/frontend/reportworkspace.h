@@ -76,6 +76,7 @@ private:
 
     // Slots
     void processDesignerSelected();
+    void processTextEngineEdited();
     void editTextEngine();
 
 private:
