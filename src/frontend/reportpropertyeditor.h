@@ -1,7 +1,10 @@
 #ifndef REPORTPROPERTYEDITOR_H
 #define REPORTPROPERTYEDITOR_H
 
+#include <QUuid>
 #include <QWidget>
+
+#include "reportinterface.h"
 
 class CustomVariantPropertyManager;
 class QtVariantEditorFactory;
@@ -10,7 +13,10 @@ class QtProperty;
 
 namespace Backend::Core
 {
-class ReportItem;
+class ReportPage;
+class TextReportItem;
+class GraphReportItem;
+class TableReportItem;
 }
 
 namespace Frontend
@@ -61,7 +67,7 @@ public:
     virtual ~ReportPropertyEditor() = default;
 
     void refresh();
-    void setItem(Backend::Core::ReportItem* pItem);
+    void setItemGetter(Backend::Core::ReportItemGetter getter);
 
 signals:
     void edited();
@@ -69,15 +75,15 @@ signals:
 private:
     void createContent();
     void createConnections();
-    void addBaseProperties();
-    void addTextProperties();
-    void addGraphProperties();
-    void addTableProperties();
+    void addBaseProperties(Backend::Core::ReportItem* pItem);
+    void addTextProperties(Backend::Core::TextReportItem* pItem);
+    void addGraphProperties(Backend::Core::GraphReportItem* pItem);
+    void addTableProperties(Backend::Core::TableReportItem* pItem);
     void setValue(QtProperty* pProperty, QVariant value);
     Qt::Alignment getAlignValue(Align key);
 
 private:
-    Backend::Core::ReportItem* mpItem;
+    Backend::Core::ReportItemGetter mItemGetter;
     CustomVariantPropertyManager* mpManager;
     QtVariantEditorFactory* mpFactory;
     QtTreePropertyBrowser* mpEditor;

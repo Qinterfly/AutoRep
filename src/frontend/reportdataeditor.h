@@ -3,6 +3,7 @@
 
 #include <QWidget>
 
+#include "reportinterface.h"
 #include "reportitem.h"
 
 QT_FORWARD_DECLARE_CLASS(QComboBox)
@@ -35,13 +36,13 @@ public:
 
     virtual Backend::Core::ReportItem::Type type() const = 0;
     virtual void refresh() = 0;
-    void setItem(Backend::Core::ReportItem* pItem);
+    void setItemGetter(Backend::Core::ReportItemGetter itemGetter);
 
 signals:
     void edited();
 
 protected:
-    Backend::Core::ReportItem* mpItem;
+    Backend::Core::ReportItemGetter mItemGetter;
 };
 
 //! Class to edit graph item data
@@ -72,12 +73,18 @@ private:
     // Widgets
     void refreshHeader();
     void refreshTree();
+    void closeCurveEditor();
 
     // Slots
+    Backend::Core::GraphReportItem* getItem();
     PairInt getTreeSelected();
     void setTreeSelected(int iCurve, int iPoint = -1);
     void processTreeSelected();
     void processHeaderChanged();
+    void processCurveEdited();
+
+    // Help
+    Backend::Core::ReportCurveGetter createCurveGetter(int iCurve);
 
 private:
     GeometryView* mpGeometryView;
@@ -116,7 +123,7 @@ public:
     ReportCurvePropertyEditor(QWidget* pParent = nullptr);
     virtual ~ReportCurvePropertyEditor() = default;
 
-    void setCurve(Backend::Core::GraphReportItem* pItem, int iCurve);
+    void setCurveGetter(Backend::Core::ReportCurveGetter curveGetter);
 
 signals:
     void edited();
@@ -132,8 +139,7 @@ private:
     void setValue(QtProperty* pProperty, QVariant value);
 
 private:
-    Backend::Core::GraphReportItem* mpItem;
-    int mICurve;
+    Backend::Core::ReportCurveGetter mCurveGetter;
     CustomVariantPropertyManager* mpManager;
     QtVariantEditorFactory* mpFactory;
     QtTreePropertyBrowser* mpEditor;

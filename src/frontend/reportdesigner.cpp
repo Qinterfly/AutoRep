@@ -281,7 +281,8 @@ void ReportDesigner::refreshEditor()
     ReportItem* pItem = nullptr;
     if (mSelectedItemIDs.size() == 1)
         pItem = mScenePage.get(mSelectedItemIDs.first());
-    mpPropertyEditor->setItem(pItem);
+    QUuid itemID = pItem ? pItem->id : QUuid();
+    mpPropertyEditor->setItemGetter(createItemGetter(itemID));
     setDataEditor(pItem);
 }
 
@@ -505,7 +506,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
         // Set the new data if the editor has the same type
         if (pItem && mpDataEditor->type() == pItem->type())
         {
-            mpDataEditor->setItem(pItem);
+            mpDataEditor->setItemGetter(createItemGetter(pItem->id));
             return;
         }
 
@@ -525,7 +526,7 @@ void ReportDesigner::setDataEditor(ReportItem* pItem)
         }
         if (mpDataEditor)
         {
-            mpDataEditor->setItem(pItem);
+            mpDataEditor->setItemGetter(createItemGetter(pItem->id));
             pDataLayout->addWidget(mpDataEditor);
         }
     }
@@ -539,8 +540,16 @@ void ReportDesigner::processSceneItemChanged()
     emit edited();
 }
 
-//! Process changing items via editor
+//! Process changing item via property or data editors
 void ReportDesigner::processItemEdited()
+{
+    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
+    drawAll();
+    emit edited();
+}
+
+//! Process changing item via type editor
+void ReportDesigner::processEditorFinished()
 {
     mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
     refresh();
@@ -627,10 +636,10 @@ void ReportDesigner::createConnections()
     connect(mpScene, &QGraphicsScene::selectionChanged, this, &ReportDesigner::selectByScene);
 
     // Editor
-    connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::drawAll);
-    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::processItemEdited);
-    connect(mpGraphEditor, &ReportGraphEditor::editingFinished, this, &ReportDesigner::processItemEdited);
-    connect(mpTableEditor, &ReportTableEditor::editingFinished, this, &ReportDesigner::processItemEdited);
+    connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::processItemEdited);
+    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
+    connect(mpGraphEditor, &ReportGraphEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
+    connect(mpTableEditor, &ReportTableEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
 }
 
 //! Create the group of scene widgets
@@ -788,6 +797,12 @@ QWidget* ReportDesigner::createEditorWidget()
     pTabWidget->setCurrentIndex(1);
 
     return pTabWidget;
+}
+
+//! Construct a functor to get the item of the specified identifier
+ReportItemGetter ReportDesigner::createItemGetter(QUuid const& id)
+{
+    return [this, id]() { return mScenePage.get(id); };
 }
 
 //! Create the report text parser and initialize it

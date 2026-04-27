@@ -5,6 +5,7 @@
 #include <qttreepropertybrowser.h>
 #include <qtvariantproperty.h>
 
+#include "reportdocument.h"
 #include "reportitem.h"
 #include "reportpropertyeditor.h"
 #include "uiutility.h"
@@ -18,7 +19,6 @@ QString convert(PairDouble const& data);
 
 ReportPropertyEditor::ReportPropertyEditor(QWidget* pParent)
     : QWidget(pParent)
-    , mpItem(nullptr)
 {
     setFont(Utility::getFont());
     createContent();
@@ -26,9 +26,9 @@ ReportPropertyEditor::ReportPropertyEditor(QWidget* pParent)
 }
 
 //! Set the item to edit
-void ReportPropertyEditor::setItem(ReportItem* pItem)
+void ReportPropertyEditor::setItemGetter(ReportItemGetter getter)
 {
-    mpItem = pItem;
+    mItemGetter = std::move(getter);
     refresh();
 }
 
@@ -66,22 +66,25 @@ void ReportPropertyEditor::refresh()
     mpEditor->clear();
     mpManager->clear();
 
-    // Check if the item is valid
-    if (!mpItem)
+    // Get the item
+    if (!mItemGetter)
+        return;
+    ReportItem* pItem = mItemGetter();
+    if (!pItem)
         return;
 
     // Add properties
-    addBaseProperties();
-    switch (mpItem->type())
+    addBaseProperties(pItem);
+    switch (pItem->type())
     {
     case ReportItem::kText:
-        addTextProperties();
+        addTextProperties((TextReportItem*) pItem);
         break;
     case ReportItem::kGraph:
-        addGraphProperties();
+        addGraphProperties((GraphReportItem*) pItem);
         break;
     case ReportItem::kTable:
-        addTableProperties();
+        addTableProperties((TableReportItem*) pItem);
         break;
     default:
         break;
@@ -89,38 +92,34 @@ void ReportPropertyEditor::refresh()
 }
 
 //! Create the properties which are common for all item types
-void ReportPropertyEditor::addBaseProperties()
+void ReportPropertyEditor::addBaseProperties(ReportItem* pItem)
 {
     QtVariantProperty* pRectProperty = mpManager->addProperty(kRect, QMetaType::QRect, tr("Position"));
-    pRectProperty->setValue(mpItem->rect);
+    pRectProperty->setValue(pItem->rect);
     mpEditor->addProperty(pRectProperty);
 
     QtVariantProperty* pAngleProperty = mpManager->addProperty(kAngle, QMetaType::Double, tr("Rotation, %1").arg(QChar(0x00b0)));
-    pAngleProperty->setValue(mpItem->angle);
+    pAngleProperty->setValue(pItem->angle);
     mpEditor->addProperty(pAngleProperty);
 
     QtVariantProperty* pFontProperty = mpManager->addProperty(kFont, QMetaType::QFont, tr("Font"));
-    pFontProperty->setValue(mpItem->font);
+    pFontProperty->setValue(pItem->font);
     QtBrowserItem* pFontItem = mpEditor->addProperty(pFontProperty);
     mpEditor->setExpanded(pFontItem, false);
 }
 
 //! Create properties specific for text items
-void ReportPropertyEditor::addTextProperties()
+void ReportPropertyEditor::addTextProperties(TextReportItem* pItem)
 {
-    TextReportItem* pItem = (TextReportItem*) mpItem;
-
     QtVariantProperty* pTextProperty = mpManager->addProperty(kText, QMetaType::QString, tr("Text"));
     pTextProperty->setValue(pItem->text);
     mpEditor->addProperty(pTextProperty);
 }
 
 //! Create properties specific for graph items
-void ReportPropertyEditor::addGraphProperties()
+void ReportPropertyEditor::addGraphProperties(GraphReportItem* pItem)
 {
     QStringList const kAlignmentNames = {tr("Top right"), tr("Bottom right"), tr("Bottom left"), tr("Top left")};
-
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     QtVariantProperty* pXRangeProperty = mpManager->addProperty(kXRange, QMetaType::QString, tr("X range"));
     pXRangeProperty->setValue(convert(pItem->xRange));
@@ -179,10 +178,8 @@ void ReportPropertyEditor::addGraphProperties()
 }
 
 //! Create properties specific for table items
-void ReportPropertyEditor::addTableProperties()
+void ReportPropertyEditor::addTableProperties(TableReportItem* pItem)
 {
-    TableReportItem* pItem = (TableReportItem*) mpItem;
-
     QtVariantProperty* pNumRowsProperty = mpManager->addProperty(kNumRows, QMetaType::Int, tr("Number of rows"));
     pNumRowsProperty->setValue(pItem->numRows());
     mpEditor->addProperty(pNumRowsProperty);
@@ -199,71 +196,79 @@ void ReportPropertyEditor::addTableProperties()
 //! Change the item property value
 void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
 {
+    // Get the item
+    if (!mItemGetter)
+        return;
+    ReportItem* pItem = mItemGetter();
+    if (!pItem)
+        return;
+
+    // Get the property id
     if (!mpManager->contains(pProperty))
         return;
-    int id = mpManager->id(pProperty);
-    switch (id)
+    int propertyID = mpManager->id(pProperty);
+    switch (propertyID)
     {
     // Base
     case kRect:
-        mpItem->rect = value.toRect();
+        pItem->rect = value.toRect();
         break;
     case kAngle:
-        mpItem->angle = value.toDouble();
+        pItem->angle = value.toDouble();
         break;
     case kFont:
-        mpItem->font = value.value<QFont>();
+        pItem->font = value.value<QFont>();
         break;
 
     // Text
     case kText:
-        static_cast<TextReportItem*>(mpItem)->text = value.toString();
+        static_cast<TextReportItem*>(pItem)->text = value.toString();
         break;
 
     // Graph
     case kXRange:
-        static_cast<GraphReportItem*>(mpItem)->xRange = convert(value.toString());
+        static_cast<GraphReportItem*>(pItem)->xRange = convert(value.toString());
         break;
     case kYRange:
-        static_cast<GraphReportItem*>(mpItem)->yRange = convert(value.toString());
+        static_cast<GraphReportItem*>(pItem)->yRange = convert(value.toString());
         break;
     case kXLabel:
-        static_cast<GraphReportItem*>(mpItem)->xLabel = value.toString();
+        static_cast<GraphReportItem*>(pItem)->xLabel = value.toString();
         break;
     case kYLabel:
-        static_cast<GraphReportItem*>(mpItem)->yLabel = value.toString();
+        static_cast<GraphReportItem*>(pItem)->yLabel = value.toString();
         break;
     case kScaleRange:
-        static_cast<GraphReportItem*>(mpItem)->scaleRange = value.toDouble();
+        static_cast<GraphReportItem*>(pItem)->scaleRange = value.toDouble();
         break;
     case kNumTicks:
-        static_cast<GraphReportItem*>(mpItem)->numTicks = value.toInt();
+        static_cast<GraphReportItem*>(pItem)->numTicks = value.toInt();
         break;
     case kGridWidth:
-        static_cast<GraphReportItem*>(mpItem)->gridWidth = value.toDouble();
+        static_cast<GraphReportItem*>(pItem)->gridWidth = value.toDouble();
         break;
     case kSwapAxes:
-        static_cast<GraphReportItem*>(mpItem)->swapAxes = value.toBool();
+        static_cast<GraphReportItem*>(pItem)->swapAxes = value.toBool();
         break;
     case kLegendAlign:
-        static_cast<GraphReportItem*>(mpItem)->legendAlign = getAlignValue((Align) value.toInt());
+        static_cast<GraphReportItem*>(pItem)->legendAlign = getAlignValue((Align) value.toInt());
         break;
     case kShowLegend:
-        static_cast<GraphReportItem*>(mpItem)->showLegend = value.toBool();
+        static_cast<GraphReportItem*>(pItem)->showLegend = value.toBool();
         break;
     case kShowBundleFreq:
-        static_cast<GraphReportItem*>(mpItem)->showBundleFreq = value.toBool();
+        static_cast<GraphReportItem*>(pItem)->showBundleFreq = value.toBool();
         break;
 
     // Table
     case kNumRows:
-        static_cast<TableReportItem*>(mpItem)->setNumRows(value.toInt());
+        static_cast<TableReportItem*>(pItem)->setNumRows(value.toInt());
         break;
     case kNumCols:
-        static_cast<TableReportItem*>(mpItem)->setNumCols(value.toInt());
+        static_cast<TableReportItem*>(pItem)->setNumCols(value.toInt());
         break;
     case kShowLabels:
-        static_cast<TableReportItem*>(mpItem)->showLabels = value.toBool();
+        static_cast<TableReportItem*>(pItem)->showLabels = value.toBool();
         break;
 
     default:

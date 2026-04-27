@@ -32,14 +32,12 @@ QComboBox* createDirComboBox();
 
 ReportDataEditor::ReportDataEditor(QWidget* pParent)
     : QWidget(pParent)
-    , mpItem(nullptr)
 {
 }
 
-void ReportDataEditor::setItem(ReportItem* pItem)
+void ReportDataEditor::setItemGetter(ReportItemGetter itemGetter)
 {
-    if (pItem && pItem->type() == type())
-        mpItem = pItem;
+    mItemGetter = std::move(itemGetter);
     refresh();
 }
 
@@ -88,7 +86,7 @@ void GraphReportDataEditor::createConnections()
     // Curve
     connect(mpCurveTree, &QTreeWidget::itemSelectionChanged, this, &GraphReportDataEditor::processTreeSelected);
     connect(mpCurveTree, &QTreeWidget::itemDoubleClicked, this, &GraphReportDataEditor::editSelectedCurve);
-    connect(mpCurveEditor, &ReportCurvePropertyEditor::edited, this, &GraphReportDataEditor::edited);
+    connect(mpCurveEditor, &ReportCurvePropertyEditor::edited, this, &GraphReportDataEditor::processCurveEdited);
 }
 
 //! Create the layout of header widgets
@@ -176,10 +174,10 @@ QLayout* GraphReportDataEditor::createCurveLayout()
 //! Update the header widgets
 void GraphReportDataEditor::refreshHeader()
 {
-    // Cast to the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Set the subtype
     QSignalBlocker blockerSubType(mpSubTypeSelector);
@@ -228,10 +226,10 @@ void GraphReportDataEditor::refreshHeader()
 //! Update the hierarchy widgets
 void GraphReportDataEditor::refreshTree()
 {
-    // Cast to the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Set the curve tree
     QSignalBlocker blockerCurveTree(mpCurveTree);
@@ -285,16 +283,25 @@ void GraphReportDataEditor::refreshTree()
     setTreeSelected(iCurve, iPoint);
 }
 
+//! Hide the curve editor
+void GraphReportDataEditor::closeCurveEditor()
+{
+    if (!mpCurveEditor->isVisible())
+        return;
+    mpCurveEditor->setCurveGetter(ReportCurveGetter());
+    mpCurveEditor->hide();
+}
+
 //! Add a new curve
 void GraphReportDataEditor::addCurve()
 {
     // Constants
     QList<GraphReportCurve> const kDefaultCurves = ReportDefaults::curves();
 
-    // Retrieve the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Helper function
     auto createCurve = [pItem, &kDefaultCurves](QList<GraphReportPoint> const& points)
@@ -340,28 +347,23 @@ void GraphReportDataEditor::addCurve()
 //! Edit the selected curve
 void GraphReportDataEditor::editSelectedCurve()
 {
-    // Retrieve the graph item
-    if (!mpItem)
-        return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
-
     // Retrieve the selected curve
     auto [iCurve, iPoint] = getTreeSelected();
     if (iCurve < 0)
         return;
 
     // Show the editor
-    mpCurveEditor->setCurve(pItem, iCurve);
+    mpCurveEditor->setCurveGetter(createCurveGetter(iCurve));
     mpCurveEditor->show();
 }
 
 //! Replace the selected curve with the new one
 void GraphReportDataEditor::replaceSelectedCurve()
 {
-    // Retrieve the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Construct the dialog
     auto reply = QMessageBox::question(this, tr("Replace Curve"),
@@ -405,14 +407,13 @@ void GraphReportDataEditor::replaceSelectedCurve()
 //! Process removing the current curve
 void GraphReportDataEditor::removeSelected()
 {
-    // Retrieve the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
-    // Hide the curve editor
-    mpCurveEditor->setCurve(nullptr, -1);
-    mpCurveEditor->hide();
+    // Close the curve editor
+    closeCurveEditor();
 
     // Remove the selected curve
     auto [iCurve, iPoint] = getTreeSelected();
@@ -434,9 +435,8 @@ void GraphReportDataEditor::removeSelected()
     // Update the widgets content
     refresh();
 
-    // Select the last curve
-    if (isCurve)
-        setTreeSelected(pItem->curves.size() - 1);
+    // Select the next curve
+    setTreeSelected(iCurve);
 
     // Finish up the editing
     emit edited();
@@ -459,10 +459,10 @@ QList<GraphReportPoint> GraphReportDataEditor::getSelectedPoints()
 //! Process changing tree selection
 void GraphReportDataEditor::processTreeSelected()
 {
-    // Retrieve the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Update the header
     refreshHeader();
@@ -494,6 +494,14 @@ void GraphReportDataEditor::processTreeSelected()
     }
 }
 
+//! Get the graph item
+GraphReportItem* GraphReportDataEditor::getItem()
+{
+    if (!mItemGetter)
+        return nullptr;
+    return (GraphReportItem*) mItemGetter();
+}
+
 //! Retrieve the selected tree entity: curve or point
 PairInt GraphReportDataEditor::getTreeSelected()
 {
@@ -509,9 +517,12 @@ PairInt GraphReportDataEditor::getTreeSelected()
 //! Set the selected tree item
 void GraphReportDataEditor::setTreeSelected(int iCurve, int iPoint)
 {
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
+
+    // Select the curve item
     if (iCurve >= 0 && iCurve < pItem->curves.size())
     {
         QTreeWidgetItem* pCurveItem = mpCurveTree->topLevelItem(iCurve);
@@ -530,10 +541,10 @@ void GraphReportDataEditor::setTreeSelected(int iCurve, int iPoint)
 //! Process changing header of the item
 void GraphReportDataEditor::processHeaderChanged()
 {
-    // Retrieve the graph item
-    if (!mpItem)
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
         return;
-    GraphReportItem* pItem = (GraphReportItem*) mpItem;
 
     // Set the item data
     pItem->subType = (GraphReportItem::SubType) mpSubTypeSelector->currentData().toInt();
@@ -549,20 +560,37 @@ void GraphReportDataEditor::processHeaderChanged()
     emit edited();
 }
 
-ReportCurvePropertyEditor::ReportCurvePropertyEditor(QWidget* pParent)
-    : mpItem(nullptr)
-    , mICurve(-1)
+//! Process changing curve
+void GraphReportDataEditor::processCurveEdited()
 {
+    refreshTree();
+    emit edited();
+}
+
+//! Create the functor to obtain curves of the specified index
+ReportCurveGetter GraphReportDataEditor::createCurveGetter(int iCurve)
+{
+    return [this, iCurve]()
+    {
+        GraphReportItem* pItem = getItem();
+        if (pItem && iCurve >= 0 && iCurve < pItem->curves.size())
+            return &pItem->curves[iCurve];
+        return (GraphReportCurve*) nullptr;
+    };
+}
+
+ReportCurvePropertyEditor::ReportCurvePropertyEditor(QWidget* pParent)
+{
+    setWindowTitle(tr("Curve Editor"));
     setFont(Utility::getFont());
     createContent();
     createConnections();
 }
 
 //! Set the curve for editing
-void ReportCurvePropertyEditor::setCurve(GraphReportItem* pItem, int iCurve)
+void ReportCurvePropertyEditor::setCurveGetter(ReportCurveGetter curveGetter)
 {
-    mpItem = pItem;
-    mICurve = iCurve;
+    mCurveGetter = std::move(curveGetter);
     createProperties();
 }
 
@@ -618,46 +646,46 @@ void ReportCurvePropertyEditor::createProperties()
     mpManager->clear();
 
     // Get the curve
-    if (!mpItem)
+    if (!mCurveGetter)
         return;
-    if (mICurve < 0 || mICurve >= mpItem->curves.size())
+    GraphReportCurve* pCurve = mCurveGetter();
+    if (!pCurve)
         return;
-    GraphReportCurve& curve = mpItem->curves[mICurve];
 
     // Create the properties
     QtVariantProperty* pNameProperty = mpManager->addProperty(kName, QMetaType::QString, tr("Name"));
-    pNameProperty->setValue(curve.name);
+    pNameProperty->setValue(pCurve->name);
     mpEditor->addProperty(pNameProperty);
 
     QtVariantProperty* pLineStyleProperty = mpManager->addProperty(kLineStyle, QtVariantPropertyManager::enumTypeId(), tr("Line style"));
     pLineStyleProperty->setAttribute("enumNames", kLineStyleNames);
-    pLineStyleProperty->setValue((int) curve.lineStyle);
+    pLineStyleProperty->setValue((int) pCurve->lineStyle);
     mpEditor->addProperty(pLineStyleProperty);
 
     QtVariantProperty* pLineWidthProperty = mpManager->addProperty(kLineWidth, QMetaType::Double, tr("Line width"));
-    pLineWidthProperty->setValue(curve.lineWidth);
+    pLineWidthProperty->setValue(pCurve->lineWidth);
     mpEditor->addProperty(pLineWidthProperty);
 
     QtVariantProperty* pLineColorProperty = mpManager->addProperty(kLineColor, QMetaType::QColor, tr("Line color"));
-    pLineColorProperty->setValue(curve.lineColor);
+    pLineColorProperty->setValue(pCurve->lineColor);
     QtBrowserItem* pLineColorItem = mpEditor->addProperty(pLineColorProperty);
     mpEditor->setExpanded(pLineColorItem, false);
 
     QtVariantProperty* pMarkerShapeProperty = mpManager->addProperty(kMarkerShape, QtVariantPropertyManager::enumTypeId(), tr("Marker shape"));
     pMarkerShapeProperty->setAttribute("enumNames", kMarkerShapeNames);
-    pMarkerShapeProperty->setValue((QCPScatterStyle::ScatterShape) curve.markerShape);
+    pMarkerShapeProperty->setValue((QCPScatterStyle::ScatterShape) pCurve->markerShape);
     mpEditor->addProperty(pMarkerShapeProperty);
 
     QtVariantProperty* pMarkerSizeProperty = mpManager->addProperty(kMarkerSize, QMetaType::Double, tr("Marker size"));
-    pMarkerSizeProperty->setValue(curve.markerSize);
+    pMarkerSizeProperty->setValue(pCurve->markerSize);
     mpEditor->addProperty(pMarkerSizeProperty);
 
     QtVariantProperty* pMarkerFillProperty = mpManager->addProperty(kMarkerFill, QMetaType::Bool, tr("Marker fill"));
-    pMarkerFillProperty->setValue(curve.markerFill);
+    pMarkerFillProperty->setValue(pCurve->markerFill);
     mpEditor->addProperty(pMarkerFillProperty);
 
     QtVariantProperty* pMarkerSkipProperty = mpManager->addProperty(kMarkerSkip, QMetaType::Int, tr("Marker skip"));
-    pMarkerSkipProperty->setValue(curve.markerSkip);
+    pMarkerSkipProperty->setValue(pCurve->markerSkip);
     mpEditor->addProperty(pMarkerSkipProperty);
 }
 
@@ -674,46 +702,46 @@ void ReportCurvePropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     QSet<ReportMarkerShape> kPlainMarkers = {ReportMarkerShape::kDot,         ReportMarkerShape::kCross,       ReportMarkerShape::kPlus,
                                              ReportMarkerShape::kStar,        ReportMarkerShape::kCrossSquare, ReportMarkerShape::kPlusSquare,
                                              ReportMarkerShape::kCrossCircle, ReportMarkerShape::kPlusCircle};
+    // Get the curve
+    if (!mCurveGetter)
+        return;
+    GraphReportCurve* pCurve = mCurveGetter();
+    if (!pCurve)
+        return;
+
     // Get the property id
     if (!mpManager->contains(pProperty))
         return;
     int id = mpManager->id(pProperty);
 
-    // Get the curve
-    if (!mpItem)
-        return;
-    if (mICurve < 0 || mICurve >= mpItem->curves.size())
-        return;
-    GraphReportCurve& curve = mpItem->curves[mICurve];
-
     // Set property value
     switch (id)
     {
     case kName:
-        curve.name = value.toString();
+        pCurve->name = value.toString();
         break;
     case kLineStyle:
-        curve.lineStyle = (Qt::PenStyle) value.toInt();
+        pCurve->lineStyle = (Qt::PenStyle) value.toInt();
         break;
     case kLineWidth:
-        curve.lineWidth = value.toDouble();
+        pCurve->lineWidth = value.toDouble();
         break;
     case kLineColor:
-        curve.lineColor = value.value<QColor>();
+        pCurve->lineColor = value.value<QColor>();
         break;
     case kMarkerShape:
-        curve.markerShape = (ReportMarkerShape) value.toInt();
-        if (kPlainMarkers.contains(curve.markerShape))
-            curve.markerFill = false;
+        pCurve->markerShape = (ReportMarkerShape) value.toInt();
+        if (kPlainMarkers.contains(pCurve->markerShape))
+            pCurve->markerFill = false;
         break;
     case kMarkerSize:
-        curve.markerSize = value.toDouble();
+        pCurve->markerSize = value.toDouble();
         break;
     case kMarkerFill:
-        curve.markerFill = value.toBool();
+        pCurve->markerFill = value.toBool();
         break;
     case kMarkerSkip:
-        curve.markerSkip = value.toInt();
+        pCurve->markerSkip = value.toInt();
         break;
     }
     emit edited();

@@ -92,9 +92,11 @@ private:
     void setDataEditor(Backend::Core::ReportItem* pItem);
     void processSceneItemChanged();
     void processItemEdited();
+    void processEditorFinished();
     void processEditItemRequest(ReportSceneItem* pSceneItem);
 
     // Helper
+    Backend::Core::ReportItemGetter createItemGetter(QUuid const& id);
     void updateTextEngine();
     void resolveItemLinks();
     void setUniteModeshapeRange();

@@ -3,6 +3,8 @@
 
 #include <QPair>
 
+#include <functional>
+
 QT_FORWARD_DECLARE_CLASS(QJsonObject)
 
 using PairInt = QPair<int, int>;
@@ -10,6 +12,12 @@ using PairDouble = QPair<double, double>;
 
 namespace Backend::Core
 {
+
+class ReportItem;
+class GraphReportCurve;
+
+using ReportItemGetter = std::function<ReportItem*()>;
+using ReportCurveGetter = std::function<GraphReportCurve*()>;
 
 class ISerializable
 {
