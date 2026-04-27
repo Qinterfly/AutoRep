@@ -76,11 +76,20 @@ bool ReportTextEngine::addVariable(QString const& rawKey)
     return true;
 }
 
-//! Set the variable value
+//! Set the variable from a text value
 void ReportTextEngine::setVariable(QString const& rawKey, QString const& value)
 {
     QString key = normalizeKey(rawKey);
     mVariables[key] = value;
+}
+
+//! Set the variable from a double value
+void ReportTextEngine::setVariable(QString const& rawKey, double value)
+{
+    QString key = normalizeKey(rawKey);
+    QString text = QString::number(value, 'g', 3);
+    text.replace('.', ',');
+    mVariables[key] = text;
 }
 
 //! Set the variable translation
@@ -117,7 +126,7 @@ QString ReportTextEngine::process(QString const& input) const
         // Replace or keep original if missing
         QString key = match.captured(1);
         if (contains(key))
-            result.append(getValue(key));
+            result.append(process(getValue(key)));
         else
             result.append(match.captured(0));
         iLast = match.capturedEnd();

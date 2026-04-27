@@ -25,6 +25,7 @@ public:
     bool removeVariable(QString const& rawKey);
     bool addVariable(QString const& rawKey);
     void setVariable(QString const& rawKey, QString const& value);
+    void setVariable(QString const& rawKey, double value);
     void setReplacement(QString const& value, QString const& replacement);
 
     QString process(QString const& input) const;

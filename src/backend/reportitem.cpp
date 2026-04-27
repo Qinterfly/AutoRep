@@ -246,7 +246,10 @@ GraphReportItem::GraphReportItem()
     scaleRange = 1.1;
     numTicks = 5;
     gridWidth = 1.0;
+    gridZeroWidth = 2.0;
     swapAxes = false;
+    reverseX = false;
+    reverseY = false;
     legendAlign = Qt::AlignRight | Qt::AlignTop;
 
     // Flags
@@ -283,7 +286,10 @@ ReportItem* GraphReportItem::clone() const
     pResult->scaleRange = scaleRange;
     pResult->numTicks = numTicks;
     pResult->gridWidth = gridWidth;
+    pResult->gridZeroWidth = gridZeroWidth;
     pResult->swapAxes = swapAxes;
+    pResult->reverseX = reverseX;
+    pResult->reverseY = reverseY;
     pResult->legendAlign = legendAlign;
 
     // Flags
@@ -336,7 +342,10 @@ QJsonObject GraphReportItem::toJson() const
     obj["scaleRange"] = scaleRange;
     obj["numTicks"] = numTicks;
     obj["gridWidth"] = gridWidth;
+    obj["gridZeroWidth"] = gridZeroWidth;
     obj["swapAxes"] = swapAxes;
+    obj["reverseX"] = reverseX;
+    obj["reverseY"] = reverseY;
     obj["legendAlign"] = Utility::toJson(legendAlign);
 
     // View
@@ -370,7 +379,10 @@ void GraphReportItem::fromJson(QJsonObject const& obj)
     scaleRange = obj["scaleRange"].toDouble();
     numTicks = obj["numTicks"].toInt();
     gridWidth = obj["gridWidth"].toDouble();
+    gridZeroWidth = obj["gridZeroWidth"].toDouble();
     swapAxes = obj["swapAxes"].toBool();
+    reverseX = obj["reverseX"].toBool();
+    reverseY = obj["reverseY"].toBool();
     Utility::fromJson(legendAlign, obj["legendAlign"]);
 
     // View

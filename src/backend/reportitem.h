@@ -188,7 +188,10 @@ public:
     double scaleRange;
     int numTicks;
     double gridWidth;
+    double gridZeroWidth;
     bool swapAxes;
+    bool reverseX;
+    bool reverseY;
     Qt::Alignment legendAlign;
 
     // View

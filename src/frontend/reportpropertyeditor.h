@@ -52,7 +52,10 @@ public:
         kScaleRange,
         kNumTicks,
         kGridWidth,
+        kGridZeroWidth,
         kSwapAxes,
+        kReverseX,
+        kReverseY,
         kLegendAlign,
         kShowLegend,
         kShowBundleFreq,
@@ -76,7 +79,6 @@ private:
     void createContent();
     void createConnections();
     void addBaseProperties(Backend::Core::ReportItem* pItem);
-    void addTextProperties(Backend::Core::TextReportItem* pItem);
     void addGraphProperties(Backend::Core::GraphReportItem* pItem);
     void addTableProperties(Backend::Core::TableReportItem* pItem);
     void setValue(QtProperty* pProperty, QVariant value);

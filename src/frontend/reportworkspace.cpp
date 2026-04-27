@@ -81,12 +81,14 @@ ReportDesigner* ReportWorkspace::designer(QString const& name)
 void ReportWorkspace::setNewDocument()
 {
     setDocument(ReportDocument());
+    mOptions.lastPathFile = QString();
 }
 
 //! Set a default document
 void ReportWorkspace::setDefaultDocument()
 {
     setDocument(ReportDefaults::document());
+    mOptions.lastPathFile = QString();
 }
 
 //! Replace the current document with the new one
@@ -112,6 +114,7 @@ void ReportWorkspace::openDocumentDialog()
 
     // Store the path
     Utility::setLastPathFile(mSettings, pathFile);
+    mOptions.lastPathFile = pathFile;
 }
 
 //! Save the document
@@ -304,17 +307,15 @@ void ReportWorkspace::createContent()
 {
     // Create the toolbar
     QToolBar* pToolBar = new QToolBar;
-    QAction* pNewAction = pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), this,
-                                              &ReportWorkspace::setNewDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), QKeySequence::New, this, &ReportWorkspace::setNewDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
     pToolBar->addSeparator();
-    QAction* pOpenAction = pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), this,
-                                               &ReportWorkspace::openDocumentDialog);
-    QAction* pSaveAction = pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), this, &ReportWorkspace::saveDocument);
-    QAction* pSaveAsAction = pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), this,
-                                                 &ReportWorkspace::saveAsDocumentDialog);
-    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), this, &ReportWorkspace::printDialog);
+    pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), QKeySequence::Open, this, &ReportWorkspace::openDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), QKeySequence::Save, this, &ReportWorkspace::saveDocument);
+    pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), QKeySequence::SaveAs, this,
+                        &ReportWorkspace::saveAsDocumentDialog);
+    pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), QKeySequence::Print, this, &ReportWorkspace::printDialog);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
     pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename page"), this, &ReportWorkspace::renameCurrentPage);
@@ -323,13 +324,6 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/arrow-right.svg"), tr("Move page right"), this, [this]() { moveCurrentPage(+1); });
     pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove page"), this, &ReportWorkspace::removeCurrentPage);
     pToolBar->setIconSize(Size::skToolBarIcon);
-
-    // Set the shortcuts
-    pNewAction->setShortcut(QKeySequence::New);
-    pOpenAction->setShortcut(QKeySequence::Open);
-    pSaveAction->setShortcut(QKeySequence::Save);
-    pSaveAsAction->setShortcut(QKeySequence::SaveAs);
-    pPrintAction->setShortcut(QKeySequence::Print);
     Utility::setShortcutHints(pToolBar);
 
     // Create the tab widget

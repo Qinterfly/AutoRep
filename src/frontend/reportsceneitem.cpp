@@ -390,10 +390,11 @@ void GraphReportSceneItem::setState()
 
     // Set the grid options
     QPen gridPen = QPen(kGridColor, pItem->gridWidth, Qt::DotLine);
+    QPen gridZeroPen = QPen(kGridColor, pItem->gridZeroWidth, Qt::DotLine);
     pXAxis->grid()->setPen(gridPen);
     pYAxis->grid()->setPen(gridPen);
-    pXAxis->grid()->setZeroLinePen(gridPen);
-    pYAxis->grid()->setZeroLinePen(gridPen);
+    pXAxis->grid()->setZeroLinePen(gridZeroPen);
+    pYAxis->grid()->setZeroLinePen(gridZeroPen);
 
     // Set the axes range
     mpPlot->rescaleAxes();
@@ -420,6 +421,10 @@ void GraphReportSceneItem::setState()
         pXAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
         pYAxis->ticker()->setTickStepStrategy(QCPAxisTicker::tssReadability);
     }
+
+    // Reverse the axes, if necessary
+    pXAxis->setRangeReversed(pItem->reverseX);
+    pYAxis->setRangeReversed(pItem->reverseY);
 
     // Render the plot
     mpPlot->replot();
@@ -459,7 +464,8 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
                 std::swap(xData, yData);
 
             // Add the plottable
-            addPlottable(xData, yData, curve, point.node);
+            QString name = tr("p. %1").arg(point.node);
+            addPlottable(xData, yData, curve, name);
         }
     }
 
@@ -492,6 +498,8 @@ void GraphReportSceneItem::processMultiReIm()
     // Set the variable
     GraphReportPoint const& point = baseCurve.points.first();
     mTextEngine.setVariable("point", point.name());
+    mTextEngine.setVariable("component", point.component);
+    mTextEngine.setVariable("node", point.node);
 
     // Loop through all the bundles
     int numBundles = mCollection.count();
@@ -602,15 +610,16 @@ void GraphReportSceneItem::processFreqAmp()
             yData[iBundle] = std::sqrt(std::pow(re, 2.0) + std::pow(im, 2.0));
 
             // Add the variable
-            QString varName = QString("%1:freq").arg(point.name());
-            QString varValue = QString::number(freq, 'f', 3);
+            QString varName = QString("%1:f").arg(point.name());
+            double varValue = freq;
             mTextEngine.setVariable(varName, varValue);
         }
 
         // Add the curve
         if (pItem->swapAxes)
             std::swap(xData, yData);
-        addPlottable(xData, yData, curve, point.node);
+        QString name = tr("p. %1").arg(point.node);
+        addPlottable(xData, yData, curve, name);
     }
 }
 
@@ -678,7 +687,7 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
 
             // Add the variable
             QString varName = QString("%1:%2").arg(point.name(), Backend::Utility::getDirLabel(pItem->responseDir));
-            QString varValue = QString::number(yData[iPoint], 'f', 3);
+            QString varValue = QString::number(yData[iPoint], 'f', 3).replace('.', ',');
             mTextEngine.setVariable(varName, varValue);
         }
 

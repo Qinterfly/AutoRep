@@ -92,7 +92,6 @@ private:
     void setDataEditor(Backend::Core::ReportItem* pItem);
     void processSceneItemChanged();
     void processItemEdited();
-    void processEditorFinished();
     void processEditItemRequest(ReportSceneItem* pSceneItem);
 
     // Helper

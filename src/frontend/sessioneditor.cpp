@@ -311,14 +311,12 @@ QLayout* ResponseEditor::createBundleLayout()
 
     // Create the frequency edit
     mpBundleFreqEdit = new Edit1d;
-    mpBundleFreqEdit->setDecimals(2);
     mpBundleFreqEdit->setMinimum(0.0);
     mpBundleFreqEdit->setMaximumWidth(90);
     connect(mpBundleFreqEdit, &Edit1d::valueChanged, this, &ResponseEditor::setBundleProperties);
 
     // Create the force edit
     mpBundleForceEdit = new Edit1d;
-    mpBundleForceEdit->setDecimals(2);
     mpBundleForceEdit->setMaximumWidth(90);
     connect(mpBundleForceEdit, &Edit1d::valueChanged, this, &ResponseEditor::setBundleProperties);
 

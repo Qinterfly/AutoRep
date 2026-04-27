@@ -77,9 +77,6 @@ void ReportPropertyEditor::refresh()
     addBaseProperties(pItem);
     switch (pItem->type())
     {
-    case ReportItem::kText:
-        addTextProperties((TextReportItem*) pItem);
-        break;
     case ReportItem::kGraph:
         addGraphProperties((GraphReportItem*) pItem);
         break;
@@ -106,14 +103,6 @@ void ReportPropertyEditor::addBaseProperties(ReportItem* pItem)
     pFontProperty->setValue(pItem->font);
     QtBrowserItem* pFontItem = mpEditor->addProperty(pFontProperty);
     mpEditor->setExpanded(pFontItem, false);
-}
-
-//! Create properties specific for text items
-void ReportPropertyEditor::addTextProperties(TextReportItem* pItem)
-{
-    QtVariantProperty* pTextProperty = mpManager->addProperty(kText, QMetaType::QString, tr("Text"));
-    pTextProperty->setValue(pItem->text);
-    mpEditor->addProperty(pTextProperty);
 }
 
 //! Create properties specific for graph items
@@ -149,9 +138,21 @@ void ReportPropertyEditor::addGraphProperties(GraphReportItem* pItem)
     pGridWidthProperty->setValue(pItem->gridWidth);
     mpEditor->addProperty(pGridWidthProperty);
 
+    QtVariantProperty* pGridZeroWidthProperty = mpManager->addProperty(kGridZeroWidth, QMetaType::Double, tr("Grid zero width"));
+    pGridZeroWidthProperty->setValue(pItem->gridZeroWidth);
+    mpEditor->addProperty(pGridZeroWidthProperty);
+
     QtVariantProperty* pSwapAxesProperty = mpManager->addProperty(kSwapAxes, QMetaType::Bool, tr("Swap axes"));
     pSwapAxesProperty->setValue(pItem->swapAxes);
     mpEditor->addProperty(pSwapAxesProperty);
+
+    QtVariantProperty* pReverseXProperty = mpManager->addProperty(kReverseX, QMetaType::Bool, tr("Reverse X axis"));
+    pReverseXProperty->setValue(pItem->reverseX);
+    mpEditor->addProperty(pReverseXProperty);
+
+    QtVariantProperty* pReverseYProperty = mpManager->addProperty(kReverseY, QMetaType::Bool, tr("Reverse Y axis"));
+    pReverseYProperty->setValue(pItem->reverseY);
+    mpEditor->addProperty(pReverseYProperty);
 
     QtVariantProperty* pLegendAlignProperty = mpManager->addProperty(kLegendAlign, QtVariantPropertyManager::enumTypeId(),
                                                                      tr("Legend alignment"));
@@ -247,8 +248,17 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
     case kGridWidth:
         static_cast<GraphReportItem*>(pItem)->gridWidth = value.toDouble();
         break;
+    case kGridZeroWidth:
+        static_cast<GraphReportItem*>(pItem)->gridZeroWidth = value.toDouble();
+        break;
     case kSwapAxes:
         static_cast<GraphReportItem*>(pItem)->swapAxes = value.toBool();
+        break;
+    case kReverseX:
+        static_cast<GraphReportItem*>(pItem)->reverseX = value.toBool();
+        break;
+    case kReverseY:
+        static_cast<GraphReportItem*>(pItem)->reverseY = value.toBool();
         break;
     case kLegendAlign:
         static_cast<GraphReportItem*>(pItem)->legendAlign = getAlignValue((Align) value.toInt());

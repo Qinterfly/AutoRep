@@ -133,7 +133,7 @@ void TestFrontend::setMultiImRePage()
     pImag->addPoint(point);
 
     // Set the title
-    pTitle->text = "${MODE}\n${EXCITE}\nТочка ${POINT}";
+    pTitle->text = "${MODE}\n${EXCITE}\nТочка ${NODE}";
 
     // Refresh the page
     pDesigner->refresh();

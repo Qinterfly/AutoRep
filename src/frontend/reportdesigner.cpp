@@ -548,14 +548,6 @@ void ReportDesigner::processItemEdited()
     emit edited();
 }
 
-//! Process changing item via type editor
-void ReportDesigner::processEditorFinished()
-{
-    mpSceneUndoStack->push(new EditPage(mPage, mScenePage));
-    refresh();
-    emit edited();
-}
-
 //! Process editing items on the scene
 void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
 {
@@ -637,9 +629,9 @@ void ReportDesigner::createConnections()
 
     // Editor
     connect(mpPropertyEditor, &ReportPropertyEditor::edited, this, &ReportDesigner::processItemEdited);
-    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
-    connect(mpGraphEditor, &ReportGraphEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
-    connect(mpTableEditor, &ReportTableEditor::editingFinished, this, &ReportDesigner::processEditorFinished);
+    connect(mpTextEditor, &ReportTextEditor::editingFinished, this, &ReportDesigner::processItemEdited);
+    connect(mpGraphEditor, &ReportGraphEditor::editingFinished, this, &ReportDesigner::processItemEdited);
+    connect(mpTableEditor, &ReportTableEditor::editingFinished, this, &ReportDesigner::processItemEdited);
 }
 
 //! Create the group of scene widgets
@@ -812,8 +804,8 @@ void ReportDesigner::updateTextEngine()
     if (mpResponseEditor->iSelectedBundle() >= 0)
     {
         ResponseBundle const& bundle = mpResponseEditor->collection().get(mpResponseEditor->iSelectedBundle());
-        mTextEngine.setVariable("freq", QString::number(bundle.freq));
-        mTextEngine.setVariable("force", QString::number(bundle.force));
+        mTextEngine.setVariable("freq", bundle.freq);
+        mTextEngine.setVariable("force", bundle.force);
     }
 
     // Set common translations

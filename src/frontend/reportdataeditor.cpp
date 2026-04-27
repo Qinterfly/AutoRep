@@ -140,6 +140,7 @@ QWidget* GraphReportDataEditor::createToolBar()
                         &GraphReportDataEditor::replaceSelectedCurve);
     pToolBar->addAction(QIcon(":/icons/data-remove.svg"), tr("Remove object"), Qt::SHIFT | Qt::Key_D, this,
                         &GraphReportDataEditor::removeSelected);
+    pToolBar->addAction(QIcon(":/icons/data-clear.png"), tr("Remove all curves"), this, &GraphReportDataEditor::removeAllCurves);
     Utility::setShortcutHints(pToolBar);
     return pToolBar;
 }
@@ -437,6 +438,29 @@ void GraphReportDataEditor::removeSelected()
 
     // Select the next curve
     setTreeSelected(iCurve);
+
+    // Finish up the editing
+    emit edited();
+}
+
+//! Remove all the curves
+void GraphReportDataEditor::removeAllCurves()
+{
+    // Get the item
+    GraphReportItem* pItem = getItem();
+    if (!pItem)
+        return;
+
+    // Show the dialog
+    auto answer = QMessageBox::question(this, tr("Remove all curves"), tr("Are you sure you want to remove all the curves?"));
+    if (answer != QMessageBox::Yes)
+        return;
+
+    // Remove all the curves
+    pItem->curves.clear();
+
+    // Update the widgets content
+    refresh();
 
     // Finish up the editing
     emit edited();

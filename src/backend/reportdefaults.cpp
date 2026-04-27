@@ -215,6 +215,7 @@ ReportPage ReportDefaults::modeshapePage()
     pFus->unit = Units::skM_S2;
     pFus->xLabel = QObject::tr("${CDIR}, m");
     pFus->yLabel = QObject::tr("${RDIR}; a, ${UNIT}");
+    pFus->reverseX = true;
     pFus->showLegend = false;
 
     // Create a wing graph
