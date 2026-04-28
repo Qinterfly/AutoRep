@@ -54,6 +54,12 @@ ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView,
     refresh();
 }
 
+//! Get the scene
+QGraphicsScene* ReportDesigner::scene()
+{
+    return mpScene;
+}
+
 //! Get the page
 ReportPage& ReportDesigner::page()
 {
@@ -210,7 +216,7 @@ void ReportDesigner::drawAll()
 
     // Set the unite modeshape range
     if (mOptions.uniteModeshapeRange)
-        setUniteModeshapeRange();
+        emit requestSetUniteModeshapeRange();
 }
 
 //! Draw the report items
@@ -831,6 +837,7 @@ void ReportDesigner::updateTextEngine()
     mTextEngine.setReplacement(Units::skM_S2, tr("m/s%1").arg(QChar(0x00B2)));
     mTextEngine.setReplacement(Units::skM_S2_N, tr("(m/s%1)/N").arg(QChar(0x00B2)));
     mTextEngine.setReplacement(Units::skM, tr("m"));
+    mTextEngine.setReplacement(Units::skMM, tr("mm"));
 }
 
 //! Resolve item dependencies
@@ -856,47 +863,6 @@ void ReportDesigner::resolveItemLinks()
                 }
             }
         }
-    }
-}
-
-//! Unite range for all modeshape items
-void ReportDesigner::setUniteModeshapeRange()
-{
-    QList<QGraphicsItem*> sceneItems = mpScene->items();
-
-    // Find all the modeshape items
-    QList<GraphReportSceneItem*> modeItems;
-    int numItems = sceneItems.size();
-    double limit = 0.0;
-    for (int i = 0; i != numItems; ++i)
-    {
-        // Check if the item of the report type
-        if (sceneItems[i]->type() <= QGraphicsItem::UserType)
-            continue;
-
-        // Check if the item is graph
-        ReportSceneItem* pSceneItem = (ReportSceneItem*) sceneItems[i];
-        ReportItem* pReportItem = pSceneItem->item();
-        if (pReportItem->type() == ReportItem::kGraph)
-        {
-            // Check if the item is modeshape
-            GraphReportItem* pGraphReportItem = (GraphReportItem*) pReportItem;
-            if (pGraphReportItem->subType == GraphReportItem::kModeshape)
-            {
-                // Find the limit among all the modeshapes
-                GraphReportSceneItem* pGraphSceneItem = (GraphReportSceneItem*) pSceneItem;
-                limit = std::max(limit, std::abs(pGraphSceneItem->yRange().first));
-                limit = std::max(limit, std::abs(pGraphSceneItem->yRange().second));
-                modeItems.push_back(pGraphSceneItem);
-            }
-        }
-    }
-
-    // Distribute the limit among all the modeshapes on the page
-    if (limit > std::numeric_limits<double>::epsilon())
-    {
-        for (auto pItem : modeItems)
-            pItem->setYRange(-limit, limit);
     }
 }
 

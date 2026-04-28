@@ -78,6 +78,7 @@ private:
     void processDesignerSelected();
     void processTextEngineEdited();
     void editTextEngine();
+    void processSetUniteModeshapeRange();
 
 private:
     QSettings& mSettings;

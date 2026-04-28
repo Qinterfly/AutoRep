@@ -85,7 +85,7 @@ void GraphReportDataEditor::createConnections()
 
     // Curve
     connect(mpCurveTree, &QTreeWidget::itemSelectionChanged, this, &GraphReportDataEditor::processTreeSelected);
-    connect(mpCurveTree, &QTreeWidget::itemDoubleClicked, this, &GraphReportDataEditor::editSelectedCurve);
+    connect(mpCurveTree, &QTreeWidget::itemDoubleClicked, this, &GraphReportDataEditor::editSelected);
     connect(mpCurveEditor, &ReportCurvePropertyEditor::edited, this, &GraphReportDataEditor::processCurveEdited);
 }
 
@@ -111,6 +111,7 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     mpUnitSelector->addItem(tr("m/s%1").arg(QChar(0x00B2)), Units::skM_S2);
     mpUnitSelector->addItem(tr("(m/s%1)/N").arg(QChar(0x00B2)), Units::skM_S2_N);
     mpUnitSelector->addItem(tr("m"), Units::skM);
+    mpUnitSelector->addItem(tr("mm"), Units::skMM);
 
     // Combine the widgets
     QGridLayout* pLayout = new QGridLayout;
@@ -135,7 +136,7 @@ QWidget* GraphReportDataEditor::createToolBar()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
     pToolBar->addAction(QIcon(":/icons/data-add.svg"), tr("Add curve"), Qt::SHIFT | Qt::Key_A, this, &GraphReportDataEditor::addCurve);
-    pToolBar->addAction(QIcon(":/icons/data-edit.svg"), tr("Edit curve"), Qt::SHIFT | Qt::Key_E, this, &GraphReportDataEditor::editSelectedCurve);
+    pToolBar->addAction(QIcon(":/icons/data-edit.svg"), tr("Edit object"), Qt::SHIFT | Qt::Key_E, this, &GraphReportDataEditor::editSelected);
     pToolBar->addAction(QIcon(":/icons/data-replace.svg"), tr("Replace curve"), Qt::SHIFT | Qt::Key_Q, this,
                         &GraphReportDataEditor::replaceSelectedCurve);
     pToolBar->addAction(QIcon(":/icons/data-remove.svg"), tr("Remove object"), Qt::SHIFT | Qt::Key_D, this,
@@ -309,7 +310,10 @@ void GraphReportDataEditor::addCurve()
     {
         int iDefaultCurve = Utility::getRepeatedIndex(pItem->curves.count(), kDefaultCurves.size());
         GraphReportCurve curve = kDefaultCurves[iDefaultCurve];
-        curve.name = tr("Curve %1").arg(pItem->curves.size() + 1);
+        if (points.size() == 1)
+            curve.name = points.first().name();
+        else
+            curve.name = tr("Curve %1").arg(pItem->curves.size() + 1);
         curve.points = points;
         pItem->curves.push_back(curve);
     };
@@ -346,7 +350,7 @@ void GraphReportDataEditor::addCurve()
 }
 
 //! Edit the selected curve
-void GraphReportDataEditor::editSelectedCurve()
+void GraphReportDataEditor::editSelected()
 {
     // Retrieve the selected curve
     auto [iCurve, iPoint] = getTreeSelected();
@@ -354,8 +358,24 @@ void GraphReportDataEditor::editSelectedCurve()
         return;
 
     // Show the editor
-    mpCurveEditor->setCurveGetter(createCurveGetter(iCurve));
-    mpCurveEditor->show();
+    ReportCurveGetter curveGetter = createCurveGetter(iCurve);
+    if (iPoint < 0)
+    {
+        mpCurveEditor->setCurveGetter(curveGetter);
+        mpCurveEditor->show();
+    }
+    else if (iPoint < curveGetter()->points.size())
+    {
+        bool isOk;
+        GraphReportPoint& point = curveGetter()->points[iPoint];
+        QString name = QInputDialog::getText(this, tr("Change point"), tr("New point: "), QLineEdit::Normal, point.name(), &isOk);
+        if (isOk)
+        {
+            point = GraphReportPoint(name);
+            refreshTree();
+            emit edited();
+        }
+    }
 }
 
 //! Replace the selected curve with the new one

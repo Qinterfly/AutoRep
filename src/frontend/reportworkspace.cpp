@@ -13,6 +13,7 @@
 #include "fileutility.h"
 #include "reportdefaults.h"
 #include "reportdesigner.h"
+#include "reportsceneitem.h"
 #include "reportworkspace.h"
 #include "uiconstants.h"
 #include "uiutility.h"
@@ -394,6 +395,7 @@ void ReportWorkspace::addDesigner(int iPage)
     if (name.isEmpty())
         name = tr("Page %1").arg(1 + iPage);
     connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::edited);
+    connect(pDesigner, &ReportDesigner::requestSetUniteModeshapeRange, this, &ReportWorkspace::processSetUniteModeshapeRange);
     mpDesignerTabs->addTab(pDesigner, name);
     pDesigner->fit();
 }
@@ -445,6 +447,56 @@ void ReportWorkspace::editTextEngine()
     ReportTextEngineEditor* pEditor = new ReportTextEngineEditor(mSettings, mDocument.textEngine);
     connect(pEditor, &ReportTextEngineEditor::edited, this, &ReportWorkspace::processTextEngineEdited);
     Utility::showAsDialog(pEditor, tr("Text Engine Editor"), this, false);
+}
+
+//! Set the unite modeshape range for all the designers
+void ReportWorkspace::processSetUniteModeshapeRange()
+{
+    int numPages = mDocument.count();
+
+    // Find all the modeshape items as well as the limit
+    QList<GraphReportSceneItem*> modeItems;
+    double limit = 0.0;
+    for (int iPage = 0; iPage != numPages; ++iPage)
+    {
+        ReportDesigner* pDesigner = designer(iPage);
+        if (!pDesigner)
+            continue;
+        if (!pDesigner->options().uniteModeshapeRange)
+            continue;
+        QList<QGraphicsItem*> sceneItems = pDesigner->scene()->items();
+        int numItems = sceneItems.size();
+        for (int iItem = 0; iItem != numItems; ++iItem)
+        {
+            // Check if the item of the report type
+            if (sceneItems[iItem]->type() <= QGraphicsItem::UserType)
+                continue;
+
+            // Check if the item is graph
+            ReportSceneItem* pSceneItem = (ReportSceneItem*) sceneItems[iItem];
+            ReportItem* pReportItem = pSceneItem->item();
+            if (pReportItem->type() == ReportItem::kGraph)
+            {
+                // Check if the item is modeshape
+                GraphReportItem* pGraphReportItem = (GraphReportItem*) pReportItem;
+                if (pGraphReportItem->subType == GraphReportItem::kModeshape)
+                {
+                    // Find the limit among all the modeshapes
+                    GraphReportSceneItem* pGraphSceneItem = (GraphReportSceneItem*) pSceneItem;
+                    limit = std::max(limit, std::abs(pGraphSceneItem->yRange().first));
+                    limit = std::max(limit, std::abs(pGraphSceneItem->yRange().second));
+                    modeItems.push_back(pGraphSceneItem);
+                }
+            }
+        }
+    }
+
+    // Distribute the limit among all the modeshapes on the page
+    if (limit > std::numeric_limits<double>::epsilon())
+    {
+        for (auto pItem : modeItems)
+            pItem->setYRange(-limit, limit);
+    }
 }
 
 ReportTextEngineEditor::ReportTextEngineEditor(QSettings& settings, ReportTextEngine& textEngine, QWidget* pParent)

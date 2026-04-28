@@ -54,6 +54,7 @@ public:
                    QWidget* pParent = nullptr);
     virtual ~ReportDesigner() = default;
 
+    QGraphicsScene* scene();
     Backend::Core::ReportPage& page();
     ReportDesignerOptions const& options() const;
 
@@ -65,6 +66,7 @@ public:
     void setTextEngine(Backend::Core::ReportTextEngine const& textEngine);
 
 signals:
+    void requestSetUniteModeshapeRange();
     void edited();
 
 private:
@@ -102,7 +104,6 @@ private:
     Backend::Core::ReportItemGetter createItemGetter(QUuid const& id);
     void updateTextEngine();
     void resolveItemLinks();
-    void setUniteModeshapeRange();
 
 private:
     QSettings& mSettings;

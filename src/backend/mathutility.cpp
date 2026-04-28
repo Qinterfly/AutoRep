@@ -88,6 +88,9 @@ int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, Re
 //! Retrieve acceleration response
 Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem)
 {
+    // Constants
+    double kMToMM = 1000.0;
+
     // Find the acceleration response
     Testlab::Response null;
     int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
@@ -161,6 +164,18 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
             response.imagValues[i] = r.imag();
         }
         responseSet[Units::skM] = response;
+    }
+
+    // Compute the displacements in millimeters
+    if (responseSet.contains(Units::skM))
+    {
+        Testlab::Response response = responseSet[Units::skM];
+        for (int i = 0; i != numKeys; ++i)
+        {
+            response.realValues[i] *= kMToMM;
+            response.imagValues[i] *= kMToMM;
+        }
+        responseSet[Units::skMM] = response;
     }
 
     // Return the result

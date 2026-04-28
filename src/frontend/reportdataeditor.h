@@ -58,7 +58,7 @@ public:
     void refresh() override;
 
     void addCurve();
-    void editSelectedCurve();
+    void editSelected();
     void replaceSelectedCurve();
     void removeSelected();
     void removeAllCurves();
