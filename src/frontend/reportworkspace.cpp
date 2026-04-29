@@ -317,6 +317,7 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/document-new.svg"), tr("New document"), QKeySequence::New, this, &ReportWorkspace::setNewDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-default.svg"), tr("Default document"), this, &ReportWorkspace::setDefaultDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-variable.svg"), tr("Variable edtior"), this, &ReportWorkspace::editTextEngine);
+    pToolBar->addAction(QIcon(":/icons/document-refresh.svg"), tr("Refresh document"), Qt::Key_F5, this, &ReportWorkspace::refresh);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/document-open.svg"), tr("Open document"), QKeySequence::Open, this, &ReportWorkspace::openDocumentDialog);
     pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), QKeySequence::Save, this, &ReportWorkspace::saveDocument);

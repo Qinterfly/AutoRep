@@ -65,7 +65,6 @@ public:
     void setTextEngine(Backend::Core::ReportTextEngine const& textEngine);
 
 signals:
-    void requestSetUniteModeshapeRange();
     void edited();
 
 private:
