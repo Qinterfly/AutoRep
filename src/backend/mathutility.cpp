@@ -58,6 +58,19 @@ QString getDirLabel(ReportDirection dir)
     return QString();
 }
 
+//! Multiply real and imaginary parts of response by the specified factor
+Testlab::Response multiplyResponse(Testlab::Response const& response, double factor)
+{
+    Testlab::Response result = response;
+    int numKeys = result.keys.size();
+    for (int i = 0; i != numKeys; ++i)
+    {
+        result.realValues[i] *= factor;
+        result.imagValues[i] *= factor;
+    }
+    return result;
+}
+
 //! Find the response measured at the specified point along the requested direction
 int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection dir, Testlab::ResponseType type,
                  QString const& unit)
@@ -166,17 +179,13 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
         responseSet[Units::skM] = response;
     }
 
-    // Compute the displacements in millimeters
+    // Compute the results in millimeters
+    if (responseSet.contains(Units::skM_S2))
+        responseSet[Units::skMM_S2] = multiplyResponse(responseSet[Units::skM_S2], kMToMM);
+    if (responseSet.contains(Units::skM_S2_N))
+        responseSet[Units::skMM_S2_N] = multiplyResponse(responseSet[Units::skM_S2_N], kMToMM);
     if (responseSet.contains(Units::skM))
-    {
-        Testlab::Response response = responseSet[Units::skM];
-        for (int i = 0; i != numKeys; ++i)
-        {
-            response.realValues[i] *= kMToMM;
-            response.imagValues[i] *= kMToMM;
-        }
-        responseSet[Units::skMM] = response;
-    }
+        responseSet[Units::skMM] = multiplyResponse(responseSet[Units::skM], kMToMM);
 
     // Return the result
     if (responseSet.contains(targetUnit))

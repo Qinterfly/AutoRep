@@ -111,6 +111,8 @@ QLayout* GraphReportDataEditor::createHeaderLayout()
     mpUnitSelector->addItem(tr("m/s%1").arg(QChar(0x00B2)), Units::skM_S2);
     mpUnitSelector->addItem(tr("(m/s%1)/N").arg(QChar(0x00B2)), Units::skM_S2_N);
     mpUnitSelector->addItem(tr("m"), Units::skM);
+    mpUnitSelector->addItem(tr("mm/s%1").arg(QChar(0x00B2)), Units::skMM_S2);
+    mpUnitSelector->addItem(tr("(mm/s%1)/N").arg(QChar(0x00B2)), Units::skMM_S2_N);
     mpUnitSelector->addItem(tr("mm"), Units::skMM);
 
     // Combine the widgets

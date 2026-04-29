@@ -21,6 +21,7 @@ int findClosestKey(Testlab::Response const& response, double searchKey);
 QString getDirLabel(Backend::Core::ReportDirection dir);
 
 // Response
+Testlab::Response multiplyResponse(Testlab::Response const& response, double factor);
 int findResponse(Backend::Core::ResponseBundle const& bundle, Backend::Core::GraphReportPoint const& point, Backend::Core::ReportDirection dir,
                  Testlab::ResponseType type, QString const& unit = QString());
 Testlab::Response getAcceleration(Backend::Core::ResponseBundle const& bundle, Backend::Core::GraphReportPoint const& point,
