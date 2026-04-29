@@ -59,13 +59,14 @@ public:
 
     void fit();
     void refresh();
+    void render(bool isPrint = true);
     bool print(QPrinter& printer, QPainter& painter);
-    bool printDialog();
     void selectItem(int index);
     void setTextEngine(Backend::Core::ReportTextEngine const& textEngine);
 
 signals:
     void edited();
+    void requestPrint();
 
 private:
     void createContent();

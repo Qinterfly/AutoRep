@@ -86,6 +86,14 @@ void ReportDesigner::refresh()
     refreshEditor();
 }
 
+//! Render the scene
+void ReportDesigner::render(bool isPrint)
+{
+    mIsPrinting = isPrint;
+    drawAll();
+    mIsPrinting = false;
+}
+
 //! Print the page content to a pdf file
 bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 {
@@ -97,10 +105,6 @@ bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
 
     // Set the view
     mpSceneView->fitToPage();
-
-    // Render the scene
-    mIsPrinting = true;
-    drawAll();
 
     // Change the orientation, if necessary
     if (mPage.layout.orientation() == QPageLayout::Landscape)
@@ -125,52 +129,7 @@ bool ReportDesigner::print(QPrinter& printer, QPainter& painter)
     mpScene->render(&painter);
     painter.restore();
 
-    // Restore the scene state
-    mIsPrinting = false;
-    drawAll();
-
-    // Display the info
-    qInfo() << tr("Page %1 is successfully printed").arg(mPage.name);
-
     return true;
-}
-
-//! Print the page content using a file dialog
-bool ReportDesigner::printDialog()
-{
-    // Constants
-    QString const kExpectedSuffix = "pdf";
-
-    // Get the file path
-    QString pathFile = Utility::getLastPathFile(mSettings);
-    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
-    pathFile = QFileDialog::getSaveFileName(this, tr("Print Page"), pathFile, tr("Page file format (*%1)").arg(kExpectedSuffix));
-    if (pathFile.isEmpty())
-        return false;
-
-    // Modify the suffix, if necessary
-    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
-
-    // Store the path
-    Utility::setLastPathFile(mSettings, pathFile);
-
-    // Configure the printer
-    QPrinter printer;
-    printer.setOutputFileName(pathFile);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-
-    // Start the painter
-    QPainter painter;
-    if (!painter.begin(&printer))
-        return false;
-
-    // Print
-    bool isPrint = print(printer, painter);
-
-    // Close the painter
-    painter.end();
-
-    return isPrint;
 }
 
 //! Select a report item by its index
@@ -732,7 +691,7 @@ QWidget* ReportDesigner::createSceneWidget()
     pToolBar->addAction(pLockSceneAction);
     pToolBar->addAction(pEnablePrintingAction);
     pToolBar->addAction(QIcon(":/icons/page-orientation.svg"), tr("Change page orientation"), this, &ReportDesigner::changePageOrientation);
-    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::printDialog);
+    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::requestPrint);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
 
     // Set the shortcuts

@@ -278,7 +278,7 @@ void TestFrontend::writeDocument()
 void TestFrontend::printReport()
 {
     QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
-    mpReportWorkspace->print(pathFile);
+    mpReportWorkspace->printDocument(pathFile);
 }
 
 TestFrontend::~TestFrontend()

@@ -154,7 +154,7 @@ void ReportWorkspace::saveAsDocumentDialog()
 }
 
 //! Print all the pages to a pdf file
-bool ReportWorkspace::print(QString const& pathFile)
+bool ReportWorkspace::printDocument(QString const& pathFile)
 {
     // Create the printer
     QPrinter printer;
@@ -166,6 +166,10 @@ bool ReportWorkspace::print(QString const& pathFile)
     if (!painter.begin(&printer))
         return false;
 
+    // Render the pages for printing
+    render(true);
+
+    // Print all the pages
     int numPages = mDocument.count();
     int numPrint = 0;
     for (int iPage = 0; iPage != numPages; ++iPage)
@@ -180,39 +184,80 @@ bool ReportWorkspace::print(QString const& pathFile)
         if (numPrint > 0)
             printer.newPage();
 
-        // Print
+        // Print the page
         if (!pDesigner->print(printer, painter))
-            return false;
+            continue;
         ++numPrint;
     }
 
     // Close the painter
     painter.end();
 
+    // Render the pages for viewing
+    render(false);
+
     qInfo() << tr("Document is printed to the file %1").arg(pathFile);
     return true;
 }
 
-//! Print all the pages to a pdf file using a file dialog
-bool ReportWorkspace::printDialog()
+//! Print the specified page to a pdf file
+bool ReportWorkspace::printPage(QString const& pathFile, ReportDesigner* pDesigner)
 {
-    // Constants
-    QString const kExpectedSuffix = "pdf";
+    // Configure the printer
+    QPrinter printer;
+    printer.setOutputFileName(pathFile);
+    printer.setOutputFormat(QPrinter::PdfFormat);
 
-    // Get the file path
-    QString pathFile = Utility::getLastPathFile(mSettings);
-    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
-    pathFile = QFileDialog::getSaveFileName(this, tr("Print Document"), pathFile, tr("Document file format (*%1)").arg(kExpectedSuffix));
-    if (pathFile.isEmpty())
+    // Start the painter
+    QPainter painter;
+    if (!painter.begin(&printer))
         return false;
 
-    // Modify the suffix, if necessary
-    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+    // Render the pages for printing
+    render(true);
+
+    // Print
+    bool isPrint = pDesigner->print(printer, painter);
+
+    // Close the painter
+    painter.end();
+
+    // Render the pages for viewing
+    render(false);
+
+    if (isPrint)
+        qInfo() << tr("Page is printed to the file %1").arg(pathFile);
+    return isPrint;
+}
+
+//! Print a document to a file using the dialog
+void ReportWorkspace::printDocumentDialog()
+{
+    // Get the path for printing
+    QString pathFile = getPrintPathDialog();
+    if (pathFile.isEmpty())
+        return;
 
     // Store the path
     Utility::setLastPathFile(mSettings, pathFile);
 
-    return print(pathFile);
+    // Print the document
+    printDocument(pathFile);
+}
+
+//! Print a page to a file using the dialog
+void ReportWorkspace::printPageDialog(ReportDesigner* pDesigner)
+{
+    // Get the path for printing
+    QString pathFile = getPrintPathDialog();
+    if (pathFile.isEmpty())
+        return;
+
+    // Store the path
+    Utility::setLastPathFile(mSettings, pathFile);
+
+    // Print the page
+    printPage(pathFile, pDesigner);
 }
 
 //! Create a designer
@@ -323,7 +368,8 @@ void ReportWorkspace::createContent()
     pToolBar->addAction(QIcon(":/icons/document-save.svg"), tr("Save document"), QKeySequence::Save, this, &ReportWorkspace::saveDocument);
     pToolBar->addAction(QIcon(":/icons/document-save-as.svg"), tr("Save as document..."), QKeySequence::SaveAs, this,
                         &ReportWorkspace::saveAsDocumentDialog);
-    pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), QKeySequence::Print, this, &ReportWorkspace::printDialog);
+    pToolBar->addAction(QIcon(":/icons/document-print.svg"), tr("Print document"), QKeySequence::Print, this,
+                        &ReportWorkspace::printDocumentDialog);
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add page"), this, &ReportWorkspace::addPage);
     pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename page"), this, &ReportWorkspace::renameCurrentPage);
@@ -358,6 +404,16 @@ void ReportWorkspace::refresh()
     int numPages = mDocument.count();
     for (int i = 0; i != numPages; ++i)
         designer(i)->refresh();
+    setUniteModeshapeRange();
+}
+
+//! Render the designer tabs
+void ReportWorkspace::render(bool isPrint)
+{
+    mpDesignerTabs->count();
+    int numPages = mDocument.count();
+    for (int i = 0; i != numPages; ++i)
+        designer(i)->render(isPrint);
     setUniteModeshapeRange();
 }
 
@@ -398,6 +454,7 @@ void ReportWorkspace::addDesigner(int iPage)
     if (name.isEmpty())
         name = tr("Page %1").arg(1 + iPage);
     connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::processDesignerEdited);
+    connect(pDesigner, &ReportDesigner::requestPrint, this, [this, pDesigner]() { ReportWorkspace::printPageDialog(pDesigner); });
     mpDesignerTabs->addTab(pDesigner, name);
     pDesigner->fit();
 }
@@ -425,6 +482,25 @@ void ReportWorkspace::setAutoSave()
                 qInfo() << tr("Document is automatically saved to %1").arg(mOptions.autoSavePathFile);
             });
     pTimer->start(mOptions.autoSaveDuration);
+}
+
+//! Get a print path using the file dialog
+QString ReportWorkspace::getPrintPathDialog()
+{
+    // Constants
+    QString const kExpectedSuffix = "pdf";
+
+    // Get the file path
+    QString pathFile = Utility::getLastPathFile(mSettings);
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+    pathFile = QFileDialog::getSaveFileName(this, tr("Print Document"), pathFile, tr("Document file format (*%1)").arg(kExpectedSuffix));
+    if (pathFile.isEmpty())
+        return pathFile;
+
+    // Modify the suffix, if necessary
+    Utility::modifyFileSuffix(pathFile, kExpectedSuffix);
+
+    return pathFile;
 }
 
 //! Fit the designer on selection

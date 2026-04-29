@@ -41,6 +41,7 @@ public:
     ReportDesigner* designer(int iPage);
     ReportDesigner* designer(QString const& name);
     void refresh();
+    void render(bool isPrint = false);
 
     // Document
     void setNewDocument();
@@ -49,8 +50,10 @@ public:
     void openDocumentDialog();
     void saveDocument();
     void saveAsDocumentDialog();
-    bool print(QString const& pathFile);
-    bool printDialog();
+    bool printDocument(QString const& pathFile);
+    bool printPage(QString const& pathFile, ReportDesigner* pDesigner);
+    void printDocumentDialog();
+    void printPageDialog(ReportDesigner* pDesigner);
 
     // Designer
     void addPage();
@@ -73,6 +76,7 @@ private:
     void setDefaultDocumentDialog();
     void addDesigner(int iPage);
     void setAutoSave();
+    QString getPrintPathDialog();
 
     // Slots
     void processDesignerSelected();
