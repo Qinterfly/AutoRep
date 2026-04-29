@@ -152,8 +152,18 @@ bool ResponseEditor::addBundle(Responses const& responses)
     {
         QStringList tokens = path.split('/', Qt::SkipEmptyParts);
         int numTokens = tokens.size();
+
+        // Get the base name
         if (numTokens > 2)
             name = tokens[numTokens - 3];
+
+        // Handle different types of records
+        bool isSweep = name == "FRF" || name.contains("Sweep");
+        bool isNoise = name == "FRFs";
+        if (isSweep && numTokens > 4)
+            name = tokens[numTokens - 5];
+        else if (isNoise && numTokens > 3)
+            name = tokens[numTokens - 4];
     }
     if (name.isEmpty())
         name = QObject::tr("Bundle %1").arg(mCollection.count() + 1);
