@@ -334,6 +334,7 @@ void GraphReportSceneItem::setState()
 {
     // Constants
     QColor const kGridColor(200, 200, 200);
+    double const kThreshold = 1e-9;
 
     // Retrieve the item
     GraphReportItem* pItem = (GraphReportItem*) mpItem;
@@ -372,7 +373,8 @@ void GraphReportSceneItem::setState()
     mTextEngine.setVariable("rdir", Backend::Utility::getDirLabel(pItem->responseDir));
 
     // Set the legend
-    bool isPlottables = mpPlot->plottableCount() > 0;
+    int numPlottables = mpPlot->plottableCount();
+    bool isPlottables = numPlottables > 0;
     mpPlot->legend->setVisible(pItem->showLegend && isPlottables);
     mpPlot->legend->setFont(pItem->font);
     mpPlot->setLegendAlignment(pItem->legendAlign);
@@ -396,12 +398,33 @@ void GraphReportSceneItem::setState()
     pXAxis->grid()->setZeroLinePen(gridZeroPen);
     pYAxis->grid()->setZeroLinePen(gridZeroPen);
 
-    // Set the axes range
+    // Set the default axes range
     mpPlot->rescaleAxes();
+    if (pItem->subType == GraphReportItem::kModeshape)
+    {
+        double min = std::numeric_limits<double>::max();
+        double max = std::numeric_limits<double>::lowest();
+        for (int i = 0; i != numPlottables; ++i)
+        {
+            QCPCurve* pCurve = qobject_cast<QCPCurve*>(mpPlot->plottable(i));
+            if (!pCurve)
+                continue;
+            QCPRange range = pCurve->valueAxis()->range();
+            min = std::min(min, range.lower);
+            max = std::max(max, range.upper);
+        }
+        bool isZero = std::abs(min) < kThreshold && std::abs(max) < kThreshold;
+        if (isZero || !isPlottables)
+            pYAxis->setRange(-kThreshold, kThreshold);
+    }
+
+    // Set the axes range manually
     if (std::abs(pItem->xRange.second - pItem->xRange.first) > skEps)
         pXAxis->setRange(pItem->xRange.first, pItem->xRange.second);
     if (std::abs(pItem->yRange.second - pItem->yRange.first) > skEps)
         pYAxis->setRange(pItem->yRange.first, pItem->yRange.second);
+
+    // Scale the axes range
     if (isPlottables)
     {
         pXAxis->scaleRange(pItem->scaleRange);
@@ -631,7 +654,7 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
     // Check if the resonance frequency specified for the bundle
     if (bundle.freq < skEps)
     {
-        qWarning() << tr("Resonance frequency for bundle %1 is zero");
+        qWarning() << tr("Resonance frequency for bundle %1 is zero").arg(bundle.name);
         return;
     }
 

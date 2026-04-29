@@ -33,9 +33,8 @@ QListWidgetItem* createListItem(ReportPage const& page, int index);
 ReportDesignerOptions::ReportDesignerOptions()
 {
     // Flags
-    lockItems = false;
+    lockItems = true;
     enablePrinting = true;
-    uniteModeshapeRange = true;
 }
 
 ReportDesigner::ReportDesigner(QSettings& settings, GeometryView* pGeometryView, ResponseEditor* pResponseEditor, ReportPage& page,
@@ -213,10 +212,6 @@ void ReportDesigner::drawAll()
     drawItems();
     if (!mIsPrinting)
         drawBorder();
-
-    // Set the unite modeshape range
-    if (mOptions.uniteModeshapeRange)
-        emit requestSetUniteModeshapeRange();
 }
 
 //! Draw the report items

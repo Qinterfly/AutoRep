@@ -66,6 +66,7 @@ public:
     bool addBundle(QStringList const& paths);
     bool addSelectedBundle();
     bool mergeSelectedBundle();
+    void renameBundle();
     void removeBundle();
     void removeAllBundles();
 

@@ -40,7 +40,6 @@ struct ReportDesignerOptions
     // Flags
     bool lockItems;
     bool enablePrinting;
-    bool uniteModeshapeRange;
 };
 
 //! Class to design page content

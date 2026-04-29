@@ -357,6 +357,7 @@ void ReportWorkspace::refresh()
     int numPages = mDocument.count();
     for (int i = 0; i != numPages; ++i)
         designer(i)->refresh();
+    setUniteModeshapeRange();
 }
 
 //! Rebuild the designers
@@ -368,6 +369,7 @@ void ReportWorkspace::recreateDesigners()
     for (int i = 0; i != numPages; ++i)
         addDesigner(i);
     mpDesignerTabs->setCurrentIndex(mpDesignerTabs->count() - 1);
+    refresh();
 }
 
 void ReportWorkspace::setNewDocumentDialog()
@@ -394,8 +396,7 @@ void ReportWorkspace::addDesigner(int iPage)
     QString name = page.name;
     if (name.isEmpty())
         name = tr("Page %1").arg(1 + iPage);
-    connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::edited);
-    connect(pDesigner, &ReportDesigner::requestSetUniteModeshapeRange, this, &ReportWorkspace::processSetUniteModeshapeRange);
+    connect(pDesigner, &ReportDesigner::edited, this, &ReportWorkspace::processDesignerEdited);
     mpDesignerTabs->addTab(pDesigner, name);
     pDesigner->fit();
 }
@@ -433,6 +434,13 @@ void ReportWorkspace::processDesignerSelected()
         pDesigner->fit();
 }
 
+//! Process editing the designer
+void ReportWorkspace::processDesignerEdited()
+{
+    setUniteModeshapeRange();
+    emit edited();
+}
+
 //! Distribute the modified text engine among the designers
 void ReportWorkspace::processTextEngineEdited()
 {
@@ -450,7 +458,7 @@ void ReportWorkspace::editTextEngine()
 }
 
 //! Set the unite modeshape range for all the designers
-void ReportWorkspace::processSetUniteModeshapeRange()
+void ReportWorkspace::setUniteModeshapeRange()
 {
     int numPages = mDocument.count();
 
@@ -461,8 +469,6 @@ void ReportWorkspace::processSetUniteModeshapeRange()
     {
         ReportDesigner* pDesigner = designer(iPage);
         if (!pDesigner)
-            continue;
-        if (!pDesigner->options().uniteModeshapeRange)
             continue;
         QList<QGraphicsItem*> sceneItems = pDesigner->scene()->items();
         int numItems = sceneItems.size();

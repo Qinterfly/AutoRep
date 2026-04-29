@@ -1,5 +1,6 @@
 #include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
@@ -214,6 +215,24 @@ bool ResponseEditor::mergeSelectedBundle()
     return true;
 }
 
+//! Rename the currently active bundle
+void ResponseEditor::renameBundle()
+{
+    int iBundle = mpBundleList->currentRow();
+    if (iBundle < 0)
+        return;
+    ResponseBundle& bundle = mCollection.get(iBundle);
+    bool isOk;
+    QString name = QInputDialog::getText(this, tr("Change bundle name"), tr("New name:"), QLineEdit::Normal, bundle.name, &isOk);
+    if (isOk)
+    {
+        bundle.name = name;
+        refresh();
+        qInfo() << tr("The selected bundle is renamed");
+        emit edited();
+    }
+}
+
 //! Remove the currently selected bundle
 void ResponseEditor::removeBundle()
 {
@@ -301,6 +320,7 @@ QLayout* ResponseEditor::createBundleLayout()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addAction(QIcon(":/icons/list-add.svg"), tr("Add bundle"), this, &ResponseEditor::addSelectedBundle);
     pToolBar->addAction(QIcon(":/icons/list-merge.svg"), tr("Merge bundle"), this, &ResponseEditor::mergeSelectedBundle);
+    pToolBar->addAction(QIcon(":/icons/list-rename.svg"), tr("Rename bundle"), this, &ResponseEditor::renameBundle);
     pToolBar->addAction(QIcon(":/icons/list-remove.svg"), tr("Remove bundle"), this, &ResponseEditor::removeBundle);
 
     // Create the list

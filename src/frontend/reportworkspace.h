@@ -76,9 +76,10 @@ private:
 
     // Slots
     void processDesignerSelected();
+    void processDesignerEdited();
     void processTextEngineEdited();
     void editTextEngine();
-    void processSetUniteModeshapeRange();
+    void setUniteModeshapeRange();
 
 private:
     QSettings& mSettings;

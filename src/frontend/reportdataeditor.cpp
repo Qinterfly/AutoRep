@@ -359,19 +359,22 @@ void GraphReportDataEditor::editSelected()
 
     // Show the editor
     ReportCurveGetter curveGetter = createCurveGetter(iCurve);
+    GraphReportCurve* pCurve = curveGetter();
     if (iPoint < 0)
     {
         mpCurveEditor->setCurveGetter(curveGetter);
         mpCurveEditor->show();
     }
-    else if (iPoint < curveGetter()->points.size())
+    else if (pCurve && iPoint < pCurve->points.size())
     {
         bool isOk;
-        GraphReportPoint& point = curveGetter()->points[iPoint];
+        GraphReportPoint& point = pCurve->points[iPoint];
         QString name = QInputDialog::getText(this, tr("Change point"), tr("New point: "), QLineEdit::Normal, point.name(), &isOk);
         if (isOk)
         {
             point = GraphReportPoint(name);
+            if (pCurve->points.size() == 1)
+                pCurve->name = name;
             refreshTree();
             emit edited();
         }
