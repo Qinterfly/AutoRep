@@ -22,6 +22,7 @@ static double const skInf = std::numeric_limits<double>::infinity();
 // Helper function
 QFont sceneFont(ReportItem* pItem);
 QRectF rotatedRect(QRectF const& rect, qreal angle);
+PairDouble getValueRange(CustomPlot* pPlot, double keyLower = -skInf, double keyUpper = skInf);
 
 ReportSceneItem::ReportSceneItem(ReportItem* pItem, QGraphicsItem* pParent)
     : QGraphicsItem(pParent)
@@ -402,26 +403,25 @@ void GraphReportSceneItem::setState()
     mpPlot->rescaleAxes();
     if (pItem->subType == GraphReportItem::kModeshape)
     {
-        double min = std::numeric_limits<double>::max();
-        double max = std::numeric_limits<double>::lowest();
-        for (int i = 0; i != numPlottables; ++i)
-        {
-            QCPCurve* pCurve = qobject_cast<QCPCurve*>(mpPlot->plottable(i));
-            if (!pCurve)
-                continue;
-            QCPRange range = pCurve->valueAxis()->range();
-            min = std::min(min, range.lower);
-            max = std::max(max, range.upper);
-        }
+        auto [min, max] = getValueRange(mpPlot);
         bool isZero = std::abs(min) < kThreshold && std::abs(max) < kThreshold;
         if (isZero || !isPlottables)
             pYAxis->setRange(-kThreshold, kThreshold);
     }
 
     // Set the axes range manually
-    if (std::abs(pItem->xRange.second - pItem->xRange.first) > skEps)
+    bool isManualX = std::abs(pItem->xRange.second - pItem->xRange.first) > skEps;
+    bool isManualY = std::abs(pItem->yRange.second - pItem->yRange.first) > skEps;
+    if (isManualX)
+    {
         pXAxis->setRange(pItem->xRange.first, pItem->xRange.second);
-    if (std::abs(pItem->yRange.second - pItem->yRange.first) > skEps)
+        if (!isManualY)
+        {
+            auto [min, max] = getValueRange(mpPlot, pXAxis->range().lower, pXAxis->range().upper);
+            pYAxis->setRange(min, max);
+        }
+    }
+    if (isManualY)
         pYAxis->setRange(pItem->yRange.first, pItem->yRange.second);
 
     // Scale the axes range
@@ -1003,4 +1003,30 @@ QRectF rotatedRect(QRectF const& rect, qreal angle)
     t.rotate(angle);
     t.translate(-c.x(), -c.y());
     return t.mapRect(rect);
+}
+
+//! Helper function to get value range on the specified range of keys
+PairDouble getValueRange(CustomPlot* pPlot, double keyLower, double keyUpper)
+{
+    double min = skInf;
+    double max = -skInf;
+    int numPlottables = pPlot->plottableCount();
+    for (int iPlottable = 0; iPlottable != numPlottables; ++iPlottable)
+    {
+        QCPCurve* pCurve = qobject_cast<QCPCurve*>(pPlot->plottable(iPlottable));
+        if (!pCurve)
+            continue;
+        int numData = pCurve->dataCount();
+        for (int iData = 0; iData != numData; ++iData)
+        {
+            double key = pCurve->dataMainKey(iData);
+            double value = pCurve->dataMainValue(iData);
+            if (key >= keyLower && key <= keyUpper)
+            {
+                min = std::min(min, value);
+                max = std::max(max, value);
+            }
+        }
+    }
+    return {min, max};
 }

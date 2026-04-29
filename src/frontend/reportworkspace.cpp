@@ -392,6 +392,7 @@ void ReportWorkspace::createContent()
     setLayout(pLayout);
 }
 
+//! Set the widget connections
 void ReportWorkspace::createConnections()
 {
     connect(mpDesignerTabs, &CustomTabWidget::currentChanged, this, &ReportWorkspace::processDesignerSelected);
@@ -524,6 +525,8 @@ void ReportWorkspace::processTextEngineEdited()
     int numPages = mDocument.count();
     for (int i = 0; i != numPages; ++i)
         designer(i)->setTextEngine(mDocument.textEngine);
+    refresh();
+    emit edited();
 }
 
 //! Show an editor to create and remove text variables

@@ -142,7 +142,6 @@ private:
     void processMultiReIm();
     void processFreqAmp();
     void processModeshape(Backend::Core::ResponseBundle const& bundle);
-
     void addPlottable(QList<double> const& xData, QList<double> const& yData, Backend::Core::GraphReportCurve const& curve,
                       QString const& name = QString());
     QPair<QCPAxis*, QCPAxis*> axes();
