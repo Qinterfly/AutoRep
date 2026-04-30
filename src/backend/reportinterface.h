@@ -9,6 +9,7 @@ QT_FORWARD_DECLARE_CLASS(QJsonObject)
 
 using PairInt = QPair<int, int>;
 using PairDouble = QPair<double, double>;
+using PairString = QPair<QString, QString>;
 
 namespace Backend::Core
 {

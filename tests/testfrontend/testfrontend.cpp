@@ -36,8 +36,8 @@ void TestFrontend::addResponseBundles()
     // Set the response location in the project
     QStringList bundlePaths;
     bundlePaths.push_back("Section2/Отч 6,7 СВКД 60Н 3,47Гц/ResponsesSpectra/");
-    bundlePaths.push_back("Section2/Отч 6,6 СВКД 140Н 3,40Гц/ResponsesSpectra/");
-    bundlePaths.push_back("Section2/Отч 6,6 СВКД 180Н 3,37Гц/ResponsesSpectra/");
+    // bundlePaths.push_back("Section2/Отч 6,6 СВКД 140Н 3,40Гц/ResponsesSpectra/");
+    // bundlePaths.push_back("Section2/Отч 6,6 СВКД 180Н 3,37Гц/ResponsesSpectra/");
     // bundlePaths.push_back("Section2/7,4 STS En Y -E=-G=I=K=0,5V 10-40/Range1 (10 - 40 Hz)/FRF/En:3p10:+Y/");
 
     // Get names of responses
@@ -182,8 +182,8 @@ void TestFrontend::setFreqAmpPage()
     pDesigner->selectItem(0);
 }
 
-//! Set the modeshape page of the report
-void TestFrontend::setModeshapePage()
+//! Set the modeshape projection onto Y axis page of the report
+void TestFrontend::setProjModeYPage()
 {
     // Get the designer
     ReportDesigner* pDesigner = mpReportWorkspace->designer(3);
@@ -199,7 +199,7 @@ void TestFrontend::setModeshapePage()
     TextReportItem* pTitle = (TextReportItem*) page.get(5);
 
     // clang-format off
-    
+
     // Add the fuselage
     pFus->addCurve(GraphReportCurve({"F:5p1", "F:5p4", "F:5p7", "F:5p14", "F:4p25", "F:4p22", "F:4p19"}, "black", ReportMarkerShape::kCircle, true));
     pFus->addCurve(GraphReportCurve({"F:5p2", "F:5p5", "F:5p8", "F:5p15", "F:4p26", "F:4p23", "F:4p20"}, "black", ReportMarkerShape::kCircle, false));
@@ -218,7 +218,7 @@ void TestFrontend::setModeshapePage()
     pWing->addCurve(GraphReportCurve({"W:1p3", "W:1p7", "W:1p12", "W:1p15", "W:1p18", "W:1p23"}, "black", ReportMarkerShape::kCircle, false));
     pWing->addCurve(GraphReportCurve({"W:2p2", "W:2p6", "W:2p11", "W:2p14", "W:2p17", "W:2p22"}, "black", ReportMarkerShape::kCircle, true));
     pWing->addCurve(GraphReportCurve({"W:2p3", "W:2p7", "W:2p12", "W:2p15", "W:2p18", "W:2p23"}, "black", ReportMarkerShape::kCircle, false));
-    
+
     pWing->addCurve(GraphReportCurve({"En:3p2", "En:3p7"}, "red", ReportMarkerShape::kSquare, true));
     pWing->addCurve(GraphReportCurve({"En:3p4", "En:3p8"}, "red", ReportMarkerShape::kSquare, false));
     pWing->addCurve(GraphReportCurve({"En:3p15", "En:3p10"}, "red", ReportMarkerShape::kSquare, true));
@@ -258,6 +258,12 @@ void TestFrontend::setModeshapePage()
     pTitle->text = "${MODE}\n${EXCITE}";
 }
 
+//! Set the three dimensional modeshape page
+void TestFrontend::setMode3DPage()
+{
+    // TODO
+}
+
 //! Export report to a file
 void TestFrontend::writeDocument()
 {
@@ -278,7 +284,7 @@ void TestFrontend::writeDocument()
 void TestFrontend::printReport()
 {
     QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
-    mpReportWorkspace->printDocument(pathFile);
+    // mpReportWorkspace->printDocument(pathFile);
 }
 
 TestFrontend::~TestFrontend()

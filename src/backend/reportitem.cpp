@@ -534,6 +534,13 @@ void TableReportItem::fromJson(QJsonObject const& obj)
 
 ModeReportItem::ModeReportItem()
 {
+    // View
+    view = ReportView::kIsometric;
+    translation = {0.0, 0.0, 0.0};
+    rotation = {0.0, 0.0, 0.0};
+    zoom = 1.0;
+    scale = 0.1;
+    quality = 1.5;
 }
 
 ModeReportItem::ModeReportItem(ReportItem const* pAnother)
@@ -549,30 +556,59 @@ ReportItem::Type ModeReportItem::type() const
 ReportItem* ModeReportItem::clone() const
 {
     ModeReportItem* pResult = new ModeReportItem(this);
+
+    // Header
     pResult->unit = unit;
-    pResult->view = view;
     pResult->title = title;
     pResult->label = label;
+
+    // View
+    pResult->view = view;
+    pResult->translation = translation;
+    pResult->rotation = rotation;
+    pResult->zoom = zoom;
+    pResult->scale = scale;
+    pResult->quality = quality;
+
     return pResult;
 }
 
 QJsonObject ModeReportItem::toJson() const
 {
     QJsonObject obj = ReportItem::toJson();
+
+    // Header
     obj["unit"] = unit;
-    obj["view"] = (int) view;
     obj["title"] = title;
     obj["label"] = label;
+
+    // View
+    obj["view"] = (int) view;
+    obj["translation"] = Utility::toJson(translation);
+    obj["rotation"] = Utility::toJson(rotation);
+    obj["zoom"] = zoom;
+    obj["scale"] = scale;
+    obj["quality"] = quality;
+
     return obj;
 }
 
 void ModeReportItem::fromJson(QJsonObject const& obj)
 {
     ReportItem::fromJson(obj);
+
+    // Header
     unit = obj["unit"].toString();
-    view = (ReportView) obj["view"].toInt();
     title = obj["title"].toString();
     label = obj["label"].toString();
+
+    // View
+    view = (ReportView) obj["view"].toInt();
+    Utility::fromJson(translation, obj["translation"]);
+    Utility::fromJson(rotation, obj["rotation"]);
+    zoom = obj["zoom"].toDouble();
+    scale = obj["scale"].toDouble();
+    quality = obj["quality"].toDouble();
 }
 
 ReportItem* Backend::Core::createItem(ReportItem::Type type)

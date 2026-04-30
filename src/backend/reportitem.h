@@ -44,12 +44,13 @@ enum class ReportMarkerShape
 enum class ReportView
 {
     kFront,
-    kBack,
+    kRear,
     kTop,
     kBottom,
     kLeft,
     kRight,
-    kIsometric
+    kIsometric,
+    kCustom
 };
 
 //! Base class for items
@@ -277,10 +278,18 @@ public:
     void fromJson(QJsonObject const& obj) override;
 
 public:
+    // Header
     QString unit;
-    ReportView view;
     QString title;
     QString label;
+
+    // View
+    ReportView view;
+    QList<double> translation;
+    QList<double> rotation;
+    double zoom;
+    double scale;
+    double quality;
 };
 
 ReportItem* createItem(ReportItem::Type type);

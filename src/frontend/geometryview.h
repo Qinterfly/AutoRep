@@ -167,8 +167,6 @@ public:
     void clearSelection();
     bool addSelection(QString const& componentName, QString const& nodeName);
     void setGeometry(Testlab::Geometry geometry);
-    void setIsometricView();
-    void setPlaneView(int dir, int sign);
 
 private:
     void initialize();

@@ -275,27 +275,29 @@ ReportPage ReportDefaults::mode3DPage()
     pIso->name = QObject::tr("Isometric");
     pIso->rect = QRect(30, 35, 155, 80);
     pIso->unit = Units::skM_S2;
-    pIso->view = ReportView::kIsometric;
     pIso->title = QObject::tr("Mode: ${FREQ} Hz");
     pIso->label = QObject::tr("${UNIT}");
+    pIso->view = ReportView::kIsometric;
+    pIso->zoom = 1.75;
+    pIso->quality = 2.0;
 
-    // Create front mode
-    ModeReportItem* pFront = new ModeReportItem;
-    pFront->name = QObject::tr("Front");
-    pFront->rect = QRect(30, 120, 155, 80);
-    pFront->unit = Units::skM_S2;
-    pFront->view = ReportView::kFront;
-    pFront->title = QObject::tr("Mode: ${FREQ} Hz");
-    pFront->label = QObject::tr("${UNIT}");
+    // // Create front mode
+    // ModeReportItem* pFront = new ModeReportItem;
+    // pFront->name = QObject::tr("Front");
+    // pFront->rect = QRect(30, 120, 155, 80);
+    // pFront->unit = Units::skM_S2;
+    // pFront->view = ReportView::kFront;
+    // pFront->title = QObject::tr("Mode: ${FREQ} Hz");
+    // pFront->label = QObject::tr("${UNIT}");
 
-    // Create top mode
-    ModeReportItem* pTop = new ModeReportItem;
-    pTop->name = QObject::tr("Top");
-    pTop->rect = QRect(30, 180, 155, 80);
-    pTop->unit = Units::skM_S2;
-    pTop->view = ReportView::kTop;
-    pTop->title = QObject::tr("Mode: ${FREQ} Hz");
-    pTop->label = QObject::tr("${UNIT}");
+    // // Create top mode
+    // ModeReportItem* pTop = new ModeReportItem;
+    // pTop->name = QObject::tr("Top");
+    // pTop->rect = QRect(30, 180, 155, 80);
+    // pTop->unit = Units::skM_S2;
+    // pTop->view = ReportView::kTop;
+    // pTop->title = QObject::tr("Mode: ${FREQ} Hz");
+    // pTop->label = QObject::tr("${UNIT}");
 
     // Create title
     TextReportItem* pTitle = new TextReportItem;
@@ -311,8 +313,8 @@ ReportPage ReportDefaults::mode3DPage()
 
     // Combine
     page.add(pIso);
-    page.add(pFront);
-    page.add(pTop);
+    // page.add(pFront);
+    // page.add(pTop);
     page.add(pTitle);
     page.add(pCaption);
 

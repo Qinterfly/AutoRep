@@ -23,6 +23,7 @@ find_package(VTK REQUIRED COMPONENTS
     RenderingQt
     ViewsCore
     ViewsInfovis
+    IOImage
 )
 
 set(FRONTEND_HEADERS

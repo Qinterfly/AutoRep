@@ -25,6 +25,7 @@
 #include <vtkTextProperty.h>
 
 #include "geometryview.h"
+#include "mathutility.h"
 #include "uiutility.h"
 
 using namespace Frontend;
@@ -38,8 +39,6 @@ vtkNew<vtkNamedColors> const vtkColors;
 vtkInformationStringKey* vtkNameKey = vtkInformationStringKey::MakeKey("NameKey", "Name");
 
 // Helper functions
-double getMaximumDimension(Testlab::Geometry const& geometry);
-Vector3d convert3d(std::vector<double> const& data);
 vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length);
 void setActorScale(vtkActor* actor, double factor);
 
@@ -184,34 +183,8 @@ void GeometryView::setGeometry(Testlab::Geometry geometry)
     mGeometry = geometry;
     mOptions.maskComponents.clear();
     plot();
-    setIsometricView();
-}
-
-//! Set the isometric view
-void GeometryView::setIsometricView()
-{
-    vtkCamera* camera = mRenderer->GetActiveCamera();
-    camera->SetPosition(1, 1, -1);
-    camera->SetFocalPoint(0, 0, 0);
-    camera->SetViewUp(0, 1, 0);
-    mRenderer->ResetCamera();
-    mRenderWindow->Render();
-}
-
-//! Set view perpendicular to one of the planes
-void GeometryView::setPlaneView(int dir, int sign)
-{
-    int const kNumDirections = 3;
-    vtkSmartPointer<vtkCamera> camera = mRenderer->GetActiveCamera();
-    double position[kNumDirections];
-    for (int i = 0; i != kNumDirections; ++i)
-        position[i] = 0.0;
-    position[dir] = 1.0 * sign;
-    camera->SetPosition(position);
-    camera->SetFocalPoint(0, 0, 0);
-    camera->SetViewUp(0, 1, 0);
-    mRenderer->ResetCamera();
-    mRenderWindow->Render();
+    Utility::setIsometricView(mRenderer);
+    refresh();
 }
 
 //! Set the initial state of widgets
@@ -272,9 +245,9 @@ void GeometryView::createContent()
                 [this, dir, sign]()
                 {
                     if (dir < 0)
-                        setIsometricView();
+                        Utility::setIsometricView(mRenderer);
                     else
-                        setPlaneView(dir, sign);
+                        Utility::setPlaneView(mRenderer, dir, sign);
                     refresh();
                 });
         return pAction;
@@ -353,7 +326,7 @@ void GeometryView::createConnections()
 void GeometryView::drawGeometry()
 {
     // Estimate the maximum dimension
-    mMaximumDimension = getMaximumDimension(mGeometry);
+    mMaximumDimension = Backend::Utility::getMaximumDimension(mGeometry);
     if (mMaximumDimension < std::numeric_limits<double>::epsilon())
         mMaximumDimension = 1.0;
 
@@ -519,7 +492,7 @@ vtkSmartPointer<vtkPoints> GeometryView::createPoints(std::vector<Testlab::Node>
     int numNodes = nodes.size();
     for (int i = 0; i != numNodes; ++i)
     {
-        Vector3d position = convert3d(nodes[i].coordinates);
+        Vector3d position = Utility::convert3d(nodes[i].coordinates);
         position = position.cwiseProduct(mOptions.sceneScale);
         points->InsertPoint(i, position[0], position[1], position[2]);
     }
@@ -902,53 +875,6 @@ int GeometryInteractorStyle::index(vtkActor* actor)
             return i;
     }
     return -1;
-}
-
-//! Helper function to estimate the maximum dimension of the model
-double getMaximumDimension(Testlab::Geometry const& geometry)
-{
-    // Constants
-    double const kInf = std::numeric_limits<double>::infinity();
-    int numComponents = geometry.components.size();
-
-    // Find the minimum and maximum coordinates
-    Vector3d minCoords;
-    Vector3d maxCoords;
-    minCoords.fill(kInf);
-    maxCoords.fill(-kInf);
-    int numCoords = minCoords.size();
-    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
-    {
-        Testlab::Component const& component = geometry.components[iComponent];
-        int numNodes = component.nodes.size();
-        for (int iNode = 0; iNode != numNodes; ++iNode)
-        {
-            Testlab::Node const& node = component.nodes[iNode];
-            for (int iCoord = 0; iCoord != numCoords; ++iCoord)
-            {
-                double coord = node.coordinates[iCoord];
-                minCoords[iCoord] = std::min(minCoords[iCoord], coord);
-                maxCoords[iCoord] = std::max(maxCoords[iCoord], coord);
-            }
-        }
-    }
-
-    // Estimate the dimensions
-    double result = 0.0;
-    result = std::max(result, std::abs(maxCoords[0] - minCoords[0]));
-    result = std::max(result, std::abs(maxCoords[1] - minCoords[1]));
-    result = std::max(result, std::abs(maxCoords[2] - minCoords[2]));
-
-    return result;
-}
-
-//! Helper function to convert data to 3d vector
-Vector3d convert3d(std::vector<double> const& data)
-{
-    Vector3d result;
-    if (data.size() == result.size())
-        std::copy(data.begin(), data.end(), result.begin());
-    return result;
 }
 
 //! Construct a cube of specified dimension

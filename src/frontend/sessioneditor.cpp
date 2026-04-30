@@ -284,14 +284,17 @@ void ResponseEditor::refresh()
     // Set the bundle properties
     QSignalBlocker blockerBundleFreq(mpBundleFreqEdit);
     QSignalBlocker blockerBundleForce(mpBundleForceEdit);
+    QSignalBlocker blockerBundleRefPoint(mpBundleRefPointEdit);
     mpBundleFreqEdit->setValue(0.0);
     mpBundleForceEdit->setValue(0.0);
+    mpBundleRefPointEdit->setText(QString());
     iBundle = mpBundleList->currentRow();
     if (iBundle >= 0)
     {
         ResponseBundle const& bundle = mCollection.get(iBundle);
         mpBundleFreqEdit->setValue(bundle.freq);
         mpBundleForceEdit->setValue(bundle.force);
+        mpBundleRefPointEdit->setText(bundle.refPoint);
     }
 
     // Add the responses

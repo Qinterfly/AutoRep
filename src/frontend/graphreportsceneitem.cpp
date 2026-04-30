@@ -196,7 +196,7 @@ void GraphReportSceneItem::processReIm(ResponseBundle const& bundle)
         {
             // Get the response which has the requested unit and direction
             GraphReportPoint const& point = curve.points[iPoint];
-            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem->responseDir, pItem->unit);
             if (response.keys.size() == 0)
             {
                 qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
@@ -257,7 +257,7 @@ void GraphReportSceneItem::processMultiReIm()
         ResponseBundle const& bundle = mCollection.get(iBundle);
 
         // Get the response which has the requested unit and direction
-        Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+        Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem->responseDir, pItem->unit);
         if (response.keys.size() == 0)
         {
             qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
@@ -280,6 +280,7 @@ void GraphReportSceneItem::processMultiReIm()
         currentCurve.lineStyle = baseCurve.lineStyle;
         currentCurve.lineWidth = baseCurve.lineWidth;
         currentCurve.markerSize = baseCurve.markerSize;
+        currentCurve.markerSkip = baseCurve.markerSkip;
 
         // Add the plottable
         QString name = tr("F = %1 N").arg(QString::number(bundle.force));
@@ -317,7 +318,7 @@ void GraphReportSceneItem::processFreqAmp()
             }
 
             // Get the response which has the requested unit and direction
-            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem->responseDir, pItem->unit);
             if (response.keys.size() == 0)
             {
                 qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);
@@ -408,7 +409,7 @@ void GraphReportSceneItem::processModeshape(ResponseBundle const& bundle)
             GraphReportPoint const& point = curve.points[iPoint];
 
             // Get the response which has the requested unit and direction
-            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem);
+            Testlab::Response response = Backend::Utility::getAcceleration(bundle, point, pItem->responseDir, pItem->unit);
             if (response.keys.size() == 0)
             {
                 qWarning() << tr("Could not find the response for point %1 which has %2 units").arg(point.name(), pItem->unit);

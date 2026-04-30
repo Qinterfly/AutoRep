@@ -99,20 +99,23 @@ int findResponse(ResponseBundle const& bundle, GraphReportPoint const& point, Re
 }
 
 //! Retrieve acceleration response
-Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, GraphReportItem* pItem)
+Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint const& point, ReportDirection targetDir,
+                                  QString const& targetUnit)
+{
+    int iResponse = findResponse(bundle, point, targetDir, Testlab::ResponseType::kAccel);
+    if (iResponse < 0)
+        return Testlab::Response();
+    Testlab::Response const& accel = bundle.responses[iResponse];
+    return convertAcceleration(bundle, accel, targetUnit);
+}
+
+//! Convert the acceleration to the requested units
+Testlab::Response convertAcceleration(ResponseBundle const& bundle, Testlab::Response const& accel, QString const& targetUnit)
 {
     // Constants
     double kMToMM = 1000.0;
 
-    // Find the acceleration response
-    Testlab::Response null;
-    int iResponse = findResponse(bundle, point, pItem->responseDir, Testlab::ResponseType::kAccel);
-    if (iResponse < 0)
-        return null;
-    Testlab::Response const accel = bundle.responses[iResponse];
-
     // Check if the response has the requested unit or the units are not set
-    QString targetUnit = pItem->unit;
     QString unit = QString::fromStdWString(accel.header.unit.name);
     if (unit.isEmpty() || targetUnit.isEmpty() || unit == targetUnit)
         return accel;
@@ -189,7 +192,7 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
     // Return the result
     if (responseSet.contains(targetUnit))
         return responseSet[targetUnit];
-    return null;
+    return Testlab::Response();
 }
 
 //! Find the Testlab associated node associated with the graph point
@@ -266,6 +269,79 @@ Testlab::Response projectResponse(Testlab::Response const& response, Testlab::Ge
         result.realValues[i] *= factor;
         result.imagValues[i] *= factor;
     }
+
+    return result;
+}
+
+//! Project the reponse value onto the global coordinate axes
+Vector3cd projectResponse(Testlab::Response const& response, Testlab::Geometry const& geometry, int iKey)
+{
+    Vector3cd zero = Vector3cd::Zero();
+
+    // Check if the key is valid
+    int numKeys = response.keys.size();
+    if (iKey < 0 || iKey >= numKeys)
+        return zero;
+
+    // Get the point angles
+    QString component = QString::fromStdWString(response.header.point.component);
+    QString node = QString::fromStdWString(response.header.point.node);
+    std::vector<double> angles = getPointAngles(geometry, GraphReportPoint(component, node));
+    if (angles.empty())
+        return zero;
+
+    // Slice the directions
+    int iRespDir = (int) response.header.point.direction - 1;
+    if (iRespDir < 0)
+        return zero;
+
+    // Construct the transformation matrix
+    AngleAxisd rotX(angles[2], Vector3d::UnitX()); // YZ
+    AngleAxisd rotY(angles[1], Vector3d::UnitY()); // XZ
+    AngleAxisd rotZ(angles[0], Vector3d::UnitZ()); // XY
+    Quaterniond q = rotX * rotY * rotZ;
+    Matrix3d transform = q.toRotationMatrix();
+    Vector3d proj = transform * Vector3d::Unit(iRespDir);
+
+    // Multiply the projection
+    std::complex<double> value(response.realValues[iKey], response.imagValues[iKey]);
+    return value * proj;
+}
+
+//! Estimate the maximum dimension of the model
+double getMaximumDimension(Testlab::Geometry const& geometry)
+{
+    // Constants
+    double const kInf = std::numeric_limits<double>::infinity();
+    int numComponents = geometry.components.size();
+
+    // Find the minimum and maximum coordinates
+    Vector3d minCoords;
+    Vector3d maxCoords;
+    minCoords.fill(kInf);
+    maxCoords.fill(-kInf);
+    int numCoords = minCoords.size();
+    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
+    {
+        Testlab::Component const& component = geometry.components[iComponent];
+        int numNodes = component.nodes.size();
+        for (int iNode = 0; iNode != numNodes; ++iNode)
+        {
+            Testlab::Node const& node = component.nodes[iNode];
+            for (int iCoord = 0; iCoord != numCoords; ++iCoord)
+            {
+                double coord = node.coordinates[iCoord];
+                minCoords[iCoord] = std::min(minCoords[iCoord], coord);
+                maxCoords[iCoord] = std::max(maxCoords[iCoord], coord);
+            }
+        }
+    }
+
+    // Estimate the dimensions
+    double result = 0.0;
+    result = std::max(result, std::abs(maxCoords[0] - minCoords[0]));
+    result = std::max(result, std::abs(maxCoords[1] - minCoords[1]));
+    result = std::max(result, std::abs(maxCoords[2] - minCoords[2]));
 
     return result;
 }

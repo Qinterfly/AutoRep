@@ -3,11 +3,17 @@
 #include <QTableWidgetItem>
 #include <QToolBar>
 
+#include <vtkCamera.h>
 #include <vtkColor.h>
+#include <vtkColorTransferFunction.h>
+#include <vtkLookupTable.h>
+#include <vtkRenderer.h>
 
 #include "customplot.h"
 #include "uiconstants.h"
 #include "uiutility.h"
+
+using namespace Eigen;
 
 namespace Frontend::Utility
 {
@@ -177,6 +183,72 @@ QDialog* showAsDialog(QWidget* pWidget, QString const& title, QWidget* pParent, 
     pDialog->setLayout(pLayout);
     pDialog->show();
     return pDialog;
+}
+
+//! Convert data to 3d vector
+Vector3d convert3d(std::vector<double> const& data)
+{
+    Vector3d result;
+    if (data.size() == result.size())
+        std::copy(data.begin(), data.end(), result.begin());
+    return result;
+}
+
+//! Create the diverging color map from blue to red colors
+vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap()
+{
+    // Constants
+    int const kTableSize = 256;
+
+    // Set the colors
+    vtkNew<vtkColorTransferFunction> ctf;
+    ctf->SetColorSpaceToDiverging();
+    ctf->AddRGBPoint(0.0, 0.230, 0.299, 0.754);
+    ctf->AddRGBPoint(0.5, 0.865, 0.865, 0.865);
+    ctf->AddRGBPoint(1.0, 0.706, 0.016, 0.150);
+
+    // Create the lookup table
+    vtkNew<vtkLookupTable> lut;
+    lut->SetNumberOfTableValues(kTableSize);
+    lut->Build();
+
+    // Set the table values
+    int numColors = lut->GetNumberOfColors();
+    for (auto i = 0; i != numColors; ++i)
+    {
+        std::array<double, 3> rgb;
+        ctf->GetColor(static_cast<double>(i) / lut->GetNumberOfColors(), rgb.data());
+        std::array<double, 4> rgba{0.0, 0.0, 0.0, 1.0};
+        std::copy(std::begin(rgb), std::end(rgb), std::begin(rgba));
+        lut->SetTableValue(static_cast<vtkIdType>(i), rgba.data());
+    }
+
+    return lut;
+}
+
+//! Set the isometric view
+void setIsometricView(vtkSmartPointer<vtkRenderer> renderer)
+{
+    vtkCamera* camera = renderer->GetActiveCamera();
+    camera->SetPosition(1, 1, -1);
+    camera->SetFocalPoint(0, 0, 0);
+    camera->SetViewUp(0, 1, 0);
+    renderer->ResetCamera();
+}
+
+//! Set view perpendicular to one of the planes
+void setPlaneView(vtkSmartPointer<vtkRenderer> renderer, int dir, int sign)
+{
+    int const kNumDirections = 3;
+    vtkSmartPointer<vtkCamera> camera = renderer->GetActiveCamera();
+    double position[kNumDirections];
+    for (int i = 0; i != kNumDirections; ++i)
+        position[i] = 0.0;
+    position[dir] = 1.0 * sign;
+    camera->SetPosition(position);
+    camera->SetFocalPoint(0, 0, 0);
+    camera->SetViewUp(0, 1, 0);
+    renderer->ResetCamera();
 }
 
 //! Get an icon for a legend
