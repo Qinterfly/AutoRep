@@ -108,7 +108,8 @@ void ReportPropertyEditor::addBaseProperties(ReportItem* pItem)
 //! Create properties specific for graph items
 void ReportPropertyEditor::addGraphProperties(GraphReportItem* pItem)
 {
-    QStringList const kAlignmentNames = {tr("Top right"), tr("Bottom right"), tr("Bottom left"), tr("Top left")};
+    QStringList const kAlignmentNames = {tr("Top right"), tr("Top left"), tr("Bottom right"), tr("Bottom left"),
+                                         tr("Right"),     tr("Left"),     tr("Top"),          tr("Bottom")};
 
     QtVariantProperty* pXRangeProperty = mpManager->addProperty(kXRange, QMetaType::QString, tr("X range"));
     pXRangeProperty->setValue(convert(pItem->xRange));
@@ -294,12 +295,20 @@ Qt::Alignment ReportPropertyEditor::getAlignValue(Align key)
     {
     case kTopRight:
         return Qt::AlignTop | Qt::AlignRight;
+    case kTopLeft:
+        return Qt::AlignTop | Qt::AlignLeft;
     case kBottomRight:
         return Qt::AlignBottom | Qt::AlignRight;
     case kBottomLeft:
         return Qt::AlignBottom | Qt::AlignLeft;
-    case kTopLeft:
-        return Qt::AlignTop | Qt::AlignLeft;
+    case kRight:
+        return Qt::AlignRight;
+    case kLeft:
+        return Qt::AlignLeft;
+    case kTop:
+        return Qt::AlignTop;
+    case kBottom:
+        return Qt::AlignBottom;
     default:
         break;
     };

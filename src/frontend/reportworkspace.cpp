@@ -11,9 +11,9 @@
 
 #include "customtabwidget.h"
 #include "fileutility.h"
+#include "graphreportsceneitem.h"
 #include "reportdefaults.h"
 #include "reportdesigner.h"
-#include "reportsceneitem.h"
 #include "reportworkspace.h"
 #include "uiconstants.h"
 #include "uiutility.h"

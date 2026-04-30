@@ -15,6 +15,8 @@
 #include "constants.h"
 #include "customtabwidget.h"
 #include "geometryview.h"
+#include "graphreportsceneitem.h"
+#include "modereportsceneitem.h"
 #include "reportdataeditor.h"
 #include "reportdesigner.h"
 #include "reportpropertyeditor.h"
@@ -198,6 +200,10 @@ void ReportDesigner::drawItems()
         case ReportItem::kTable:
             pSceneItem = new TableReportSceneItem((TableReportItem*) pReportItem, mTextEngine);
             break;
+        case ReportItem::kMode:
+            pSceneItem = new ModeReportSceneItem((ModeReportItem*) pReportItem, mTextEngine, mpResponseEditor->collection(),
+                                                 mpResponseEditor->iSelectedBundle(), mpGeometryView->getGeometry());
+            break;
         default:
             break;
         }
@@ -276,15 +282,19 @@ void ReportDesigner::addItem(ReportItem::Type type)
         break;
     case ReportItem::kGraph:
         pItem = new GraphReportItem;
-        pItem->rect = QRect(50, 80, 100, 100);
+        pItem->rect = QRect(50, 50, 100, 100);
         break;
     case ReportItem::kPicture:
         pItem = new PictureReportItem;
-        pItem->rect = QRect(50, 130, 100, 100);
+        pItem->rect = QRect(50, 70, 100, 100);
         break;
     case ReportItem::kTable:
         pItem = new TableReportItem;
-        pItem->rect = QRect(50, 150, 100, 100);
+        pItem->rect = QRect(50, 90, 100, 100);
+        break;
+    case ReportItem::kMode:
+        pItem = new ModeReportItem;
+        pItem->rect = QRect(50, 110, 100, 100);
         break;
     default:
         break;
@@ -671,9 +681,9 @@ QWidget* ReportDesigner::createSceneWidget()
     QToolBar* pToolBar = new QToolBar;
     pToolBar->addWidget(new QLabel(tr("Scale: ")));
     pToolBar->addWidget(mpScaleSelector);
-    QAction* pFitAction = pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), mpSceneView, &ReportSceneView::fitToPage);
-    QAction* pZoomInAction = pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), mpSceneView, &ReportSceneView::zoomIn);
-    QAction* pZoomOutAction = pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), mpSceneView, &ReportSceneView::zoomOut);
+    pToolBar->addAction(QIcon(":/icons/page-fit.svg"), tr("Fit page"), Qt::CTRL | Qt::Key_0, mpSceneView, &ReportSceneView::fitToPage);
+    pToolBar->addAction(QIcon(":/icons/page-zoom-in.svg"), tr("Zoom in"), QKeySequence::ZoomIn, mpSceneView, &ReportSceneView::zoomIn);
+    pToolBar->addAction(QIcon(":/icons/page-zoom-out.svg"), tr("Zoom out"), QKeySequence::ZoomOut, mpSceneView, &ReportSceneView::zoomOut);
 
     pToolBar->addSeparator();
     QAction* pUndoAction = mpSceneUndoStack->createUndoAction(this, tr("&Undo"));
@@ -691,14 +701,8 @@ QWidget* ReportDesigner::createSceneWidget()
     pToolBar->addAction(pLockSceneAction);
     pToolBar->addAction(pEnablePrintingAction);
     pToolBar->addAction(QIcon(":/icons/page-orientation.svg"), tr("Change page orientation"), this, &ReportDesigner::changePageOrientation);
-    QAction* pPrintAction = pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), this, &ReportDesigner::requestPrint);
+    pToolBar->addAction(QIcon(":/icons/page-print.svg"), tr("Print page"), Qt::CTRL | Qt::SHIFT | Qt::Key_P, this, &ReportDesigner::requestPrint);
     pToolBar->setIconSize(Constants::Size::skToolBarIcon);
-
-    // Set the shortcuts
-    pFitAction->setShortcut(Qt::CTRL | Qt::Key_0);
-    pZoomInAction->setShortcut(Qt::CTRL | Qt::Key_Plus);
-    pZoomOutAction->setShortcut(Qt::CTRL | Qt::Key_Minus);
-    pPrintAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_P);
     Utility::setShortcutHints(pToolBar);
 
     // Construct the group box
@@ -727,6 +731,7 @@ QWidget* ReportDesigner::createListWidget()
     pToolBar->addAction(QIcon(":/icons/item-graph.svg"), tr("Add graph"), this, [this]() { addItem(ReportItem::kGraph); });
     pToolBar->addAction(QIcon(":/icons/item-picture.svg"), tr("Add picture"), this, [this]() { addItem(ReportItem::kPicture); });
     pToolBar->addAction(QIcon(":/icons/item-table.svg"), tr("Add table"), this, [this]() { addItem(ReportItem::kTable); });
+    pToolBar->addAction(QIcon(":/icons/item-mode.svg"), tr("Add mode"), this, [this]() { addItem(ReportItem::kMode); });
     pToolBar->addSeparator();
     pToolBar->addAction(QIcon(":/icons/edit-copy.svg"), tr("Duplicate"), this, &ReportDesigner::duplicateSelectedItems);
     QAction* pRemoveAction = pToolBar->addAction(QIcon(":/icons/edit-remove.svg"), tr("Remove"), this, &ReportDesigner::removeSelectedItems);
@@ -904,7 +909,7 @@ void ReportTextEditor::focusOutEvent(QFocusEvent* pEvent)
 //! Process the keys to lose focus
 void ReportTextEditor::keyPressEvent(QKeyEvent* pEvent)
 {
-    if (pEvent->key() == Qt::Key_Return || pEvent->key() == Qt::Key_Escape)
+    if (pEvent->key() == Qt::Key_Escape)
     {
         clearFocus();
         return;
@@ -1159,6 +1164,10 @@ QListWidgetItem* createListItem(ReportPage const& page, int index)
     case ReportItem::kTable:
         icon = QIcon(":/icons/item-table.svg");
         prefix = QObject::tr("Table");
+        break;
+    case ReportItem::kMode:
+        icon = QIcon(":/icons/item-mode.svg");
+        prefix = QObject::tr("Mode");
         break;
     default:
         break;

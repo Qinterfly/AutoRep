@@ -41,6 +41,17 @@ enum class ReportMarkerShape
     kPeace
 };
 
+enum class ReportView
+{
+    kFront,
+    kBack,
+    kTop,
+    kBottom,
+    kLeft,
+    kRight,
+    kIsometric
+};
+
 //! Base class for items
 class ReportItem : public ISerializable
 {
@@ -50,7 +61,8 @@ public:
         kText,
         kGraph,
         kPicture,
-        kTable
+        kTable,
+        kMode
     };
     ReportItem();
     ReportItem(ReportItem const* pAnother);
@@ -248,6 +260,27 @@ public:
     QStringList verLabels;
     double gridWidth;
     bool showLabels;
+};
+
+//! Class to define a layout of a mode element
+class ModeReportItem : public ReportItem
+{
+public:
+    ModeReportItem();
+    ModeReportItem(ReportItem const* pAnother);
+    virtual ~ModeReportItem() = default;
+
+    Type type() const override;
+    ReportItem* clone() const override;
+
+    QJsonObject toJson() const override;
+    void fromJson(QJsonObject const& obj) override;
+
+public:
+    QString unit;
+    ReportView view;
+    QString title;
+    QString label;
 };
 
 ReportItem* createItem(ReportItem::Type type);

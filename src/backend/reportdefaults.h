@@ -20,7 +20,8 @@ public:
     static ReportPage imRePage();
     static ReportPage multiImRePage();
     static ReportPage freqAmpPage();
-    static ReportPage modeshapePage();
+    static ReportPage projModeYPage();
+    static ReportPage mode3DPage();
 };
 
 }

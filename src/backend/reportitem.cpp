@@ -532,6 +532,49 @@ void TableReportItem::fromJson(QJsonObject const& obj)
     showLabels = obj["showLabels"].toBool();
 }
 
+ModeReportItem::ModeReportItem()
+{
+}
+
+ModeReportItem::ModeReportItem(ReportItem const* pAnother)
+    : ReportItem(pAnother)
+{
+}
+
+ReportItem::Type ModeReportItem::type() const
+{
+    return ReportItem::kMode;
+}
+
+ReportItem* ModeReportItem::clone() const
+{
+    ModeReportItem* pResult = new ModeReportItem(this);
+    pResult->unit = unit;
+    pResult->view = view;
+    pResult->title = title;
+    pResult->label = label;
+    return pResult;
+}
+
+QJsonObject ModeReportItem::toJson() const
+{
+    QJsonObject obj = ReportItem::toJson();
+    obj["unit"] = unit;
+    obj["view"] = (int) view;
+    obj["title"] = title;
+    obj["label"] = label;
+    return obj;
+}
+
+void ModeReportItem::fromJson(QJsonObject const& obj)
+{
+    ReportItem::fromJson(obj);
+    unit = obj["unit"].toString();
+    view = (ReportView) obj["view"].toInt();
+    title = obj["title"].toString();
+    label = obj["label"].toString();
+}
+
 ReportItem* Backend::Core::createItem(ReportItem::Type type)
 {
     switch (type)
@@ -544,6 +587,8 @@ ReportItem* Backend::Core::createItem(ReportItem::Type type)
         return new PictureReportItem;
     case ReportItem::kTable:
         return new TableReportItem;
+    case ReportItem::kMode:
+        return new ModeReportItem;
     default:
         break;
     }

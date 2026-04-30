@@ -30,9 +30,13 @@ public:
     enum Align
     {
         kTopRight,
+        kTopLeft,
         kBottomRight,
         kBottomLeft,
-        kTopLeft,
+        kRight,
+        kLeft,
+        kTop,
+        kBottom
     };
     enum Type
     {

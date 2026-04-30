@@ -135,7 +135,6 @@ Testlab::Response getAcceleration(ResponseBundle const& bundle, GraphReportPoint
     else
     {
         refPoint = GraphReportPoint(bundle.refPoint);
-        refDir = pItem->responseDir;
     }
 
     // Process the force, if presented
