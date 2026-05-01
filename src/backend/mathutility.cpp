@@ -17,10 +17,14 @@ static double const skInf = std::numeric_limits<double>::infinity();
 namespace Backend::Utility
 {
 
-//! Convert double data
 QList<double> convert(std::vector<double> const& data)
 {
     return QList<double>(data.begin(), data.end());
+}
+
+std::vector<double> convert(QList<double> const& data)
+{
+    return std::vector<double>(data.begin(), data.end());
 }
 
 //! Find closest key to the requested one

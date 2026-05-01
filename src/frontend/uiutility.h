@@ -20,6 +20,7 @@ class QCPScatterStyle;
 class vtkColor3d;
 class vtkRenderer;
 class vtkLookupTable;
+class vtkActor;
 
 namespace Frontend::Utility
 {
@@ -42,6 +43,7 @@ QString getLastPathFile(QSettings const& settings);
 void setLastPathFile(QSettings& settings, QString const& pathFile);
 
 // Widgets
+Eigen::Vector3d convert3d(std::vector<double> const& data);
 void setIndexByKey(QComboBox* pComboBox, int key);
 QTableWidgetItem* createTableItem(double value, Qt::AlignmentFlag alignment = Qt::AlignCenter);
 QTableWidgetItem* createTableItem(std::vector<double> const& values, Qt::AlignmentFlag alignment = Qt::AlignCenter);
@@ -49,10 +51,11 @@ QTableWidgetItem* createTableItem(QString const& text, Qt::AlignmentFlag alignme
 QDialog* showAsDialog(QWidget* pWidget, QString const& title = QString(), QWidget* pParent = nullptr, bool isModal = false);
 
 // Render
-Eigen::Vector3d convert3d(std::vector<double> const& data);
 vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap();
 void setIsometricView(vtkSmartPointer<vtkRenderer> renderer);
 void setPlaneView(vtkSmartPointer<vtkRenderer> renderer, int dir, int sign);
+void setCustomView(vtkSmartPointer<vtkRenderer> renderer, Eigen::Vector3d const& translation, Eigen::Vector3d const& rotation);
+vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length);
 
 // Icons
 QIcon getIcon(QCPScatterStyle const& style, QSize const& size, bool isLine, bool isMarker);

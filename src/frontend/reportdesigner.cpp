@@ -669,6 +669,7 @@ QWidget* ReportDesigner::createSceneWidget()
                 {
                     option = flag;
                     refresh();
+                    emit edited();
                 });
         return pAction;
     };

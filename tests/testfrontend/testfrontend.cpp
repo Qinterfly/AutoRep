@@ -258,12 +258,6 @@ void TestFrontend::setProjModeYPage()
     pTitle->text = "${MODE}\n${EXCITE}";
 }
 
-//! Set the three dimensional modeshape page
-void TestFrontend::setMode3DPage()
-{
-    // TODO
-}
-
 //! Export report to a file
 void TestFrontend::writeDocument()
 {
@@ -284,7 +278,7 @@ void TestFrontend::writeDocument()
 void TestFrontend::printReport()
 {
     QString pathFile = Utility::combineFilePath(OUTPUT_DIR, "MC-21.pdf");
-    // mpReportWorkspace->printDocument(pathFile);
+    mpReportWorkspace->printDocument(pathFile);
 }
 
 TestFrontend::~TestFrontend()

@@ -538,9 +538,23 @@ ModeReportItem::ModeReportItem()
     view = ReportView::kIsometric;
     translation = {0.0, 0.0, 0.0};
     rotation = {0.0, 0.0, 0.0};
-    zoom = 1.0;
+    zoom = 1.5;
     scale = 0.1;
-    quality = 1.5;
+    range = {0.0, 0.0};
+    quality = 2.0;
+
+    // Settings
+    edgeColor = QColor("grey");
+    undeformedColor = QColor("grey");
+    numLabels = 4;
+    edgeOpacity = 0.5;
+    vertexSize = 5.0;
+    lineWidth = 2.0;
+    showUndeformed = true;
+    showVertices = true;
+    showLines = true;
+    showTrias = true;
+    showQuads = true;
 }
 
 ModeReportItem::ModeReportItem(ReportItem const* pAnother)
@@ -559,8 +573,6 @@ ReportItem* ModeReportItem::clone() const
 
     // Header
     pResult->unit = unit;
-    pResult->title = title;
-    pResult->label = label;
 
     // View
     pResult->view = view;
@@ -568,7 +580,21 @@ ReportItem* ModeReportItem::clone() const
     pResult->rotation = rotation;
     pResult->zoom = zoom;
     pResult->scale = scale;
+    pResult->range = range;
     pResult->quality = quality;
+
+    // Settings
+    pResult->edgeColor = edgeColor;
+    pResult->undeformedColor = undeformedColor;
+    pResult->numLabels = numLabels;
+    pResult->edgeOpacity = edgeOpacity;
+    pResult->vertexSize = vertexSize;
+    pResult->lineWidth = lineWidth;
+    pResult->showUndeformed = showUndeformed;
+    pResult->showVertices = showVertices;
+    pResult->showLines = showLines;
+    pResult->showTrias = showTrias;
+    pResult->showQuads = showQuads;
 
     return pResult;
 }
@@ -579,8 +605,6 @@ QJsonObject ModeReportItem::toJson() const
 
     // Header
     obj["unit"] = unit;
-    obj["title"] = title;
-    obj["label"] = label;
 
     // View
     obj["view"] = (int) view;
@@ -588,7 +612,21 @@ QJsonObject ModeReportItem::toJson() const
     obj["rotation"] = Utility::toJson(rotation);
     obj["zoom"] = zoom;
     obj["scale"] = scale;
+    obj["range"] = Utility::toJson(range);
     obj["quality"] = quality;
+
+    // Settings
+    obj["edgeColor"] = Utility::toJson(edgeColor);
+    obj["undeformedColor"] = Utility::toJson(undeformedColor);
+    obj["numLabels"] = numLabels;
+    obj["edgeOpacity"] = edgeOpacity;
+    obj["vertexSize"] = vertexSize;
+    obj["lineWidth"] = lineWidth;
+    obj["showUndeformed"] = showUndeformed;
+    obj["showVertices"] = showVertices;
+    obj["showLines"] = showLines;
+    obj["showTrias"] = showTrias;
+    obj["showQuads"] = showQuads;
 
     return obj;
 }
@@ -599,8 +637,6 @@ void ModeReportItem::fromJson(QJsonObject const& obj)
 
     // Header
     unit = obj["unit"].toString();
-    title = obj["title"].toString();
-    label = obj["label"].toString();
 
     // View
     view = (ReportView) obj["view"].toInt();
@@ -608,7 +644,21 @@ void ModeReportItem::fromJson(QJsonObject const& obj)
     Utility::fromJson(rotation, obj["rotation"]);
     zoom = obj["zoom"].toDouble();
     scale = obj["scale"].toDouble();
+    Utility::fromJson(range, obj["range"]);
     quality = obj["quality"].toDouble();
+
+    // Settings
+    Utility::fromJson(edgeColor, obj["edgeColor"]);
+    Utility::fromJson(undeformedColor, obj["undeformedColor"]);
+    numLabels = obj["numLabels"].toInt();
+    edgeOpacity = obj["edgeOpacity"].toDouble();
+    vertexSize = obj["vertexSize"].toDouble();
+    lineWidth = obj["lineWidth"].toDouble();
+    showUndeformed = obj["showUndeformed"].toBool();
+    showVertices = obj["showVertices"].toBool();
+    showLines = obj["showLines"].toBool();
+    showTrias = obj["showTrias"].toBool();
+    showQuads = obj["showQuads"].toBool();
 }
 
 ReportItem* Backend::Core::createItem(ReportItem::Type type)

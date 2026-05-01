@@ -87,9 +87,17 @@ namespace Testlab
 		std::vector<std::vector<int>> quads;
 	};
 
+	struct Dependency
+	{
+		std::wstring slave;
+		std::vector<std::wstring> masters;
+		std::vector<int> flags;
+	};
+
 	struct Geometry
 	{
 		std::vector<Component> components;
+		std::vector<Dependency> dependencies;
 	};
 
 	class IProject

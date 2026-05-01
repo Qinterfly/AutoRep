@@ -6,8 +6,11 @@
 #include <vtkCamera.h>
 #include <vtkColor.h>
 #include <vtkColorTransferFunction.h>
+#include <vtkCubeSource.h>
 #include <vtkLookupTable.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkRenderer.h>
+#include <vtkTransform.h>
 
 #include "customplot.h"
 #include "uiconstants.h"
@@ -124,6 +127,15 @@ void setLastPathFile(QSettings& settings, QString const& pathFile)
     settings.setValue(Constants::Settings::skLastPathFile, pathFile);
 }
 
+//! Convert to three dimensional vector
+Vector3d convert3d(std::vector<double> const& data)
+{
+    Vector3d result;
+    if (data.size() == result.size())
+        std::copy(data.begin(), data.end(), result.begin());
+    return result;
+}
+
 //! Set combobox current index by item key
 void setIndexByKey(QComboBox* pComboBox, int key)
 {
@@ -185,15 +197,6 @@ QDialog* showAsDialog(QWidget* pWidget, QString const& title, QWidget* pParent, 
     return pDialog;
 }
 
-//! Convert data to 3d vector
-Vector3d convert3d(std::vector<double> const& data)
-{
-    Vector3d result;
-    if (data.size() == result.size())
-        std::copy(data.begin(), data.end(), result.begin());
-    return result;
-}
-
 //! Create the diverging color map from blue to red colors
 vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap()
 {
@@ -249,6 +252,42 @@ void setPlaneView(vtkSmartPointer<vtkRenderer> renderer, int dir, int sign)
     camera->SetFocalPoint(0, 0, 0);
     camera->SetViewUp(0, 1, 0);
     renderer->ResetCamera();
+}
+
+//! Set the view by user defined location and orientation XYZ
+void setCustomView(vtkSmartPointer<vtkRenderer> renderer, Vector3d const& translation, Vector3d const& rotation)
+{
+    vtkSmartPointer<vtkTransform> transform;
+    transform->Translate(translation[0], translation[1], translation[2]);
+    transform->RotateX(rotation[0]);
+    transform->RotateY(rotation[1]);
+    transform->RotateZ(rotation[2]);
+
+    vtkSmartPointer<vtkCamera> camera = renderer->GetActiveCamera();
+    camera->SetUserTransform(transform);
+    renderer->ResetCamera();
+}
+
+//! Construct a cube of specified dimension
+vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length)
+{
+    // Construct the source to be rendered at each location
+    vtkNew<vtkCubeSource> source;
+    source->SetCenter(position[0], position[1], position[2]);
+    source->SetXLength(length);
+    source->SetYLength(length);
+    source->SetZLength(length);
+
+    // Build up the mapper
+    vtkNew<vtkPolyDataMapper> mapper;
+    mapper->SetInputConnection(source->GetOutputPort());
+    mapper->SetResolveCoincidentTopologyToPolygonOffset();
+
+    // Create the actor
+    vtkNew<vtkActor> actor;
+    actor->SetMapper(mapper);
+
+    return actor;
 }
 
 //! Get an icon for a legend

@@ -39,7 +39,6 @@ vtkNew<vtkNamedColors> const vtkColors;
 vtkInformationStringKey* vtkNameKey = vtkInformationStringKey::MakeKey("NameKey", "Name");
 
 // Helper functions
-vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length);
 void setActorScale(vtkActor* actor, double factor);
 
 GeometryViewOptions::GeometryViewOptions()
@@ -382,7 +381,7 @@ void GeometryView::drawVertices(vtkSmartPointer<vtkPoints> points, int iComponen
         double data[3];
         points->GetPoint(i, data);
         Vector3d position = {data[0], data[1], data[2]};
-        vtkSmartPointer<vtkActor> actor = createCubeActor(position, length);
+        vtkSmartPointer<vtkActor> actor = Utility::createCubeActor(position, length);
 
         // Set the actor properties
         actor->GetProperty()->SetColor(color.GetData());
@@ -875,28 +874,6 @@ int GeometryInteractorStyle::index(vtkActor* actor)
             return i;
     }
     return -1;
-}
-
-//! Construct a cube of specified dimension
-vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length)
-{
-    // Construct the source to be rendered at each location
-    vtkNew<vtkCubeSource> source;
-    source->SetCenter(position[0], position[1], position[2]);
-    source->SetXLength(length);
-    source->SetYLength(length);
-    source->SetZLength(length);
-
-    // Build up the mapper
-    vtkNew<vtkPolyDataMapper> mapper;
-    mapper->SetInputConnection(source->GetOutputPort());
-    mapper->SetResolveCoincidentTopologyToPolygonOffset();
-
-    // Create the actor
-    vtkNew<vtkActor> actor;
-    actor->SetMapper(mapper);
-
-    return actor;
 }
 
 //! Helper function to multiply actor scale

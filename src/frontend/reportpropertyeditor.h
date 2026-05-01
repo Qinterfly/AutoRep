@@ -68,6 +68,9 @@ public:
         kNumRows,
         kNumCols,
         kShowLabels
+
+        // Mode
+
     };
 
     ReportPropertyEditor(QWidget* pParent = nullptr);

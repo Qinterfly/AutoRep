@@ -280,8 +280,6 @@ public:
 public:
     // Header
     QString unit;
-    QString title;
-    QString label;
 
     // View
     ReportView view;
@@ -289,7 +287,21 @@ public:
     QList<double> rotation;
     double zoom;
     double scale;
+    PairDouble range;
     double quality;
+
+    // Settings
+    QColor edgeColor;
+    QColor undeformedColor;
+    int numLabels;
+    double edgeOpacity;
+    double vertexSize;
+    double lineWidth;
+    bool showUndeformed;
+    bool showVertices;
+    bool showLines;
+    bool showTrias;
+    bool showQuads;
 };
 
 ReportItem* createItem(ReportItem::Type type);

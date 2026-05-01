@@ -15,6 +15,9 @@ class vtkPoints;
 class vtkCellArray;
 class vtkLookupTable;
 class vtkDoubleArray;
+class vtkOrientationMarkerWidget;
+class vtkRenderWindowInteractor;
+class vtkAxesActor;
 
 namespace Backend::Core
 {
@@ -25,32 +28,6 @@ class ModeReportItem;
 namespace Frontend
 {
 
-//! Rendering options
-struct ModeOptions
-{
-    ModeOptions();
-    ~ModeOptions() = default;
-
-    // Color scheme
-    vtkColor3d sceneColor;
-    vtkColor3d edgeColor;
-    vtkColor3d undeformedColor;
-
-    // Opacity
-    double edgeOpacity;
-
-    // Flags
-    bool showWireframe;
-    bool showUndeformed;
-    bool showLines;
-    bool showTrias;
-    bool showQuads;
-
-    // Dimensions
-    double lineWidth;
-    double fontSize;
-};
-
 //! Class to render report mode items
 class ModeReportSceneItem : public ReportSceneItem
 {
@@ -59,12 +36,12 @@ class ModeReportSceneItem : public ReportSceneItem
 public:
     ModeReportSceneItem(Backend::Core::ModeReportItem* pItem, Backend::Core::ReportTextEngine& textEngine,
                         Backend::Core::ResponseCollection const& collection, int iSelectedBundle, Testlab::Geometry const& geometry,
-                        ModeOptions const& options = ModeOptions(), QGraphicsItem* pParent = nullptr);
+                        QGraphicsItem* pParent = nullptr);
     virtual ~ModeReportSceneItem();
 
-    void setState();
     void clear();
     void refresh();
+    void replot();
 
 protected:
     void paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget) override;
@@ -72,20 +49,30 @@ protected:
 private:
     void initialize();
 
-    // Drawing
+    // State
+    void setState();
+    void resolveStateSlaves();
+
+    // Rendering
     void setView();
     void drawGeometry();
     void drawUndeformedState();
     void drawDeformedState();
-    void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, int iShift, vtkColor3d color,
-                      double opacity = 1.0, bool isEdgeVisible = true, bool isWireframe = false);
-    void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, int iShift,
-                      vtkSmartPointer<vtkDoubleArray> scalars, vtkSmartPointer<vtkLookupTable> lut);
-    void drawAsImage(QString const& pathFile);
-    void render(QPainter* pPainter);
-    vtkSmartPointer<vtkPoints> createPoints(double scale = 0.0);
-    vtkSmartPointer<vtkCellArray> createPolygons(std::vector<std::vector<int>> const& indices, int iShift);
-    vtkSmartPointer<vtkDoubleArray> getMagnitudes(vtkSmartPointer<vtkPoints> points);
+    void drawVertices(vtkSmartPointer<vtkPoints> points, vtkSmartPointer<vtkDoubleArray> scalars, vtkSmartPointer<vtkLookupTable> lookupTable);
+    void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, vtkColor3d color, double opacity = 1.0,
+                      bool isEdgeVisible = true, bool isWireframe = false);
+    void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, vtkSmartPointer<vtkDoubleArray> scalars,
+                      vtkSmartPointer<vtkLookupTable> lookupTable, bool isWireframe = false);
+
+    // Image
+    void saveAsImage();
+    void renderToPng(QString const& pathFile);
+
+    // Helper functions
+    vtkSmartPointer<vtkPoints> createPoints(Testlab::Component const& component, double scale = 0.0);
+    vtkSmartPointer<vtkCellArray> createPolygons(std::vector<std::vector<int>> const& indices);
+    vtkSmartPointer<vtkDoubleArray> getMagnitudes(Testlab::Component const& component);
+    PairDouble getMagnitudeRange();
     Eigen::Vector3d getNodeValues(QString const& componentName, QString const& nodeName);
 
 private:
@@ -93,7 +80,6 @@ private:
     Backend::Core::ResponseCollection const& mCollection;
     int const mISelectedBundle;
     Testlab::Geometry const& mGeometry;
-    ModeOptions mOptions;
 
     // Data
     QHash<PairString, Eigen::Vector3d> mState;
@@ -102,6 +88,10 @@ private:
     // VTK
     vtkSmartPointer<vtkRenderWindow> mRenderWindow;
     vtkSmartPointer<vtkRenderer> mRenderer;
+    vtkSmartPointer<vtkRenderer> mOverlayRenderer;
+    vtkSmartPointer<vtkAxesActor> mAxes;
+    QByteArray mImageData;
+    QString mImageFormat;
 };
 
 }

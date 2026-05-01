@@ -1,18 +1,24 @@
+#include <QGuiApplication>
 #include <QPainter>
+#include <QScreen>
 #include <QTemporaryFile>
 
+#include <vtkAxesActor.h>
 #include <vtkCamera.h>
 #include <vtkLookupTable.h>
 #include <vtkNamedColors.h>
+#include <vtkOrientationMarkerWidget.h>
 #include <vtkPNGWriter.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolygon.h>
 #include <vtkProperty.h>
 #include <vtkRenderWindow.h>
+#include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkScalarBarActor.h>
 #include <vtkTextProperty.h>
+#include <vtkTransform.h>
 #include <vtkWindowToImageFilter.h>
 
 #include "mathutility.h"
@@ -32,39 +38,20 @@ vtkNew<vtkNamedColors> const vtkColors;
 // Constants
 static double const skEps = std::numeric_limits<double>::epsilon();
 
-ModeOptions::ModeOptions()
-{
-    // Color scheme
-    sceneColor = vtkColors->GetColor3d("white");
-    edgeColor = vtkColors->GetColor3d("gainsboro");
-    undeformedColor = vtkColors->GetColor3d("grey");
-
-    // Opacity
-    edgeOpacity = 0.5;
-
-    // Flags
-    showUndeformed = true;
-    showLines = true;
-    showTrias = true;
-    showQuads = true;
-
-    // Dimensions
-    lineWidth = 2.0;
-    fontSize = 12;
-}
+// Helper functions
+PairString getKey(std::wstring const& name);
 
 ModeReportSceneItem::ModeReportSceneItem(ModeReportItem* pItem, ReportTextEngine& textEngine, ResponseCollection const& collection,
-                                         int iSelectedBundle, Testlab::Geometry const& geometry, ModeOptions const& options,
-                                         QGraphicsItem* pParent)
+                                         int iSelectedBundle, Testlab::Geometry const& geometry, QGraphicsItem* pParent)
     : ReportSceneItem(pItem, pParent)
     , mTextEngine(textEngine)
     , mCollection(collection)
     , mISelectedBundle(iSelectedBundle)
     , mGeometry(geometry)
-    , mOptions(options)
 {
     initialize();
     setState();
+    replot();
 }
 
 ModeReportSceneItem::~ModeReportSceneItem()
@@ -121,6 +108,52 @@ void ModeReportSceneItem::setState()
             mState[key] = Vector3d::Zero();
         mState[key] += value;
     }
+
+    // Resolve the depenedencies
+    resolveStateSlaves();
+}
+
+//! Resolve dependencies between state values
+void ModeReportSceneItem::resolveStateSlaves()
+{
+    int numSlaves = mGeometry.dependencies.size();
+    for (int iSlave = 0; iSlave != numSlaves; ++iSlave)
+    {
+        Testlab::Dependency const& dependency = mGeometry.dependencies[iSlave];
+
+        // Get the slave
+        PairString slaveKey = getKey(dependency.slave);
+        if (!mState.contains(slaveKey))
+            continue;
+        Vector3d slaveValues = mState[slaveKey];
+
+        // Average the master values
+        Vector3d masterValues = Vector3d::Zero();
+        int numAvg = 0;
+        int numMasters = dependency.masters.size();
+        for (int iMaster = 0; iMaster != numMasters; ++iMaster)
+        {
+            PairString masterKey = getKey(dependency.masters[iMaster]);
+            if (!mState.contains(masterKey))
+                continue;
+            masterValues += mState[masterKey];
+            ++numAvg;
+        }
+        if (numAvg == 0)
+            continue;
+        masterValues /= numAvg;
+
+        // Distribute the values
+        int numFlags = dependency.flags.size();
+        for (int iFlag = 0; iFlag != numFlags; ++iFlag)
+        {
+            if (dependency.flags[iFlag] > 0)
+                slaveValues[iFlag] = masterValues[iFlag];
+        }
+
+        // Store the result
+        mState[slaveKey] = slaveValues;
+    }
 }
 
 //! Clean up the scene
@@ -143,8 +176,8 @@ void ModeReportSceneItem::refresh()
     mRenderWindow->Render();
 }
 
-//! Render the item to the painter
-void ModeReportSceneItem::render(QPainter* pPainter)
+//! Replot the scene
+void ModeReportSceneItem::replot()
 {
     // Constants
     qreal const kInchToMM = 25.4;
@@ -154,25 +187,24 @@ void ModeReportSceneItem::render(QPainter* pPainter)
         return;
 
     // Set the window size
-    double dpi = pPainter->device()->logicalDpiX();
+    QScreen* screen = QGuiApplication::primaryScreen();
+    double dpi = screen->logicalDotsPerInch();
     auto mmToPx = [dpi, kInchToMM](double mm) { return mm * dpi / kInchToMM; };
     QSize pxSize(mmToPx(mpItem->rect.width()), mmToPx(mpItem->rect.height()));
     mRenderWindow->SetSize(pxSize.width(), pxSize.height());
 
-    // Draw the scene
+    // Draw the content
     clear();
     drawGeometry();
     setView();
 
-    // Write it to the file
-    QTemporaryFile file;
-    QString pathFile;
-    if (file.open())
-    {
-        pathFile = file.fileName();
-        drawAsImage(pathFile);
-    }
+    // Save as the image
+    saveAsImage();
+}
 
+//! Process paint event
+void ModeReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
+{
     // Set the painter
     pPainter->save();
     pPainter->translate(mpItem->rect.center());
@@ -180,18 +212,13 @@ void ModeReportSceneItem::render(QPainter* pPainter)
     pPainter->translate(-mpItem->rect.center());
 
     // Draw the picture
-    QPixmap pixmap(pathFile);
+    QPixmap pixmap;
+    pixmap.loadFromData(mImageData, mImageFormat.toStdString().data());
     if (!pixmap.isNull())
         pPainter->drawPixmap(mpItem->rect, pixmap);
 
     // Restore the painter
     pPainter->restore();
-}
-
-//! Process paint event
-void ModeReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem const* pOption, QWidget* pWidget)
-{
-    render(pPainter);
     ReportSceneItem::paint(pPainter, pOption, pWidget);
 }
 
@@ -203,14 +230,30 @@ void ModeReportSceneItem::initialize()
 
     // Set up the scene
     mRenderer = vtkRenderer::New();
-    mRenderer->SetBackground(mOptions.sceneColor.GetData());
     mRenderer->GradientBackgroundOff();
     mRenderer->ResetCamera();
+    mRenderer->SetBackgroundAlpha(0.0);
+    mRenderer->SetLayer(0);
+
+    // Create the overlay renderer
+    mOverlayRenderer = vtkRenderer::New();
+    mOverlayRenderer->GradientBackgroundOff();
+    mOverlayRenderer->SetViewport(0.8, 0.6, 1.0, 1.0);
+    mOverlayRenderer->SetBackgroundAlpha(0.0);
+    mOverlayRenderer->SetLayer(1);
+
+    // Add the axes
+    mAxes = vtkAxesActor::New();
+    mOverlayRenderer->AddActor(mAxes);
+    mOverlayRenderer->ResetCamera();
 
     // Create the window
     mRenderWindow = vtkRenderWindow::New();
     mRenderWindow->SetOffScreenRendering(true);
+    mRenderWindow->SetSize(500, 500);
+    mRenderWindow->SetNumberOfLayers(2);
     mRenderWindow->AddRenderer(mRenderer);
+    mRenderWindow->AddRenderer(mOverlayRenderer);
 }
 
 //! Set the camera position as well as zoom
@@ -219,6 +262,8 @@ void ModeReportSceneItem::setView()
     ModeReportItem* pItem = (ModeReportItem*) mpItem;
 
     // Set the camera position
+    Vector3d translation = Utility::convert3d(Backend::Utility::convert(pItem->translation));
+    Vector3d rotation = Utility::convert3d(Backend::Utility::convert(pItem->rotation)) * M_PI / 180.0;
     switch (pItem->view)
     {
     case ReportView::kFront:
@@ -243,11 +288,27 @@ void ModeReportSceneItem::setView()
         Utility::setIsometricView(mRenderer);
         break;
     case ReportView::kCustom:
-        // TODO
+        Utility::setCustomView(mRenderer, translation, rotation);
         break;
     default:
         break;
     }
+
+    // Copy the view to the overlay
+    double position[3];
+    double viewUp[3];
+    mRenderer->GetActiveCamera()->GetPosition(position);
+    mRenderer->GetActiveCamera()->GetViewUp(viewUp);
+    mOverlayRenderer->GetActiveCamera()->ParallelProjectionOn();
+    mOverlayRenderer->GetActiveCamera()->SetPosition(position[0], position[1], position[2]);
+    mOverlayRenderer->GetActiveCamera()->SetFocalPoint(0, 0, 0);
+    mOverlayRenderer->GetActiveCamera()->SetViewUp(viewUp);
+    mOverlayRenderer->ResetCamera();
+
+    // Fit the camera view
+    double bounds[6];
+    mAxes->GetBounds(bounds);
+    mOverlayRenderer->ResetCamera(bounds);
 
     // Set the zoom
     mRenderer->GetActiveCamera()->Zoom(pItem->zoom);
@@ -259,13 +320,17 @@ void ModeReportSceneItem::setView()
 //! Represent geometry
 void ModeReportSceneItem::drawGeometry()
 {
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
+
     // Estimate the maximum dimension
     mMaximumDimension = Backend::Utility::getMaximumDimension(mGeometry);
     if (mMaximumDimension < skEps)
         mMaximumDimension = 1.0;
 
     // Render the undeformed state
-    if (mOptions.showUndeformed)
+    if (pItem->showUndeformed)
         drawUndeformedState();
 
     // Render the deformed state
@@ -275,29 +340,31 @@ void ModeReportSceneItem::drawGeometry()
 //! Represent the initial configuration
 void ModeReportSceneItem::drawUndeformedState()
 {
-    // Construct the vertices
-    vtkSmartPointer<vtkPoints> points = createPoints();
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
+
+    // Check if the state is valid to be rendered
+    if (mState.isEmpty())
+        return;
 
     // Loop through all the components
     int numComponents = mGeometry.components.size();
-    int iShift = 0;
+    vtkColor3d color = Utility::getColor(pItem->undeformedColor);
     for (int i = 0; i != numComponents; ++i)
     {
         Testlab::Component const& component = mGeometry.components[i];
 
-        mOptions.showWireframe = true;
+        // Construct the vertices
+        vtkSmartPointer<vtkPoints> points = createPoints(component);
+
         // Draw the elements
-        if (mOptions.showLines)
-            drawElements(points, component.lines, iShift, mOptions.undeformedColor, 1.0, true, true);
-        if (mOptions.showTrias)
-            drawElements(points, component.trias, iShift, mOptions.undeformedColor, 1.0, true, true);
-        if (mOptions.showQuads)
-            drawElements(points, component.quads, iShift, mOptions.undeformedColor, 1.0, true, true);
-
-        mOptions.showWireframe = false;
-
-        // Increase the counter
-        iShift += component.nodes.size();
+        if (pItem->showLines)
+            drawElements(points, component.lines, color, 1.0, true, true);
+        if (pItem->showTrias)
+            drawElements(points, component.trias, color, 1.0, true, true);
+        if (pItem->showQuads)
+            drawElements(points, component.quads, color, 1.0, true, true);
     }
 }
 
@@ -308,35 +375,45 @@ void ModeReportSceneItem::drawDeformedState()
     if (!pItem)
         return;
 
-    // Create the colormap
-    vtkSmartPointer<vtkLookupTable> lut = Utility::createBlueToRedColorMap();
+    // Check if the state is valid to be rendered
+    if (mState.isEmpty())
+        return;
+    PairDouble range = getMagnitudeRange();
+    if (std::abs(range.second - range.first) < skEps)
+        return;
+
+    // Create the lookup table
+    vtkSmartPointer<vtkLookupTable> lookupTable = Utility::createBlueToRedColorMap();
+    double limit = std::max(std::abs(range.first), std::abs(range.second));
+    lookupTable->SetRange(-limit, limit);
+    lookupTable->Build();
 
     // Set the relative mode scale
     double scale = pItem->scale * mMaximumDimension;
 
-    // Construct the vertices
-    vtkSmartPointer<vtkPoints> points = createPoints(scale);
-
-    // Compute the magnitudes
-    vtkSmartPointer<vtkDoubleArray> magnitudes = getMagnitudes(points);
-
     // Loop through all the components
     int numComponents = mGeometry.components.size();
-    int iShift = 0;
     for (int i = 0; i != numComponents; ++i)
     {
         Testlab::Component const& component = mGeometry.components[i];
 
-        // Draw the elements
-        if (mOptions.showLines)
-            drawElements(points, component.lines, iShift, magnitudes, lut);
-        if (mOptions.showTrias)
-            drawElements(points, component.trias, iShift, magnitudes, lut);
-        if (mOptions.showQuads)
-            drawElements(points, component.quads, iShift, magnitudes, lut);
+        // Construct the vertices
+        vtkSmartPointer<vtkPoints> points = createPoints(component, scale);
 
-        // Increase the counter
-        iShift += component.nodes.size();
+        // Compute the magnitudes
+        vtkSmartPointer<vtkDoubleArray> magnitudes = getMagnitudes(component);
+
+        // Draw the vertices
+        if (pItem->showVertices)
+            drawVertices(points, magnitudes, lookupTable);
+
+        // Draw the elements
+        if (pItem->showLines)
+            drawElements(points, component.lines, magnitudes, lookupTable);
+        if (pItem->showTrias)
+            drawElements(points, component.trias, magnitudes, lookupTable);
+        if (pItem->showQuads)
+            drawElements(points, component.quads, magnitudes, lookupTable);
     }
 
     // Show the scalar bar
@@ -346,24 +423,68 @@ void ModeReportSceneItem::drawDeformedState()
     scalarBar->GetLabelTextProperty()->SetShadow(false);
     scalarBar->GetLabelTextProperty()->SetBold(false);
     scalarBar->GetLabelTextProperty()->SetColor(vtkColors->GetColor3d("black").GetData());
-    scalarBar->SetLookupTable(lut);
-    scalarBar->SetNumberOfLabels(4);
+    scalarBar->GetLabelTextProperty()->SetFontSize(pItem->font.pointSize());
+    scalarBar->SetLookupTable(lookupTable);
+    scalarBar->SetNumberOfLabels(pItem->numLabels);
     scalarBar->SetMaximumWidthInPixels(maxWidth);
     scalarBar->SetPosition(0.9, 0.05);
     scalarBar->SetPosition2(0.95, 0.6);
     mRenderer->AddViewProp(scalarBar);
 }
 
-//! Render elements using one color
-void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, int iShift,
-                                       vtkColor3d color, double opacity, bool isEdgeVisible, bool isWireframe)
+//! Render color interpolated vertices
+void ModeReportSceneItem::drawVertices(vtkSmartPointer<vtkPoints> points, vtkSmartPointer<vtkDoubleArray> scalars,
+                                       vtkSmartPointer<vtkLookupTable> lookupTable)
 {
+    // Get the report item
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
+
+    // Create the topology
+    vtkNew<vtkCellArray> vertices;
+    int numPoints = points->GetNumberOfPoints();
+    for (int i = 0; i != numPoints; ++i)
+    {
+        vertices->InsertNextCell(1);
+        vertices->InsertCellPoint(i);
+    }
+
+    // Build up the polygons
+    vtkNew<vtkPolyData> polyData;
+    polyData->SetPoints(points);
+    polyData->SetVerts(vertices);
+    polyData->GetPointData()->SetScalars(scalars);
+
+    // Build the mapper
+    vtkNew<vtkPolyDataMapper> mapper;
+    mapper->SetInputData(polyData);
+    mapper->UseLookupTableScalarRangeOn();
+    mapper->SetLookupTable(lookupTable);
+
+    // Create the actor
+    vtkNew<vtkActor> actor;
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize((float) pItem->vertexSize);
+
+    // Add the actor to the scene
+    mRenderer->AddActor(actor);
+}
+
+//! Render elements using one color
+void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, vtkColor3d color,
+                                       double opacity, bool isEdgeVisible, bool isWireframe)
+{
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
+
     // Check if there are any elements to render
     if (indices.empty())
         return;
 
     // Create polygons
-    vtkSmartPointer<vtkCellArray> polygons = createPolygons(indices, iShift);
+    vtkSmartPointer<vtkCellArray> polygons = createPolygons(indices);
 
     // Group polygons
     bool isPolys = indices.front().size() != 2;
@@ -390,11 +511,11 @@ void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::v
     actor->SetMapper(mapper);
     actor->GetProperty()->SetColor(color.GetData());
     actor->GetProperty()->SetOpacity(opacity);
-    actor->GetProperty()->SetLineWidth(mOptions.lineWidth);
+    actor->GetProperty()->SetLineWidth(pItem->lineWidth);
     if (isEdgeVisible)
     {
-        actor->GetProperty()->SetEdgeColor(mOptions.edgeColor.GetData());
-        actor->GetProperty()->SetEdgeOpacity(mOptions.edgeOpacity);
+        actor->GetProperty()->SetEdgeColor(Utility::getColor(pItem->edgeColor).GetData());
+        actor->GetProperty()->SetEdgeOpacity(pItem->edgeOpacity);
         actor->GetProperty()->EdgeVisibilityOn();
     }
     if (isWireframe)
@@ -405,15 +526,19 @@ void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::v
 }
 
 //! Render color interpolated elements
-void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, int iShift,
-                                       vtkSmartPointer<vtkDoubleArray> scalars, vtkSmartPointer<vtkLookupTable> lut)
+void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices,
+                                       vtkSmartPointer<vtkDoubleArray> scalars, vtkSmartPointer<vtkLookupTable> lookupTable, bool isWireframe)
 {
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
+
     // Check if there are any elements to render
     if (indices.empty())
         return;
 
     // Create polygons
-    vtkSmartPointer<vtkCellArray> polygons = createPolygons(indices, iShift);
+    vtkSmartPointer<vtkCellArray> polygons = createPolygons(indices);
 
     // Group polygons
     bool isPolys = indices.front().size() != 2;
@@ -428,121 +553,42 @@ void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::v
     // Build the mapper
     vtkNew<vtkPolyDataMapper> mapper;
     mapper->SetInputData(polyData);
-    mapper->SetScalarRange(scalars->GetRange()[0], scalars->GetRange()[1]);
-    mapper->SetLookupTable(lut);
+    mapper->UseLookupTableScalarRangeOn();
+    mapper->SetLookupTable(lookupTable);
 
     // Create the actor and add to the scene
     vtkNew<vtkActor> actor;
     actor->SetMapper(mapper);
-    actor->GetProperty()->SetLineWidth(mOptions.lineWidth);
-    actor->GetProperty()->SetEdgeColor(mOptions.edgeColor.GetData());
-    actor->GetProperty()->SetEdgeOpacity(mOptions.edgeOpacity);
+    actor->GetProperty()->SetLineWidth(pItem->lineWidth);
+    actor->GetProperty()->SetEdgeColor(Utility::getColor(pItem->edgeColor).GetData());
+    actor->GetProperty()->SetEdgeOpacity(pItem->edgeOpacity);
     actor->GetProperty()->EdgeVisibilityOn();
-    if (mOptions.showWireframe)
+    if (isWireframe)
         actor->GetProperty()->SetRepresentationToWireframe();
 
     // Add the actor to the scene
     mRenderer->AddActor(actor);
 }
 
-//! Create points which are associated with the geometry
-vtkSmartPointer<vtkPoints> ModeReportSceneItem::createPoints(double scale)
+//! Save the current view as the image file
+void ModeReportSceneItem::saveAsImage()
 {
-    vtkNew<vtkPoints> points;
-    int numPoints = 0;
-    int numComponents = mGeometry.components.size();
-    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
-    {
-        Testlab::Component const& component = mGeometry.components[iComponent];
-        QString componentName = QString::fromStdWString(component.name);
-        int numNodes = component.nodes.size();
-        for (int iNode = 0; iNode != numNodes; ++iNode)
-        {
-            Testlab::Node const& node = component.nodes[iNode];
-            QString nodeName = QString::fromStdWString(node.name);
+    // Open the file
+    QTemporaryFile file;
+    if (!file.open())
+        return;
+    QString pathFile = file.fileName();
 
-            // Get the nodal position
-            Vector3d position = Utility::convert3d(node.coordinates);
+    // Render
+    renderToPng(pathFile);
 
-            // Apply the values
-            Vector3d values = getNodeValues(componentName, nodeName);
-            position += values * scale;
-
-            // Add the point
-            points->InsertPoint(numPoints, position[0], position[1], position[2]);
-            ++numPoints;
-        }
-    }
-    return points;
-}
-
-//! Create polygons using given indices
-vtkSmartPointer<vtkCellArray> ModeReportSceneItem::createPolygons(std::vector<std::vector<int>> const& indices, int iShift)
-{
-    vtkNew<vtkCellArray> polygons;
-    int numElements = indices.size();
-    for (int i = 0; i != numElements; ++i)
-    {
-        vtkNew<vtkPolygon> polygon;
-        std::vector<int> const& elementIndices = indices[i];
-        int numElementIndices = elementIndices.size();
-        for (int j = 0; j != numElementIndices; ++j)
-        {
-            int iVertex = iShift + elementIndices[j];
-            polygon->GetPointIds()->InsertNextId(iVertex);
-        }
-        polygons->InsertNextCell(polygon);
-    }
-    return polygons;
-}
-
-//! Get magnitudes at each node
-vtkSmartPointer<vtkDoubleArray> ModeReportSceneItem::getMagnitudes(vtkSmartPointer<vtkPoints> points)
-{
-    // Allocate the result
-    vtkNew<vtkDoubleArray> magnitudes;
-    magnitudes->SetNumberOfTuples(points->GetNumberOfPoints());
-
-    // Loop through all the nodes
-    int numComponents = mGeometry.components.size();
-    int numPoints = 0;
-    for (int i = 0; i != numComponents; ++i)
-    {
-        Testlab::Component const& component = mGeometry.components[i];
-        QString componentName = QString::fromStdWString(component.name);
-        int numNodes = component.nodes.size();
-        for (int iNode = 0; iNode != numNodes; ++iNode)
-        {
-            Testlab::Node const& node = component.nodes[iNode];
-            QString nodeName = QString::fromStdWString(node.name);
-
-            // Find the maximum absolute node value
-            Vector3d values = getNodeValues(componentName, nodeName);
-            double magnitude = 0.0;
-            int numValues = values.size();
-            for (int iValue = 0; iValue != numValues; ++iValue)
-                magnitude = std::max(magnitude, std::abs(values[iValue]));
-
-            // Set the magnitude
-            magnitudes->SetValue(numPoints, magnitude);
-            ++numPoints;
-        }
-    }
-    return magnitudes;
-}
-
-//! Get the vertex field value related to the node
-Eigen::Vector3d ModeReportSceneItem::getNodeValues(QString const& componentName, QString const& nodeName)
-{
-    Vector3d result = Vector3d::Zero();
-    PairString key(componentName, nodeName);
-    if (mState.contains(key))
-        result = mState[key];
-    return result;
+    // Save the file content
+    mImageData = file.readAll();
+    mImageFormat = "png";
 }
 
 //! Render the current scene to an image
-void ModeReportSceneItem::drawAsImage(QString const& pathFile)
+void ModeReportSceneItem::renderToPng(QString const& pathFile)
 {
     ModeReportItem* pItem = (ModeReportItem*) mpItem;
 
@@ -559,4 +605,123 @@ void ModeReportSceneItem::drawAsImage(QString const& pathFile)
     writer->SetFileName(pathFile.toStdString().c_str());
     writer->SetInputConnection(filter->GetOutputPort());
     writer->Write();
+}
+
+//! Create points which are associated with the geometry
+vtkSmartPointer<vtkPoints> ModeReportSceneItem::createPoints(Testlab::Component const& component, double scale)
+{
+    vtkNew<vtkPoints> points;
+    QString componentName = QString::fromStdWString(component.name);
+    int numNodes = component.nodes.size();
+    for (int iNode = 0; iNode != numNodes; ++iNode)
+    {
+        Testlab::Node const& node = component.nodes[iNode];
+        QString nodeName = QString::fromStdWString(node.name);
+
+        // Get the nodal position
+        Vector3d position = Utility::convert3d(node.coordinates);
+
+        // Apply the values
+        Vector3d values = getNodeValues(componentName, nodeName);
+        position += values * scale;
+
+        // Add the point
+        points->InsertPoint(iNode, position[0], position[1], position[2]);
+    }
+    return points;
+}
+
+//! Create polygons using given indices
+vtkSmartPointer<vtkCellArray> ModeReportSceneItem::createPolygons(std::vector<std::vector<int>> const& indices)
+{
+    vtkNew<vtkCellArray> polygons;
+    int numElements = indices.size();
+    for (int i = 0; i != numElements; ++i)
+    {
+        vtkNew<vtkPolygon> polygon;
+        std::vector<int> const& elementIndices = indices[i];
+        int numElementIndices = elementIndices.size();
+        for (int j = 0; j != numElementIndices; ++j)
+        {
+            int iVertex = elementIndices[j];
+            polygon->GetPointIds()->InsertNextId(iVertex);
+        }
+        polygons->InsertNextCell(polygon);
+    }
+    return polygons;
+}
+
+//! Get magnitudes at each node
+vtkSmartPointer<vtkDoubleArray> ModeReportSceneItem::getMagnitudes(Testlab::Component const& component)
+{
+    // Allocate the result
+    int numNodes = component.nodes.size();
+    vtkNew<vtkDoubleArray> magnitudes;
+    magnitudes->SetNumberOfTuples(numNodes);
+
+    // Loop through all the nodes
+    QString componentName = QString::fromStdWString(component.name);
+    for (int iNode = 0; iNode != numNodes; ++iNode)
+    {
+        Testlab::Node const& node = component.nodes[iNode];
+        QString nodeName = QString::fromStdWString(node.name);
+
+        // Find the maximum absolute node value
+        Vector3d values = getNodeValues(componentName, nodeName);
+        int numValues = values.size();
+        double magnitude = 0.0;
+        for (int iValue = 0; iValue != numValues; ++iValue)
+        {
+            if (std::abs(values[iValue]) > std::abs(magnitude))
+                magnitude = values[iValue];
+        }
+
+        // Set the magnitude
+        magnitudes->SetValue(iNode, magnitude);
+    }
+    return magnitudes;
+}
+
+//! Get the range of magnitudes
+PairDouble ModeReportSceneItem::getMagnitudeRange()
+{
+    double min = std::numeric_limits<double>::max();
+    double max = std::numeric_limits<double>::lowest();
+    int numComponents = mGeometry.components.size();
+    for (int iComponent = 0; iComponent != numComponents; ++iComponent)
+    {
+        Testlab::Component const& component = mGeometry.components[iComponent];
+        QString componentName = QString::fromStdWString(component.name);
+        int numNodes = component.nodes.size();
+        for (int iNode = 0; iNode != numNodes; ++iNode)
+        {
+            Testlab::Node const& node = component.nodes[iNode];
+            QString nodeName = QString::fromStdWString(node.name);
+            Vector3d values = getNodeValues(componentName, nodeName);
+            min = std::min(min, values.minCoeff());
+            max = std::max(max, values.maxCoeff());
+        }
+    }
+    return {min, max};
+}
+
+//! Get the vertex field value related to the node
+Eigen::Vector3d ModeReportSceneItem::getNodeValues(QString const& componentName, QString const& nodeName)
+{
+    Vector3d result = Vector3d::Zero();
+    PairString key(componentName, nodeName);
+    if (mState.contains(key))
+        result = mState[key];
+    return result;
+}
+
+//! Helper functin to get key out of full node name
+PairString getKey(std::wstring const& name)
+{
+    PairString result;
+    QString text = QString::fromStdWString(name);
+    QStringList tokens = text.split(':');
+    if (tokens.size() == 2)
+        return {tokens[0], tokens[1]};
+    return {QString(), text};
 }

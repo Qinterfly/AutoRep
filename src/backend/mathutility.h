@@ -19,6 +19,7 @@ namespace Backend::Utility
 
 // Common
 QList<double> convert(std::vector<double> const& data);
+std::vector<double> convert(QList<double> const& data);
 int findClosestKey(Testlab::Response const& response, double searchKey);
 QString getDirLabel(Backend::Core::ReportDirection dir);
 

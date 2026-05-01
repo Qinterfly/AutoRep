@@ -12,6 +12,7 @@
 #include "customtabwidget.h"
 #include "fileutility.h"
 #include "graphreportsceneitem.h"
+#include "modereportsceneitem.h"
 #include "reportdefaults.h"
 #include "reportdesigner.h"
 #include "reportworkspace.h"
@@ -543,7 +544,7 @@ void ReportWorkspace::setUniteModeshapeRange()
     int numPages = mDocument.count();
 
     // Find all the modeshape items as well as the limit
-    QList<GraphReportSceneItem*> modeItems;
+    QList<GraphReportSceneItem*> graphItems;
     double limit = 0.0;
     for (int iPage = 0; iPage != numPages; ++iPage)
     {
@@ -571,7 +572,7 @@ void ReportWorkspace::setUniteModeshapeRange()
                     GraphReportSceneItem* pGraphSceneItem = (GraphReportSceneItem*) pSceneItem;
                     limit = std::max(limit, std::abs(pGraphSceneItem->yRange().first));
                     limit = std::max(limit, std::abs(pGraphSceneItem->yRange().second));
-                    modeItems.push_back(pGraphSceneItem);
+                    graphItems.push_back(pGraphSceneItem);
                 }
             }
         }
@@ -580,7 +581,7 @@ void ReportWorkspace::setUniteModeshapeRange()
     // Distribute the limit among all the modeshapes on the page
     if (limit > std::numeric_limits<double>::epsilon())
     {
-        for (auto pItem : modeItems)
+        for (auto pItem : graphItems)
             pItem->setYRange(-limit, limit);
     }
 }
