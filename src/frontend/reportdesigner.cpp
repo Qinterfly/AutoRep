@@ -551,15 +551,11 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
     switch (pReportItem->type())
     {
     case ReportItem::kText:
-    {
         mpTextEditor->startEditing(viewRect, (TextReportItem*) pReportItem);
         break;
-    }
     case ReportItem::kGraph:
-    {
         mpGraphEditor->startEditing(viewRect, (GraphReportSceneItem*) pSceneItem);
         break;
-    }
     case ReportItem::kPicture:
     {
         QString pathFile = QFileDialog::getOpenFileName(this, tr("Open Picture"), Utility::getLastDirectory(mSettings).path(),
@@ -569,10 +565,10 @@ void ReportDesigner::processEditItemRequest(ReportSceneItem* pSceneItem)
         break;
     }
     case ReportItem::kTable:
-    {
         mpTableEditor->startEditing(viewRect, (TableReportItem*) pReportItem);
         break;
-    }
+    default:
+        break;
     }
 }
 
@@ -815,7 +811,7 @@ void ReportDesigner::resolveItemLinks()
             ReportItem* pMasterItem = mScenePage.get(pSlaveItem->link);
             if (pMasterItem && pMasterItem->type() == pSlaveItem->type())
             {
-                if (pMasterItem->type() == GraphReportItem::kGraph)
+                if (pMasterItem->type() == ReportItem::kGraph)
                 {
                     GraphReportItem* pGraphSlaveItem = (GraphReportItem*) pSlaveItem;
                     GraphReportItem* pGraphMasterItem = (GraphReportItem*) pMasterItem;
@@ -823,6 +819,14 @@ void ReportDesigner::resolveItemLinks()
                     pGraphSlaveItem->unit = pGraphMasterItem->unit;
                     pGraphSlaveItem->curves = pGraphMasterItem->curves;
                     pGraphSlaveItem->xRange = pGraphMasterItem->xRange;
+                }
+                else if (pMasterItem->type() == ReportItem::kMode)
+                {
+                    ModeReportItem* pModeSlaveItem = (ModeReportItem*) pSlaveItem;
+                    ModeReportItem* pModeMasterItem = (ModeReportItem*) pMasterItem;
+                    pModeSlaveItem->unit = pModeMasterItem->unit;
+                    pModeSlaveItem->zoom = pModeMasterItem->zoom;
+                    pModeSlaveItem->scale = pModeMasterItem->scale;
                 }
             }
         }
@@ -930,6 +934,7 @@ void ReportGraphEditor::startEditing(QRect const& rect, GraphReportSceneItem* pI
 {
     // Store the item
     mpItem = pItem;
+    GraphReportItem* pGraphItem = (GraphReportItem*) mpItem->item();
 
     // Set the geometry
     setGeometry(rect);
@@ -943,13 +948,22 @@ void ReportGraphEditor::startEditing(QRect const& rect, GraphReportSceneItem* pI
     QCPAxis* pSrcYAxis = pSrcPlot->yAxis;
     QCPLegend* pSrcLegend = pSrcPlot->legend;
 
+    // Copy the visual settings
+    setFont(pSrcPlot->font());
+
+    // Get the destination axes
+    QCPAxis* pXAxis = xAxis;
+    QCPAxis* pYAxis = yAxis;
+    if (pGraphItem->swapAxes)
+        std::swap(pXAxis, pYAxis);
+
     // Copy the axes labels
     xAxis->setTickLabelFont(pSrcXAxis->tickLabelFont());
     yAxis->setTickLabelFont(pSrcYAxis->tickLabelFont());
     xAxis->setLabelFont(pSrcXAxis->labelFont());
     yAxis->setLabelFont(pSrcYAxis->labelFont());
-    xAxis->setLabel(pSrcXAxis->label());
-    yAxis->setLabel(pSrcYAxis->label());
+    pXAxis->setLabel(pGraphItem->xLabel);
+    pYAxis->setLabel(pGraphItem->yLabel);
 
     // Copy the grid
     xAxis->grid()->setPen(pSrcXAxis->grid()->pen());
@@ -976,7 +990,7 @@ void ReportGraphEditor::startEditing(QRect const& rect, GraphReportSceneItem* pI
         QCPCurve* pSrcCurve = qobject_cast<QCPCurve*>(pSrcPlot->plottable(i));
         if (!pSrcCurve)
             continue;
-        QCPCurve* pDstCurve = new QCPCurve(xAxis, yAxis);
+        QCPCurve* pDstCurve = new QCPCurve(pXAxis, pYAxis);
         pDstCurve->data()->set(*pSrcCurve->data());
         pDstCurve->setPen(pSrcCurve->pen());
         pDstCurve->setBrush(pSrcCurve->brush());
@@ -994,10 +1008,30 @@ void ReportGraphEditor::startEditing(QRect const& rect, GraphReportSceneItem* pI
 //! Finish editing once the focus is lost
 void ReportGraphEditor::focusOutEvent(QFocusEvent* pEvent)
 {
-    QWidget::focusOutEvent(pEvent);
+    // Do not lose focus on editors
+    QWidget* pFocusWidget = QApplication::focusWidget();
+    if (pFocusWidget && pFocusWidget->parent() && pFocusWidget->parent()->parent() == this)
+    {
+        CustomPlot::focusOutEvent(pEvent);
+        return;
+    }
+
+    // Get the destination axes
+    GraphReportItem* pGraphItem = (GraphReportItem*) mpItem->item();
+    QCPAxis* pXAxis = xAxis;
+    QCPAxis* pYAxis = yAxis;
+    if (pGraphItem->swapAxes)
+        std::swap(pXAxis, pYAxis);
+
+    // Copy the labels
+    pGraphItem->xLabel = pXAxis->label();
+    pGraphItem->yLabel = pYAxis->label();
+
+    // Finish the editing
     this->hide();
     mpItem = nullptr;
     emit editingFinished();
+    QWidget::focusOutEvent(pEvent);
 }
 
 //! Process the keys to lose focus

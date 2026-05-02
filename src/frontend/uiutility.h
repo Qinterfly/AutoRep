@@ -21,6 +21,8 @@ class vtkColor3d;
 class vtkRenderer;
 class vtkLookupTable;
 class vtkActor;
+class vtkRenderWindow;
+class vtkColorTransferFunction;
 
 namespace Frontend::Utility
 {
@@ -51,10 +53,13 @@ QTableWidgetItem* createTableItem(QString const& text, Qt::AlignmentFlag alignme
 QDialog* showAsDialog(QWidget* pWidget, QString const& title = QString(), QWidget* pParent = nullptr, bool isModal = false);
 
 // Render
+vtkSmartPointer<vtkLookupTable> buildLookupTable(vtkSmartPointer<vtkColorTransferFunction> ctf);
+vtkSmartPointer<vtkLookupTable> createCoolToWarmColorMap();
 vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap();
+
 void setIsometricView(vtkSmartPointer<vtkRenderer> renderer);
 void setPlaneView(vtkSmartPointer<vtkRenderer> renderer, int dir, int sign);
-void setCustomView(vtkSmartPointer<vtkRenderer> renderer, Eigen::Vector3d const& translation, Eigen::Vector3d const& rotation);
+QImage getImage(vtkSmartPointer<vtkRenderWindow> renderWindow, double quality = 2.0);
 vtkSmartPointer<vtkActor> createCubeActor(Eigen::Vector3d const& position, double length);
 
 // Icons

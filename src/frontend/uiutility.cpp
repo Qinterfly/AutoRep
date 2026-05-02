@@ -8,15 +8,20 @@
 #include <vtkColorTransferFunction.h>
 #include <vtkCubeSource.h>
 #include <vtkLookupTable.h>
+#include <vtkNamedColors.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
 #include <vtkTransform.h>
+#include <vtkWindowToImageFilter.h>
 
 #include "customplot.h"
 #include "uiconstants.h"
 #include "uiutility.h"
 
 using namespace Eigen;
+
+vtkNew<vtkNamedColors> const vtkColors;
 
 namespace Frontend::Utility
 {
@@ -197,18 +202,10 @@ QDialog* showAsDialog(QWidget* pWidget, QString const& title, QWidget* pParent, 
     return pDialog;
 }
 
-//! Create the diverging color map from blue to red colors
-vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap()
+vtkSmartPointer<vtkLookupTable> buildLookupTable(vtkSmartPointer<vtkColorTransferFunction> ctf)
 {
     // Constants
     int const kTableSize = 256;
-
-    // Set the colors
-    vtkNew<vtkColorTransferFunction> ctf;
-    ctf->SetColorSpaceToDiverging();
-    ctf->AddRGBPoint(0.0, 0.230, 0.299, 0.754);
-    ctf->AddRGBPoint(0.5, 0.865, 0.865, 0.865);
-    ctf->AddRGBPoint(1.0, 0.706, 0.016, 0.150);
 
     // Create the lookup table
     vtkNew<vtkLookupTable> lut;
@@ -227,6 +224,33 @@ vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap()
     }
 
     return lut;
+}
+
+//! Create the diverging color map from cool to warm colors
+vtkSmartPointer<vtkLookupTable> createCoolToWarmColorMap()
+{
+    vtkNew<vtkColorTransferFunction> ctf;
+    ctf->SetColorSpaceToDiverging();
+    ctf->AddRGBPoint(0.0, 0.230, 0.299, 0.754);
+    ctf->AddRGBPoint(0.5, 0.865, 0.865, 0.865);
+    ctf->AddRGBPoint(1.0, 0.706, 0.016, 0.150);
+    return buildLookupTable(ctf);
+}
+
+//! Create the diverging color map from blue to red colors
+vtkSmartPointer<vtkLookupTable> createBlueToRedColorMap()
+{
+    vtkNew<vtkColorTransferFunction> ctf;
+    ctf->AddRGBPoint(0.0, 0.0, 0.0, 1.0);
+    ctf->AddRGBPoint(0.3, 0.498, 1.0, 0.83);
+    ctf->AddRGBPoint(0.4, 0.0, 1.0, 1.0);
+    ctf->AddRGBPoint(0.5, 0.0, 1.0, 0.0);
+    ctf->AddRGBPoint(0.6, 1.0, 0.84, 0.0);
+    ctf->AddRGBPoint(0.7, 1.0, 0.65, 0.0);
+    ctf->AddRGBPoint(0.8, 1.0, 0.55, 0.0);
+    ctf->AddRGBPoint(0.9, 0.8627, 0.0784, 0.2353);
+    ctf->AddRGBPoint(1.0, 1.0, 0.0, 0.0);
+    return buildLookupTable(ctf);
 }
 
 //! Set the isometric view
@@ -254,18 +278,22 @@ void setPlaneView(vtkSmartPointer<vtkRenderer> renderer, int dir, int sign)
     renderer->ResetCamera();
 }
 
-//! Set the view by user defined location and orientation XYZ
-void setCustomView(vtkSmartPointer<vtkRenderer> renderer, Vector3d const& translation, Vector3d const& rotation)
+//! Render window to an image
+QImage getImage(vtkSmartPointer<vtkRenderWindow> renderWindow, double quality)
 {
-    vtkSmartPointer<vtkTransform> transform;
-    transform->Translate(translation[0], translation[1], translation[2]);
-    transform->RotateX(rotation[0]);
-    transform->RotateY(rotation[1]);
-    transform->RotateZ(rotation[2]);
+    // Set up the filter
+    vtkNew<vtkWindowToImageFilter> filter;
+    filter->SetInput(renderWindow);
+    filter->SetInputBufferTypeToRGBA();
+    filter->SetScale(quality);
+    filter->ReadFrontBufferOff();
+    filter->Update();
 
-    vtkSmartPointer<vtkCamera> camera = renderer->GetActiveCamera();
-    camera->SetUserTransform(transform);
-    renderer->ResetCamera();
+    // Create the image
+    vtkImageData* data = filter->GetOutput();
+    int* dims = data->GetDimensions();
+    unsigned char* ptr = static_cast<unsigned char*>(data->GetScalarPointer());
+    return QImage(ptr, dims[0], dims[1], QImage::Format_RGBA8888).mirrored();
 }
 
 //! Construct a cube of specified dimension

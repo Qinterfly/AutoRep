@@ -5,21 +5,19 @@
 
 #include <vtkAxesActor.h>
 #include <vtkCamera.h>
+#include <vtkCaptionActor2D.h>
 #include <vtkLookupTable.h>
 #include <vtkNamedColors.h>
-#include <vtkOrientationMarkerWidget.h>
-#include <vtkPNGWriter.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolygon.h>
 #include <vtkProperty.h>
 #include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkScalarBarActor.h>
+#include <vtkTextActor.h>
 #include <vtkTextProperty.h>
 #include <vtkTransform.h>
-#include <vtkWindowToImageFilter.h>
 
 #include "mathutility.h"
 #include "modereportsceneitem.h"
@@ -37,6 +35,7 @@ vtkNew<vtkNamedColors> const vtkColors;
 
 // Constants
 static double const skEps = std::numeric_limits<double>::epsilon();
+static vtkColor3d const skTextColor = vtkColors->GetColor3d("Black");
 
 // Helper functions
 PairString getKey(std::wstring const& name);
@@ -78,6 +77,10 @@ void ModeReportSceneItem::setState()
         qWarning() << tr("The bundle %1 has zero frequency. Skipping rendering the modeshape").arg(bundle.name);
         return;
     }
+
+    // Update the parser
+    mTextEngine.setVariable("bundle", bundle.name);
+    mTextEngine.setVariable("unit", pItem->unit);
 
     // Set the vertex field
     int numResponses = bundle.responses.size();
@@ -185,6 +188,11 @@ void ModeReportSceneItem::replot()
     // Check if the item is valid
     if (!mpItem)
         return;
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+
+    // Check if there are any components to render
+    if (mGeometry.components.size() == 0)
+        return;
 
     // Set the window size
     QScreen* screen = QGuiApplication::primaryScreen();
@@ -196,10 +204,12 @@ void ModeReportSceneItem::replot()
     // Draw the content
     clear();
     drawGeometry();
+    drawTitle();
     setView();
+    mRenderWindow->Render();
 
     // Save as the image
-    saveAsImage();
+    mImage = Utility::getImage(mRenderWindow, pItem->quality);
 }
 
 //! Process paint event
@@ -211,11 +221,8 @@ void ModeReportSceneItem::paint(QPainter* pPainter, QStyleOptionGraphicsItem con
     pPainter->rotate(mpItem->angle);
     pPainter->translate(-mpItem->rect.center());
 
-    // Draw the picture
-    QPixmap pixmap;
-    pixmap.loadFromData(mImageData, mImageFormat.toStdString().data());
-    if (!pixmap.isNull())
-        pPainter->drawPixmap(mpItem->rect, pixmap);
+    // Draw the image
+    pPainter->drawImage(mpItem->rect, mImage);
 
     // Restore the painter
     pPainter->restore();
@@ -228,7 +235,7 @@ void ModeReportSceneItem::initialize()
     // Specify the format for the VTK library
     vtkObject::GlobalWarningDisplayOff();
 
-    // Set up the scene
+    // Create the main renderer
     mRenderer = vtkRenderer::New();
     mRenderer->GradientBackgroundOff();
     mRenderer->ResetCamera();
@@ -244,16 +251,31 @@ void ModeReportSceneItem::initialize()
 
     // Add the axes
     mAxes = vtkAxesActor::New();
+    vtkTextProperty* xTextProp = mAxes->GetXAxisCaptionActor2D()->GetCaptionTextProperty();
+    vtkTextProperty* yTextProp = mAxes->GetYAxisCaptionActor2D()->GetCaptionTextProperty();
+    vtkTextProperty* zTextProp = mAxes->GetZAxisCaptionActor2D()->GetCaptionTextProperty();
+    xTextProp->SetColor(vtkColors->GetColor3d("Red").GetData());
+    yTextProp->SetColor(vtkColors->GetColor3d("Green").GetData());
+    zTextProp->SetColor(vtkColors->GetColor3d("Blue").GetData());
+    xTextProp->ShadowOff();
+    yTextProp->ShadowOff();
+    zTextProp->ShadowOff();
+    xTextProp->ItalicOff();
+    yTextProp->ItalicOff();
+    zTextProp->ItalicOff();
     mOverlayRenderer->AddActor(mAxes);
     mOverlayRenderer->ResetCamera();
 
     // Create the window
     mRenderWindow = vtkRenderWindow::New();
-    mRenderWindow->SetOffScreenRendering(true);
-    mRenderWindow->SetSize(500, 500);
+    mRenderWindow->OffScreenRenderingOn();
     mRenderWindow->SetNumberOfLayers(2);
     mRenderWindow->AddRenderer(mRenderer);
     mRenderWindow->AddRenderer(mOverlayRenderer);
+
+    // Initialize the font file
+    QTemporaryFile* pFile = QTemporaryFile::createNativeFile(":/fonts/Roboto.ttf");
+    mPathFontFile = pFile->fileName();
 }
 
 //! Set the camera position as well as zoom
@@ -262,8 +284,6 @@ void ModeReportSceneItem::setView()
     ModeReportItem* pItem = (ModeReportItem*) mpItem;
 
     // Set the camera position
-    Vector3d translation = Utility::convert3d(Backend::Utility::convert(pItem->translation));
-    Vector3d rotation = Utility::convert3d(Backend::Utility::convert(pItem->rotation)) * M_PI / 180.0;
     switch (pItem->view)
     {
     case ReportView::kFront:
@@ -287,9 +307,6 @@ void ModeReportSceneItem::setView()
     case ReportView::kIsometric:
         Utility::setIsometricView(mRenderer);
         break;
-    case ReportView::kCustom:
-        Utility::setCustomView(mRenderer, translation, rotation);
-        break;
     default:
         break;
     }
@@ -306,15 +323,10 @@ void ModeReportSceneItem::setView()
     mOverlayRenderer->ResetCamera();
 
     // Fit the camera view
-    double bounds[6];
-    mAxes->GetBounds(bounds);
-    mOverlayRenderer->ResetCamera(bounds);
+    mOverlayRenderer->GetActiveCamera()->Zoom(1.5);
 
     // Set the zoom
     mRenderer->GetActiveCamera()->Zoom(pItem->zoom);
-
-    // Update the scene
-    refresh();
 }
 
 //! Represent geometry
@@ -383,13 +395,13 @@ void ModeReportSceneItem::drawDeformedState()
         return;
 
     // Create the lookup table
-    vtkSmartPointer<vtkLookupTable> lookupTable = Utility::createBlueToRedColorMap();
+    vtkSmartPointer<vtkLookupTable> lookupTable = Utility::createCoolToWarmColorMap();
     double limit = std::max(std::abs(range.first), std::abs(range.second));
     lookupTable->SetRange(-limit, limit);
     lookupTable->Build();
 
     // Set the relative mode scale
-    double scale = pItem->scale * mMaximumDimension;
+    double scale = pItem->scale * mMaximumDimension / limit;
 
     // Loop through all the components
     int numComponents = mGeometry.components.size();
@@ -417,19 +429,7 @@ void ModeReportSceneItem::drawDeformedState()
     }
 
     // Show the scalar bar
-    int maxWidth = ceil((double) mRenderWindow->GetSize()[0] / 5);
-    vtkNew<vtkScalarBarActor> scalarBar;
-    scalarBar->SetLabelFormat("%5.2f");
-    scalarBar->GetLabelTextProperty()->SetShadow(false);
-    scalarBar->GetLabelTextProperty()->SetBold(false);
-    scalarBar->GetLabelTextProperty()->SetColor(vtkColors->GetColor3d("black").GetData());
-    scalarBar->GetLabelTextProperty()->SetFontSize(pItem->font.pointSize());
-    scalarBar->SetLookupTable(lookupTable);
-    scalarBar->SetNumberOfLabels(pItem->numLabels);
-    scalarBar->SetMaximumWidthInPixels(maxWidth);
-    scalarBar->SetPosition(0.9, 0.05);
-    scalarBar->SetPosition2(0.95, 0.6);
-    mRenderer->AddViewProp(scalarBar);
+    drawScalarBar(lookupTable);
 }
 
 //! Render color interpolated vertices
@@ -570,41 +570,80 @@ void ModeReportSceneItem::drawElements(vtkSmartPointer<vtkPoints> points, std::v
     mRenderer->AddActor(actor);
 }
 
-//! Save the current view as the image file
-void ModeReportSceneItem::saveAsImage()
+//! Render the scalar bar
+void ModeReportSceneItem::drawScalarBar(vtkSmartPointer<vtkLookupTable> lookupTable)
 {
-    // Open the file
-    QTemporaryFile file;
-    if (!file.open())
+    // Constants
+    double const kWidth = 1.0 / 5.0;
+
+    // Get the report item
+    ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
         return;
-    QString pathFile = file.fileName();
 
-    // Render
-    renderToPng(pathFile);
+    // Create the scalar bar
+    vtkNew<vtkScalarBarActor> scalarBar;
 
-    // Save the file content
-    mImageData = file.readAll();
-    mImageFormat = "png";
+    // Set the title
+    QString title = mTextEngine.process(pItem->sLabel);
+    vtkNew<vtkTextActor> titleActor;
+    titleActor->SetInput(title.toStdString().c_str());
+    vtkTextProperty* titleProp = titleActor->GetTextProperty();
+    titleProp->SetFontFamily(VTK_FONT_FILE);
+    titleProp->SetFontFile(mPathFontFile.toStdString().data());
+    titleProp->SetColor(skTextColor.GetData());
+    titleProp->SetOrientation(90);
+    titleProp->SetFontSize(pItem->font.pointSize());
+    titleProp->SetJustificationToCentered();
+    titleActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+    titleActor->GetPosition2Coordinate()->SetCoordinateSystemToNormalizedViewport();
+    titleActor->SetPosition(0.98, 0.35);
+    titleActor->SetPosition2(1.0, 0.55);
+    mRenderer->AddActor(titleActor);
+
+    // Set the labels
+    scalarBar->SetLabelFormat("%5.2f");
+    scalarBar->SetNumberOfLabels(2);
+    vtkTextProperty* labelProp = scalarBar->GetLabelTextProperty();
+    labelProp->ShadowOff();
+    labelProp->BoldOff();
+    labelProp->SetColor(skTextColor.GetData());
+    labelProp->SetFontSize(pItem->font.pointSize());
+
+    // Set the geometry
+    int maxWidth = ceil(kWidth * mRenderWindow->GetSize()[0]);
+    scalarBar->SetLookupTable(lookupTable);
+    scalarBar->SetMaximumWidthInPixels(maxWidth);
+    scalarBar->SetPosition(0.9, 0.05);
+    scalarBar->SetPosition2(0.95, 0.6);
+
+    // Add to the scene
+    mRenderer->AddViewProp(scalarBar);
 }
 
-//! Render the current scene to an image
-void ModeReportSceneItem::renderToPng(QString const& pathFile)
+//! Render the title
+void ModeReportSceneItem::drawTitle()
 {
+    // Get the report item
     ModeReportItem* pItem = (ModeReportItem*) mpItem;
+    if (!pItem)
+        return;
 
-    // Construct an image
-    vtkNew<vtkWindowToImageFilter> filter;
-    filter->SetInput(mRenderWindow);
-    filter->SetScale(pItem->quality);
-    filter->SetInputBufferTypeToRGBA();
-    filter->ReadFrontBufferOff();
-    filter->Update();
-
-    // Write a file
-    vtkNew<vtkPNGWriter> writer;
-    writer->SetFileName(pathFile.toStdString().c_str());
-    writer->SetInputConnection(filter->GetOutputPort());
-    writer->Write();
+    // Set the text
+    QString text = mTextEngine.process(pItem->title);
+    vtkNew<vtkTextActor> actor;
+    actor->SetInput(text.toStdString().c_str());
+    vtkTextProperty* prop = actor->GetTextProperty();
+    prop->SetFontFamily(VTK_FONT_FILE);
+    prop->SetFontFile(mPathFontFile.toStdString().data());
+    prop->SetColor(skTextColor.GetData());
+    prop->SetFontSize(pItem->font.pointSize());
+    prop->SetJustificationToLeft();
+    actor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+    actor->GetPosition2Coordinate()->SetCoordinateSystemToNormalizedViewport();
+    actor->SetPosition(0.0, 0.0);
+    actor->SetPosition2(0.5, 0.2);
+    mRenderer->AddActor(actor);
 }
 
 //! Create points which are associated with the geometry

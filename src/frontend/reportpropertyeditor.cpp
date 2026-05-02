@@ -83,6 +83,9 @@ void ReportPropertyEditor::refresh()
     case ReportItem::kTable:
         addTableProperties((TableReportItem*) pItem);
         break;
+    case ReportItem::kMode:
+        addModeProperties((ModeReportItem*) pItem);
+        break;
     default:
         break;
     }
@@ -195,6 +198,34 @@ void ReportPropertyEditor::addTableProperties(TableReportItem* pItem)
     mpEditor->addProperty(pShowLabelsProperty);
 }
 
+//! Create properties specific for mode items
+void ReportPropertyEditor::addModeProperties(ModeReportItem* pItem)
+{
+    QtVariantProperty* pTitleProperty = mpManager->addProperty(kTitle, QMetaType::QString, tr("Title"));
+    pTitleProperty->setValue(pItem->title);
+    mpEditor->addProperty(pTitleProperty);
+
+    QtVariantProperty* pSLabelProperty = mpManager->addProperty(kSLabel, QMetaType::QString, tr("Label"));
+    pSLabelProperty->setValue(pItem->sLabel);
+    mpEditor->addProperty(pSLabelProperty);
+
+    QtVariantProperty* pQualityProperty = mpManager->addProperty(kQuality, QMetaType::Double, tr("Quality"));
+    pQualityProperty->setValue(pItem->quality);
+    mpEditor->addProperty(pQualityProperty);
+
+    QtVariantProperty* pVertexSizeProperty = mpManager->addProperty(kVertexSize, QMetaType::Double, tr("Vertex size"));
+    pVertexSizeProperty->setValue(pItem->vertexSize);
+    mpEditor->addProperty(pVertexSizeProperty);
+
+    QtVariantProperty* pLineWidthProperty = mpManager->addProperty(kLineWidth, QMetaType::Double, tr("Line width"));
+    pLineWidthProperty->setValue(pItem->lineWidth);
+    mpEditor->addProperty(pLineWidthProperty);
+
+    QtVariantProperty* pShowUndeformedProperty = mpManager->addProperty(kShowUndeformed, QMetaType::Bool, tr("Show undeformed"));
+    pShowUndeformedProperty->setValue(pItem->showUndeformed);
+    mpEditor->addProperty(pShowUndeformedProperty);
+}
+
 //! Change the item property value
 void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
 {
@@ -280,6 +311,26 @@ void ReportPropertyEditor::setValue(QtProperty* pProperty, QVariant value)
         break;
     case kShowLabels:
         static_cast<TableReportItem*>(pItem)->showLabels = value.toBool();
+        break;
+
+    // Mode
+    case kTitle:
+        static_cast<ModeReportItem*>(pItem)->title = value.toString();
+        break;
+    case kSLabel:
+        static_cast<ModeReportItem*>(pItem)->sLabel = value.toString();
+        break;
+    case kQuality:
+        static_cast<ModeReportItem*>(pItem)->quality = value.toDouble();
+        break;
+    case kVertexSize:
+        static_cast<ModeReportItem*>(pItem)->vertexSize = value.toDouble();
+        break;
+    case kLineWidth:
+        static_cast<ModeReportItem*>(pItem)->lineWidth = value.toDouble();
+        break;
+    case kShowUndeformed:
+        static_cast<ModeReportItem*>(pItem)->showUndeformed = value.toBool();
         break;
 
     default:

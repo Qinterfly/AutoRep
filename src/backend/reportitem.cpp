@@ -536,17 +536,16 @@ ModeReportItem::ModeReportItem()
 {
     // View
     view = ReportView::kIsometric;
-    translation = {0.0, 0.0, 0.0};
-    rotation = {0.0, 0.0, 0.0};
     zoom = 1.5;
     scale = 0.1;
-    range = {0.0, 0.0};
-    quality = 2.0;
+
+    // Scalars
+    sRange = {0.0, 0.0};
 
     // Settings
+    quality = 2.0;
     edgeColor = QColor("grey");
     undeformedColor = QColor("grey");
-    numLabels = 4;
     edgeOpacity = 0.5;
     vertexSize = 5.0;
     lineWidth = 2.0;
@@ -573,20 +572,18 @@ ReportItem* ModeReportItem::clone() const
 
     // Header
     pResult->unit = unit;
-
-    // View
     pResult->view = view;
-    pResult->translation = translation;
-    pResult->rotation = rotation;
     pResult->zoom = zoom;
     pResult->scale = scale;
-    pResult->range = range;
-    pResult->quality = quality;
+    pResult->link = link;
 
     // Settings
+    pResult->title = title;
+    pResult->sLabel = sLabel;
+    pResult->sRange = sRange;
+    pResult->quality = quality;
     pResult->edgeColor = edgeColor;
     pResult->undeformedColor = undeformedColor;
-    pResult->numLabels = numLabels;
     pResult->edgeOpacity = edgeOpacity;
     pResult->vertexSize = vertexSize;
     pResult->lineWidth = lineWidth;
@@ -605,20 +602,18 @@ QJsonObject ModeReportItem::toJson() const
 
     // Header
     obj["unit"] = unit;
-
-    // View
     obj["view"] = (int) view;
-    obj["translation"] = Utility::toJson(translation);
-    obj["rotation"] = Utility::toJson(rotation);
     obj["zoom"] = zoom;
     obj["scale"] = scale;
-    obj["range"] = Utility::toJson(range);
-    obj["quality"] = quality;
+    obj["link"] = Utility::toJson(link);
 
     // Settings
+    obj["title"] = title;
+    obj["sLabel"] = sLabel;
+    obj["sRange"] = Utility::toJson(sRange);
+    obj["quality"] = quality;
     obj["edgeColor"] = Utility::toJson(edgeColor);
     obj["undeformedColor"] = Utility::toJson(undeformedColor);
-    obj["numLabels"] = numLabels;
     obj["edgeOpacity"] = edgeOpacity;
     obj["vertexSize"] = vertexSize;
     obj["lineWidth"] = lineWidth;
@@ -637,20 +632,18 @@ void ModeReportItem::fromJson(QJsonObject const& obj)
 
     // Header
     unit = obj["unit"].toString();
-
-    // View
     view = (ReportView) obj["view"].toInt();
-    Utility::fromJson(translation, obj["translation"]);
-    Utility::fromJson(rotation, obj["rotation"]);
     zoom = obj["zoom"].toDouble();
     scale = obj["scale"].toDouble();
-    Utility::fromJson(range, obj["range"]);
-    quality = obj["quality"].toDouble();
+    Utility::fromJson(link, obj["link"]);
 
     // Settings
+    title = obj["title"].toString();
+    sLabel = obj["sLabel"].toString();
+    Utility::fromJson(sRange, obj["sRange"]);
+    quality = obj["quality"].toDouble();
     Utility::fromJson(edgeColor, obj["edgeColor"]);
     Utility::fromJson(undeformedColor, obj["undeformedColor"]);
-    numLabels = obj["numLabels"].toInt();
     edgeOpacity = obj["edgeOpacity"].toDouble();
     vertexSize = obj["vertexSize"].toDouble();
     lineWidth = obj["lineWidth"].toDouble();

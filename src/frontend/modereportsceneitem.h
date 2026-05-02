@@ -15,9 +15,8 @@ class vtkPoints;
 class vtkCellArray;
 class vtkLookupTable;
 class vtkDoubleArray;
-class vtkOrientationMarkerWidget;
-class vtkRenderWindowInteractor;
 class vtkAxesActor;
+class vtkWindowToImageFilter;
 
 namespace Backend::Core
 {
@@ -63,10 +62,8 @@ private:
                       bool isEdgeVisible = true, bool isWireframe = false);
     void drawElements(vtkSmartPointer<vtkPoints> points, std::vector<std::vector<int>> const& indices, vtkSmartPointer<vtkDoubleArray> scalars,
                       vtkSmartPointer<vtkLookupTable> lookupTable, bool isWireframe = false);
-
-    // Image
-    void saveAsImage();
-    void renderToPng(QString const& pathFile);
+    void drawScalarBar(vtkSmartPointer<vtkLookupTable> lookupTable);
+    void drawTitle();
 
     // Helper functions
     vtkSmartPointer<vtkPoints> createPoints(Testlab::Component const& component, double scale = 0.0);
@@ -90,8 +87,8 @@ private:
     vtkSmartPointer<vtkRenderer> mRenderer;
     vtkSmartPointer<vtkRenderer> mOverlayRenderer;
     vtkSmartPointer<vtkAxesActor> mAxes;
-    QByteArray mImageData;
-    QString mImageFormat;
+    QImage mImage;
+    QString mPathFontFile;
 };
 
 }

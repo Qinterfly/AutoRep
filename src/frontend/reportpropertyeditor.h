@@ -17,6 +17,7 @@ class ReportPage;
 class TextReportItem;
 class GraphReportItem;
 class TableReportItem;
+class ModeReportItem;
 }
 
 namespace Frontend
@@ -67,10 +68,15 @@ public:
         // Table
         kNumRows,
         kNumCols,
-        kShowLabels
+        kShowLabels,
 
         // Mode
-
+        kTitle,
+        kSLabel,
+        kQuality,
+        kVertexSize,
+        kLineWidth,
+        kShowUndeformed
     };
 
     ReportPropertyEditor(QWidget* pParent = nullptr);
@@ -88,6 +94,7 @@ private:
     void addBaseProperties(Backend::Core::ReportItem* pItem);
     void addGraphProperties(Backend::Core::GraphReportItem* pItem);
     void addTableProperties(Backend::Core::TableReportItem* pItem);
+    void addModeProperties(Backend::Core::ModeReportItem* pItem);
     void setValue(QtProperty* pProperty, QVariant value);
     Qt::Alignment getAlignValue(Align key);
 

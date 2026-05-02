@@ -276,20 +276,26 @@ ReportPage ReportDefaults::mode3DPage()
     pIso->rect = QRect(30, 25, 155, 80);
     pIso->unit = Units::skM_S2;
     pIso->view = ReportView::kIsometric;
+    pIso->title = QObject::tr("${BUNDLE}");
+    pIso->sLabel = QObject::tr("Im a, ${UNIT}");
 
     // Create front mode
     ModeReportItem* pFront = new ModeReportItem;
     pFront->name = QObject::tr("Front");
-    pFront->rect = QRect(30, 100, 155, 80);
+    pFront->rect = QRect(30, 105, 155, 80);
     pFront->unit = Units::skM_S2;
     pFront->view = ReportView::kFront;
+    pFront->link = pIso->id;
+    pFront->sLabel = QObject::tr("Im a, ${UNIT}");
 
     // Create top mode
     ModeReportItem* pTop = new ModeReportItem;
     pTop->name = QObject::tr("Top");
-    pTop->rect = QRect(30, 180, 155, 80);
+    pTop->rect = QRect(30, 185, 155, 80);
     pTop->unit = Units::skM_S2;
     pTop->view = ReportView::kTop;
+    pTop->link = pIso->id;
+    pTop->sLabel = QObject::tr("Im a, ${UNIT}");
 
     // Create title
     TextReportItem* pTitle = new TextReportItem;

@@ -4,12 +4,12 @@ cmake_minimum_required(VERSION 3.22)
 # Set parameters
 
 ## Data
-set(APP_NAME AutoRep)
+set(APP_NAME Valeria)
 set(APP_CREATOR "Pavel Lakiza")
 ## Version
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 5)
-set(VERSION_PATCH 4)
+set(VERSION_PATCH 5)
 set(VERSION_FULL ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 ## Directories
 set(INPUT_DIR ${CMAKE_SOURCE_DIR}/input)
@@ -46,7 +46,7 @@ if(CCACHE_PROGRAM)
 endif()
 
 # Specify project options
-project(autorep LANGUAGES CXX)
+project(valeria LANGUAGES CXX)
 
 # Add dependencies
 add_subdirectory(lib)

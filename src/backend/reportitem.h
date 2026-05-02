@@ -49,8 +49,7 @@ enum class ReportView
     kBottom,
     kLeft,
     kRight,
-    kIsometric,
-    kCustom
+    kIsometric
 };
 
 //! Base class for items
@@ -280,20 +279,18 @@ public:
 public:
     // Header
     QString unit;
-
-    // View
     ReportView view;
-    QList<double> translation;
-    QList<double> rotation;
     double zoom;
     double scale;
-    PairDouble range;
-    double quality;
+    QUuid link;
 
     // Settings
+    QString title;
+    QString sLabel;
+    PairDouble sRange;
+    double quality;
     QColor edgeColor;
     QColor undeformedColor;
-    int numLabels;
     double edgeOpacity;
     double vertexSize;
     double lineWidth;
